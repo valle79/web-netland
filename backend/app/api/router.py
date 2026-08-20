@@ -1,0 +1,12 @@
+from fastapi import APIRouter
+
+from app.api.routes import auth, config, crm, dashboard, projects, uploads, users
+
+api_router = APIRouter(prefix="/api")
+api_router.include_router(auth.router)
+api_router.include_router(projects.router)
+api_router.include_router(crm.router)
+api_router.include_router(users.router)
+api_router.include_router(dashboard.router)
+api_router.include_router(config.router)
+api_router.include_router(uploads.router)

@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --netland-primary: #14532d;
+  --netland-primary-dark: #0f3d2e;
+  --netland-secondary: #1e3a5f;
+  --netland-accent: #b9924e;
+  --netland-dark: #101820;
+  --netland-light: #f5f5f0;
+  --netland-background: #faf9f6;
+  --netland-text: #1c2b26;
+  --netland-muted: #6b7a72;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-netland-background text-netland-text font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  .container-netland {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-netland-primary px-7 py-3.5 text-sm font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:bg-netland-primaryDark hover:shadow-lift;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm border border-white/70 px-7 py-3.5 text-sm font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:bg-white/10;
+  }
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-netland-accent px-7 py-3.5 text-sm font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:opacity-90 hover:shadow-lift;
+  }
+  .btn-whatsapp {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-[#25D366] px-7 py-3.5 text-sm font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:opacity-90 hover:shadow-lift;
+  }
+  .section-padding {
+    @apply py-20 md:py-28;
+  }
+  .eyebrow {
+    @apply mb-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-netland-accent;
+  }
+  .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

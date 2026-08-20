@@ -1,0 +1,543 @@
+import { useQuery } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
+import { useState } from "react";
+import {
+  CalendarCheck,
+  Check,
+  FileText,
+  MapPin,
+  MessageCircle,
+} from "lucide-react";
+import { api } from "../lib/api";
+import { whatsappLink } from "../lib/constants";
+import type {
+  GalleryItem,
+  Lot,
+  Project,
+  ProjectDocument,
+  ProjectVideo,
+} from "../types";
+import { PlanInteractive } from "../components/PlanInteractive";
+import { LotModal } from "../components/LotModal";
+import { QuoteCalculator } from "../components/QuoteCalculator";
+import { Lightbox } from "../components/ui/Lightbox";
+import { Reveal } from "../components/Reveal";
+import { useLeadForm } from "../features/leads/useLeadForm";
+import { Skeleton } from "../components/ui/Skeleton";
+
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=80";
+
+const VIDEO_IDS = (url: string) => {
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/
+  );
+  return match ? match[1] : null;
+};
+
+export default function ProjectDetail() {
+  const { slug } = useParams<{ slug: string }>();
+  const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const { data: project, isLoading } = useQuery({
+    queryKey: ["project", slug],
+    queryFn: () => api.get<Project>(`/projects/${slug}`),
+    enabled: !!slug,
+  });
+
+  const { data: lots = [] } = useQuery({
+    queryKey: ["project-lots", project?.id],
+    queryFn: () => api.get<Lot[]>(`/projects/${project!.id}/lots`),
+    enabled: !!project,
+  });
+
+  const { data: gallery = [] } = useQuery({
+    queryKey: ["project-gallery", project?.id],
+    queryFn: () => api.get<GalleryItem[]>(`/projects/${project!.id}/gallery`),
+    enabled: !!project,
+  });
+
+  const { data: videos = [] } = useQuery({
+    queryKey: ["project-videos", project?.id],
+    queryFn: () => api.get<ProjectVideo[]>(`/projects/${project!.id}/videos`),
+    enabled: !!project,
+  });
+
+  const { data: documents = [] } = useQuery({
+    queryKey: ["project-documents", project?.id],
+    queryFn: () => api.get<ProjectDocument[]>(`/projects/${project!.id}/documents`),
+    enabled: !!project,
+  });
+
+  if (isLoading || !project) {
+    return (
+      <div className="min-h-screen bg-netland-background pt-24">
+        <div className="container-netland space-y-6 py-10">
+          <Skeleton className="h-72 w-full rounded-lg" />
+          <Skeleton className="h-10 w-1/2" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-96 w-full rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
+  const availableLots = lots.filter((l) => l.status === "available").length;
+  const features = project.features
+    ? project.features.split("\n").filter(Boolean)
+    : [];
+  const mainVideo = videos.find((v) => v.video_type === "main") ?? videos[0];
+
+  return (
+    <div>
+      <section
+        className="relative flex min-h-[70vh] items-end overflow-hidden"
+        style={{
+          background: `linear-gradient(160deg, ${project.color_secondary} 0%, ${project.color_primary} 100%)`,
+        }}
+      >
+        {mainVideo && VIDEO_IDS(mainVideo.url) ? (
+          <div className="absolute inset-0">
+            <iframe
+              src={`https://www.youtube.com/embed/${VIDEO_IDS(mainVideo.url)}?autoplay=0&mute=1&loop=0`}
+              title={mainVideo.title}
+              className="h-full w-full object-cover"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            />
+          </div>
+        ) : (
+          <div className="absolute inset-0">
+            <img
+              src={project.hero_image || FALLBACK_IMAGE}
+              alt={project.name}
+              className="h-full w-full object-cover"
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(to top, ${project.color_secondary}EE, ${project.color_primary}33)`,
+              }}
+            />
+          </div>
+        )}
+
+        <div className="container-netland relative z-10 pb-16 pt-40 text-white">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-netland-accent">
+            {project.tagline}
+          </p>
+          <h1 className="max-w-3xl text-balance font-display text-5xl font-semibold sm:text-6xl">
+            {project.short_name}
+          </h1>
+          <p className="mt-4 flex items-center gap-2 text-white/85">
+            <MapPin className="h-5 w-5 text-netland-accent" />
+            {project.location} · {project.reference}
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <span className="rounded-sm bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
+              {availableLots} lotes disponibles
+            </span>
+            {project.available_count > 0 && (
+              <a href="#lotes" className="btn-primary">
+                Ver lotes disponibles
+              </a>
+            )}
+            <a
+              href={whatsappLink(
+                `Hola Luis, quiero agendar una visita a ${project.short_name}.`
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-whatsapp"
+            >
+              <CalendarCheck className="h-4 w-4" />
+              Agendar visita
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section className="section-padding bg-netland-background">
+        <div className="container-netland grid gap-14 lg:grid-cols-5">
+          <div className="lg:col-span-3">
+            <Reveal>
+              <p className="eyebrow">El proyecto</p>
+              <h2 className="font-display text-4xl font-semibold text-netland-dark">
+                {project.description}
+              </h2>
+              <p className="mt-6 leading-relaxed text-netland-muted">
+                {project.long_description}
+              </p>
+            </Reveal>
+
+            {features.length > 0 && (
+              <Reveal className="mt-8">
+                <h3 className="mb-4 font-display text-2xl font-semibold text-netland-dark">
+                  Beneficios del proyecto
+                </h3>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {features.map((feature) => (
+                    <li
+                      key={feature}
+                      className="flex items-center gap-2.5 rounded-md bg-white px-4 py-3 text-sm shadow-soft"
+                    >
+                      <span
+                        className="flex h-5 w-5 items-center justify-center rounded-full text-white"
+                        style={{ backgroundColor: project.color_primary }}
+                      >
+                        <Check className="h-3 w-3" />
+                      </span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </Reveal>
+            )}
+          </div>
+
+          <div className="lg:col-span-2">
+            <Reveal delay={100}>
+              <div className="rounded-lg bg-netland-dark p-7 text-white">
+                <h3 className="mb-5 font-display text-2xl font-semibold">
+                  Respaldo y documentación
+                </h3>
+                <ul className="space-y-4 text-sm text-white/80">
+                  <li className="flex gap-3">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-netland-accent" />
+                    Empresa legalmente constituida.
+                  </li>
+                  <li className="flex gap-3">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-netland-accent" />
+                    Proyecto registrado en SUNARP.
+                  </li>
+                  <li className="flex gap-3">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-netland-accent" />
+                    Visitas guiadas y orientación completa.
+                  </li>
+                  <li className="flex gap-3">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-netland-accent" />
+                    Financiamiento directo y cuotas sin intereses.
+                  </li>
+                </ul>
+                {project.legal_info && (
+                  <p className="mt-5 border-t border-white/10 pt-4 text-xs text-white/60">
+                    {project.legal_info}
+                  </p>
+                )}
+                <a
+                  href={whatsappLink(
+                    `Hola Luis, quiero más información sobre ${project.short_name}.`
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-accent mt-6 w-full"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Hablar con un asesor
+                </a>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      <section id="lotes" className="scroll-mt-20 bg-white py-20 md:py-28">
+        <div className="container-netland">
+          <Reveal>
+            <div className="mb-10 max-w-2xl">
+              <p className="eyebrow">Disponibilidad</p>
+              <h2 className="font-display text-4xl font-semibold text-netland-dark">
+                Plano de lotes
+              </h2>
+              <p className="mt-3 text-netland-muted">
+                Consulta la disponibilidad en tiempo real. Toca un lote para ver su
+                área, precio y estado.
+              </p>
+            </div>
+          </Reveal>
+
+          <PlanInteractive
+            lots={lots}
+            projectName={project.short_name}
+            onSelect={setSelectedLot}
+          />
+        </div>
+      </section>
+
+      <section className="bg-netland-light/50 py-20 md:py-28">
+        <div className="container-netland">
+          <Reveal>
+            <div className="mb-10 max-w-2xl">
+              <p className="eyebrow">Calcula tu inversión</p>
+              <h2 className="font-display text-4xl font-semibold text-netland-dark">
+                Calcula tu inversión
+              </h2>
+              <p className="mt-3 text-netland-muted">
+                Selecciona tu lote, define tu inicial y el número de cuotas. Sin
+                intereses, con financiamiento directo de Netland.
+              </p>
+            </div>
+          </Reveal>
+          <QuoteCalculator project={project} lots={lots} />
+        </div>
+      </section>
+
+      {videos.length > 0 && (
+        <section className="section-padding bg-white">
+          <div className="container-netland">
+            <Reveal>
+              <div className="mb-10 max-w-2xl">
+                <p className="eyebrow">Videos</p>
+                <h2 className="font-display text-4xl font-semibold text-netland-dark">
+                  Conoce el proyecto en video
+                </h2>
+              </div>
+            </Reveal>
+            <div className="grid gap-6 md:grid-cols-2">
+              {videos.map((video, i) => {
+                const id = VIDEO_IDS(video.url);
+                if (!id) return null;
+                return (
+                  <Reveal key={video.id} delay={i * 100}>
+                    <div className="group relative aspect-video overflow-hidden rounded-lg bg-netland-dark">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${id}`}
+                        title={video.title}
+                        className="h-full w-full"
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      />
+                    </div>
+                  </Reveal>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {gallery.length > 0 && (
+        <section className="section-padding bg-netland-background">
+          <div className="container-netland">
+            <Reveal>
+              <div className="mb-10 flex items-end justify-between">
+                <div>
+                  <p className="eyebrow">Galería</p>
+                  <h2 className="font-display text-4xl font-semibold text-netland-dark">
+                    Así es {project.short_name}
+                  </h2>
+                </div>
+              </div>
+            </Reveal>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+              {gallery.map((img, i) => (
+                <Reveal key={img.id} delay={i * 60}>
+                  <button
+                    onClick={() => setLightboxIndex(i)}
+                    className="group block w-full overflow-hidden rounded-lg"
+                  >
+                    <div className="aspect-[4/3] overflow-hidden">
+                      <img
+                        src={img.url}
+                        alt={img.caption || project.short_name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                  </button>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {documents.length > 0 && (
+        <section className="bg-white py-20">
+          <div className="container-netland">
+            <Reveal>
+              <div className="mb-10 max-w-2xl">
+                <p className="eyebrow">Documentos</p>
+                <h2 className="font-display text-4xl font-semibold text-netland-dark">
+                  Material de descarga
+                </h2>
+              </div>
+            </Reveal>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {documents.map((doc) => (
+                <a
+                  key={doc.id}
+                  href={doc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 rounded-md border border-netland-light bg-netland-background p-5 transition-all hover:border-netland-primary hover:shadow-soft"
+                >
+                  <FileText className="h-8 w-8 shrink-0 text-netland-accent" />
+                  <div>
+                    <p className="text-sm font-semibold text-netland-dark">{doc.name}</p>
+                    <p className="text-xs uppercase tracking-wider text-netland-muted">
+                      {doc.category}
+                    </p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <LocationSection project={project} />
+      <VisitBanner project={project} />
+
+      <LotModal
+        lot={selectedLot}
+        project={project}
+        onClose={() => setSelectedLot(null)}
+      />
+      <Lightbox
+        images={gallery.map((g) => ({ url: g.url, caption: g.caption }))}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+      />
+    </div>
+  );
+}
+
+function LocationSection({ project }: { project: Project }) {
+  const mapEmbed = project.map_link || null;
+  return (
+    <section className="section-padding bg-netland-background">
+      <div className="container-netland">
+        <Reveal>
+          <div className="mb-10 max-w-2xl">
+            <p className="eyebrow">Ubicación</p>
+            <h2 className="font-display text-4xl font-semibold text-netland-dark">
+              ¿Dónde estamos?
+            </h2>
+            <p className="mt-3 text-netland-muted">{project.location}</p>
+            <p className="mt-1 text-sm text-netland-muted">{project.reference}</p>
+          </div>
+        </Reveal>
+
+        <div className="overflow-hidden rounded-lg shadow-soft">
+          {mapEmbed ? (
+            <iframe
+              src={mapEmbed}
+              title={`Mapa de ${project.short_name}`}
+              className="h-[420px] w-full"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-[420px] flex-col items-center justify-center gap-3 bg-netland-light text-center">
+              <MapPin className="h-10 w-10 text-netland-accent" />
+              <p className="font-display text-xl font-semibold text-netland-dark">
+                {project.location}
+              </p>
+              <p className="max-w-md text-sm text-netland-muted">
+                {project.reference} · El mapa de ubicación se cargará próximamente
+                desde el panel administrativo.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function VisitBanner({ project }: { project: Project }) {
+  const { submit, submitted } = useLeadForm();
+  const [form, setForm] = useState({ name: "", phone: "" });
+
+  if (submitted) {
+    return (
+      <section className="bg-netland-dark py-20 text-white">
+        <div className="container-netland text-center">
+          <p className="font-display text-3xl font-semibold">
+            ¡Solicitud de visita enviada!
+          </p>
+          <p className="mt-3 text-white/70">
+            Un asesor de Netland coordinará tu visita guiada a {project.short_name}.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="bg-netland-dark py-20 text-white">
+      <div className="container-netland grid items-center gap-10 lg:grid-cols-2">
+        <div>
+          <p className="eyebrow">Visitas guiadas</p>
+          <h2 className="font-display text-4xl font-semibold sm:text-5xl">
+            Agenda una visita a {project.short_name}
+          </h2>
+          <p className="mt-4 text-white/70">
+            Recorre el terreno, conoce las áreas comunes y resuelve todas tus dudas
+            con un asesor de Netland.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-4">
+            <a
+              href={whatsappLink(
+                `Hola Luis, quiero agendar una visita guiada a ${project.short_name}.`
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-whatsapp"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Agendar por WhatsApp
+            </a>
+          </div>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (form.name && form.phone) {
+              submit({
+                name: form.name,
+                phone: form.phone,
+                project_id: project.id,
+                source: "visita",
+                message: `Quiero agendar una visita a ${project.short_name}.`,
+              });
+            }
+          }}
+          className="rounded-lg bg-white/5 p-7 backdrop-blur"
+        >
+          <h3 className="mb-5 font-display text-2xl font-semibold">
+            Solicitar visita
+          </h3>
+          <div className="space-y-4">
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-wider text-white/60">
+                Nombre
+              </span>
+              <input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+                className="w-full rounded-sm border border-white/15 bg-white/10 px-4 py-3 text-sm outline-none focus:border-netland-accent"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-wider text-white/60">
+                Teléfono / WhatsApp
+              </span>
+              <input
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                required
+                className="w-full rounded-sm border border-white/15 bg-white/10 px-4 py-3 text-sm outline-none focus:border-netland-accent"
+              />
+            </label>
+            <button type="submit" className="btn-accent w-full">
+              Solicitar visita
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  );
+}

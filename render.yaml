@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: netland-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: netland-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+databases:
+  - name: netland-db
+    plan: free
+    databaseName: netland
+    user: netland
