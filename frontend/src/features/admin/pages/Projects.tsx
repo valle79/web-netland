@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Image, FileText } from "lucide-react";
 import { api } from "../../../lib/api";
 import type { Project } from "../../../types";
 import { PageHeader, Button, Card, Badge, Table } from "../ui";
@@ -87,14 +87,24 @@ export default function AdminProjects() {
                 </Badge>
               </td>
               <td className="px-5 py-4">
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Link to={`/admin/proyectos/${project.id}/editar`}>
-                    <Button variant="outline" className="!px-3 !py-2">
+                    <Button variant="outline" className="!px-3 !py-2" title="Editar proyecto">
                       <Pencil className="h-4 w-4" />
                     </Button>
                   </Link>
+                  <Link to={`/admin/proyectos/${project.id}/galeria`}>
+                    <Button variant="outline" className="!px-3 !py-2" title="Gestionar galería">
+                      <Image className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link to={`/admin/proyectos/${project.id}/documentos`}>
+                    <Button variant="outline" className="!px-3 !py-2" title="Gestionar documentos">
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Link to={`/admin/plano/${project.id}`}>
-                    <Button variant="outline" className="!px-3 !py-2">
+                    <Button variant="outline" className="!px-3 !py-2" title="Editor de plano">
                       Plano
                     </Button>
                   </Link>
@@ -111,6 +121,7 @@ export default function AdminProjects() {
                         deleteMutation.mutate(project.id);
                       }
                     }}
+                    title="Eliminar proyecto"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

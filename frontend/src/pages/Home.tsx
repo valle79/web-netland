@@ -83,7 +83,7 @@ function Hero() {
           src={HERO_IMAGE}
           alt="Campo verde en Cañete"
           className="h-full w-full object-cover"
-          fetchpriority="high"
+          fetchPriority="high"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-netland-dark/90 via-netland-dark/50 to-netland-dark/30" />
       </div>

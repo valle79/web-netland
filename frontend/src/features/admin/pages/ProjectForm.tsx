@@ -7,6 +7,7 @@ import type { Project } from "../../../types";
 import { PageHeader, Button, Card, Field, Input, Select, Textarea } from "../ui";
 import { useToast } from "../../../components/ui/Toast";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { FileUploader } from "../../../components/ui/FileUploader";
 
 const emptyProject = {
   slug: "",
@@ -169,15 +170,45 @@ export default function ProjectForm() {
                 </div>
               </Field>
             </div>
-            <Field label="Imagen de portada (URL Cloudinary)">
-              <Input value={form.hero_image} onChange={(e) => set("hero_image", e.target.value)} />
+            
+            <FileUploader
+              label="Imagen de portada"
+              accept="image/*"
+              folder="projects/hero"
+              currentUrl={form.hero_image}
+              hint="Formatos: JPG, PNG, WEBP. Tamaño recomendado: 1920x1080px"
+              onUploadComplete={(url) => set("hero_image", url)}
+              maxSizeMB={5}
+            />
+            
+            <FileUploader
+              label="Video principal"
+              accept="video/*"
+              folder="projects/videos"
+              currentUrl={form.hero_video}
+              hint="Formatos: MP4, WEBM, MOV. También puedes pegar una URL de YouTube"
+              preview={false}
+              onUploadComplete={(url) => set("hero_video", url)}
+              maxSizeMB={50}
+            />
+            
+            <Field label="O pegar URL de video (YouTube/Vimeo)">
+              <Input 
+                value={form.hero_video} 
+                onChange={(e) => set("hero_video", e.target.value)} 
+                placeholder="https://www.youtube.com/watch?v=..."
+              />
             </Field>
-            <Field label="Video principal (URL YouTube o Cloudinary)">
-              <Input value={form.hero_video} onChange={(e) => set("hero_video", e.target.value)} />
-            </Field>
-            <Field label="Logo del proyecto (URL)">
-              <Input value={form.logo_url} onChange={(e) => set("logo_url", e.target.value)} />
-            </Field>
+            
+            <FileUploader
+              label="Logo del proyecto"
+              accept="image/*"
+              folder="projects/logos"
+              currentUrl={form.logo_url}
+              hint="Formato PNG con fondo transparente recomendado"
+              onUploadComplete={(url) => set("logo_url", url)}
+              maxSizeMB={2}
+            />
           </Card>
 
           <Card className="space-y-4">
@@ -191,6 +222,17 @@ export default function ProjectForm() {
             <Field label="SEO Description">
               <Textarea rows={2} value={form.seo_description} onChange={(e) => set("seo_description", e.target.value)} />
             </Field>
+            
+            <FileUploader
+              label="Imagen para compartir en redes sociales (OG Image)"
+              accept="image/*"
+              folder="projects/og"
+              currentUrl={form.og_image}
+              hint="Tamaño recomendado: 1200x630px. Se usa al compartir el proyecto en redes sociales"
+              onUploadComplete={(url) => set("og_image", url)}
+              maxSizeMB={3}
+            />
+            
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"

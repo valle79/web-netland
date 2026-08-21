@@ -18,6 +18,8 @@ const AdminLayout = lazy(() => import("./features/admin/AdminLayout"));
 const AdminDashboard = lazy(() => import("./features/admin/pages/Dashboard"));
 const AdminProjects = lazy(() => import("./features/admin/pages/Projects"));
 const AdminProjectForm = lazy(() => import("./features/admin/pages/ProjectForm"));
+const AdminProjectGallery = lazy(() => import("./features/admin/pages/ProjectGallery"));
+const AdminProjectDocuments = lazy(() => import("./features/admin/pages/ProjectDocuments"));
 const AdminLots = lazy(() => import("./features/admin/pages/Lots"));
 const AdminPlan = lazy(() => import("./features/admin/pages/PlanEditor"));
 const AdminPlanImport = lazy(() => import("./features/admin/pages/PlanImport"));
@@ -41,6 +43,8 @@ export default function App() {
             <Route path="proyectos" element={<AdminProjects />} />
             <Route path="proyectos/nuevo" element={<AdminProjectForm />} />
             <Route path="proyectos/:id/editar" element={<AdminProjectForm />} />
+            <Route path="proyectos/:id/galeria" element={<AdminProjectGallery />} />
+            <Route path="proyectos/:id/documentos" element={<AdminProjectDocuments />} />
             <Route path="proyectos/:projectId/importar-plano" element={<AdminPlanImport />} />
             <Route path="lotes" element={<AdminLots />} />
             <Route path="plano/:projectId" element={<AdminPlan />} />
