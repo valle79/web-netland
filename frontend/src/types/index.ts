@@ -71,6 +71,7 @@ export interface ProjectVideo {
   id: number;
   url: string;
   title: string;
+  description?: string;
   video_type: string;
 }
 

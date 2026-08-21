@@ -9,11 +9,11 @@
   --netland-accent: #b9924e;
   --netland-dark: #101820;
   --netland-light: #f5f5f0;
-  --netland-background: #faf9f6;
-  --netland-text: #1c2b26;
-  --netland-muted: #6b7a72;
-  --font-display: "Cormorant Garamond", Georgia, serif;
-  --font-sans: "Inter", system-ui, sans-serif;
+  --netland-background: #fafaf9;
+  --netland-text: #1a1a1a;
+  --netland-muted: #737373;
+  --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 @layer base {
@@ -26,8 +26,10 @@
   h1,
   h2,
   h3,
-  h4 {
-    font-family: var(--font-display);
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
   }
 }
 
@@ -36,26 +38,43 @@
     @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-netland-primary px-7 py-3.5 text-sm font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:bg-netland-primaryDark hover:shadow-lift;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-all duration-300 hover:shadow-lg;
+    background-color: var(--netland-primary);
+  }
+  .btn-primary:hover {
+    background-color: var(--netland-primary-dark);
   }
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm border border-white/70 px-7 py-3.5 text-sm font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:bg-white/10;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border-2 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-all duration-300;
+    border-color: rgba(255, 255, 255, 0.8);
+  }
+  .btn-outline:hover {
+    background-color: rgba(255, 255, 255, 0.1);
   }
   .btn-accent {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-netland-accent px-7 py-3.5 text-sm font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:opacity-90 hover:shadow-lift;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-all duration-300 hover:shadow-lg;
+    background-color: var(--netland-accent);
+  }
+  .btn-accent:hover {
+    opacity: 0.9;
   }
   .btn-whatsapp {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-[#25D366] px-7 py-3.5 text-sm font-semibold uppercase tracking-widest text-white transition-all duration-300 hover:opacity-90 hover:shadow-lift;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-all duration-300 hover:shadow-lg;
+    background-color: #25D366;
+  }
+  .btn-whatsapp:hover {
+    background-color: #128C7E;
   }
   .section-padding {
     @apply py-20 md:py-28;
   }
   .eyebrow {
-    @apply mb-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-netland-accent;
+    @apply mb-4 inline-flex items-center gap-2 text-xs font-bold uppercase text-netland-accent;
+    letter-spacing: 0.25em;
   }
   .reveal {
     opacity: 0;
-    transform: translateY(28px);
+    transform: translateY(24px);
     transition: opacity 0.7s ease-out, transform 0.7s ease-out;
   }
   .reveal.is-visible {
@@ -67,5 +86,10 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  @supports not (text-wrap: balance) {
+    .text-balance {
+      max-width: 60ch;
+    }
   }
 }

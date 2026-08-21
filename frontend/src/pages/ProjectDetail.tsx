@@ -92,18 +92,16 @@ export default function ProjectDetail() {
   return (
     <div>
       <section
-        className="relative flex min-h-[70vh] items-end overflow-hidden"
-        style={{
-          background: `linear-gradient(160deg, ${project.color_secondary} 0%, ${project.color_primary} 100%)`,
-        }}
+        className="relative flex min-h-[75vh] items-end overflow-hidden bg-netland-dark"
       >
         {mainVideo && VIDEO_IDS(mainVideo.url) ? (
           <div className="absolute inset-0">
             <iframe
-              src={`https://www.youtube.com/embed/${VIDEO_IDS(mainVideo.url)}?autoplay=0&mute=1&loop=0`}
+              src={`https://www.youtube.com/embed/${VIDEO_IDS(mainVideo.url)}?autoplay=0&mute=1&loop=0&controls=1&modestbranding=1`}
               title={mainVideo.title}
               className="h-full w-full object-cover"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
             />
           </div>
         ) : (
@@ -113,28 +111,23 @@ export default function ProjectDetail() {
               alt={project.name}
               className="h-full w-full object-cover"
             />
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(to top, ${project.color_secondary}EE, ${project.color_primary}33)`,
-              }}
-            />
+            <div className="absolute inset-0 bg-gradient-to-t from-netland-dark/90 via-netland-dark/50 to-transparent" />
           </div>
         )}
 
         <div className="container-netland relative z-10 pb-16 pt-40 text-white">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-netland-accent">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-netland-accent">
             {project.tagline}
           </p>
-          <h1 className="max-w-3xl text-balance font-display text-5xl font-semibold sm:text-6xl">
+          <h1 className="max-w-3xl text-balance font-display text-5xl font-bold leading-tight sm:text-6xl lg:text-7xl">
             {project.short_name}
           </h1>
-          <p className="mt-4 flex items-center gap-2 text-white/85">
+          <p className="mt-5 flex items-center gap-2 text-lg text-white/90">
             <MapPin className="h-5 w-5 text-netland-accent" />
             {project.location} · {project.reference}
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <span className="rounded-sm bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
+            <span className="rounded-lg border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold backdrop-blur-sm">
               {availableLots} lotes disponibles
             </span>
             {project.available_count > 0 && (
@@ -283,30 +276,48 @@ export default function ProjectDetail() {
       </section>
 
       {videos.length > 0 && (
-        <section className="section-padding bg-white">
+        <section className="section-padding bg-netland-dark">
           <div className="container-netland">
             <Reveal>
-              <div className="mb-10 max-w-2xl">
-                <p className="eyebrow">Videos</p>
-                <h2 className="font-display text-4xl font-semibold text-netland-dark">
-                  Conoce el proyecto en video
+              <div className="mb-12 max-w-2xl text-white">
+                <p className="eyebrow justify-start">Videos del proyecto</p>
+                <h2 className="font-display text-4xl font-bold lg:text-5xl">
+                  Conoce {project.short_name} en video
                 </h2>
+                <p className="mt-4 text-white/70">
+                  Explora cada detalle del proyecto a través de nuestros recorridos virtuales y videos informativos.
+                </p>
               </div>
             </Reveal>
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-8 lg:grid-cols-2">
               {videos.map((video, i) => {
                 const id = VIDEO_IDS(video.url);
                 if (!id) return null;
                 return (
                   <Reveal key={video.id} delay={i * 100}>
-                    <div className="group relative aspect-video overflow-hidden rounded-lg bg-netland-dark">
-                      <iframe
-                        src={`https://www.youtube.com/embed/${id}`}
-                        title={video.title}
-                        className="h-full w-full"
-                        loading="lazy"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      />
+                    <div className="group overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:border-netland-accent/50">
+                      <div className="relative aspect-video overflow-hidden">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${id}?modestbranding=1`}
+                          title={video.title}
+                          className="h-full w-full"
+                          loading="lazy"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                      {video.title && (
+                        <div className="p-6">
+                          <h3 className="font-display text-xl font-bold text-white">
+                            {video.title}
+                          </h3>
+                          {video.description && (
+                            <p className="mt-2 text-sm text-white/60">
+                              {video.description}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </Reveal>
                 );
@@ -317,33 +328,39 @@ export default function ProjectDetail() {
       )}
 
       {gallery.length > 0 && (
-        <section className="section-padding bg-netland-background">
+        <section className="section-padding bg-white">
           <div className="container-netland">
             <Reveal>
-              <div className="mb-10 flex items-end justify-between">
-                <div>
-                  <p className="eyebrow">Galería</p>
-                  <h2 className="font-display text-4xl font-semibold text-netland-dark">
-                    Así es {project.short_name}
-                  </h2>
-                </div>
+              <div className="mb-12 max-w-2xl">
+                <p className="eyebrow">Galería de imágenes</p>
+                <h2 className="font-display text-4xl font-bold text-netland-dark lg:text-5xl">
+                  Así es {project.short_name}
+                </h2>
+                <p className="mt-4 text-netland-muted">
+                  Explora cada rincón del proyecto a través de nuestra galería fotográfica.
+                </p>
               </div>
             </Reveal>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {gallery.map((img, i) => (
                 <Reveal key={img.id} delay={i * 60}>
                   <button
                     onClick={() => setLightboxIndex(i)}
-                    className="group block w-full overflow-hidden rounded-lg"
+                    className="group relative block w-full overflow-hidden rounded-xl"
                   >
-                    <div className="aspect-[4/3] overflow-hidden">
+                    <div className="aspect-[4/3] overflow-hidden bg-netland-light">
                       <img
                         src={img.url}
                         alt={img.caption || project.short_name}
                         loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
                     </div>
+                    {img.caption && (
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <p className="text-sm font-medium text-white">{img.caption}</p>
+                      </div>
+                    )}
                   </button>
                 </Reveal>
               ))}
@@ -353,33 +370,39 @@ export default function ProjectDetail() {
       )}
 
       {documents.length > 0 && (
-        <section className="bg-white py-20">
+        <section className="section-padding bg-netland-background">
           <div className="container-netland">
             <Reveal>
-              <div className="mb-10 max-w-2xl">
-                <p className="eyebrow">Documentos</p>
-                <h2 className="font-display text-4xl font-semibold text-netland-dark">
+              <div className="mb-12 max-w-2xl">
+                <p className="eyebrow">Documentación</p>
+                <h2 className="font-display text-4xl font-bold text-netland-dark lg:text-5xl">
                   Material de descarga
                 </h2>
+                <p className="mt-4 text-netland-muted">
+                  Accede a toda la documentación legal y técnica del proyecto.
+                </p>
               </div>
             </Reveal>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {documents.map((doc) => (
-                <a
-                  key={doc.id}
-                  href={doc.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-4 rounded-md border border-netland-light bg-netland-background p-5 transition-all hover:border-netland-primary hover:shadow-soft"
-                >
-                  <FileText className="h-8 w-8 shrink-0 text-netland-accent" />
-                  <div>
-                    <p className="text-sm font-semibold text-netland-dark">{doc.name}</p>
-                    <p className="text-xs uppercase tracking-wider text-netland-muted">
-                      {doc.category}
-                    </p>
-                  </div>
-                </a>
+                <Reveal key={doc.id} delay={60}>
+                  <a
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-4 rounded-xl border border-netland-light bg-white p-6 transition-all duration-300 hover:border-netland-primary hover:shadow-soft"
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-netland-primary/5">
+                      <FileText className="h-6 w-6 text-netland-primary transition-transform duration-300 group-hover:scale-110" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-netland-dark">{doc.name}</p>
+                      <p className="mt-0.5 text-xs uppercase tracking-wider text-netland-muted">
+                        {doc.category}
+                      </p>
+                    </div>
+                  </a>
+                </Reveal>
               ))}
             </div>
           </div>

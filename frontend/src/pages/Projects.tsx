@@ -59,7 +59,7 @@ function ProjectCard({ project }: { project: Project }) {
       : "Proyecto Inmobiliario";
 
   return (
-    <article className="group overflow-hidden rounded-lg bg-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-lift">
+    <article className="group overflow-hidden rounded-xl border border-netland-light bg-white transition-all duration-300 hover:border-netland-primary hover:shadow-soft">
       <Link to={`/proyectos/${project.slug}`} className="block">
         <div className="relative aspect-[16/10] overflow-hidden">
           <img
@@ -68,19 +68,20 @@ function ProjectCard({ project }: { project: Project }) {
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          <span className="absolute left-4 top-4 rounded-sm bg-white/95 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-netland-primary backdrop-blur">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          <span className="absolute left-5 top-5 rounded-lg bg-white/95 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-netland-primary backdrop-blur-sm">
             {typeLabel}
           </span>
         </div>
       </Link>
 
-      <div className="p-7">
-        <h3 className="font-display text-3xl font-semibold text-netland-dark">
-          <Link to={`/proyectos/${project.slug}`} className="hover:text-netland-primary">
+      <div className="p-8">
+        <h3 className="font-display text-3xl font-bold text-netland-dark">
+          <Link to={`/proyectos/${project.slug}`} className="transition-colors hover:text-netland-primary">
             {project.short_name}
           </Link>
         </h3>
-        <p className="mt-1.5 flex items-center gap-1.5 text-sm text-netland-muted">
+        <p className="mt-2 flex items-center gap-2 text-sm text-netland-muted">
           <MapPin className="h-4 w-4 text-netland-accent" />
           {project.location}
         </p>
@@ -88,20 +89,21 @@ function ProjectCard({ project }: { project: Project }) {
           {project.description}
         </p>
 
-        <div className="mt-6 flex items-center justify-between border-t border-netland-light pt-5">
-          <span className="text-sm font-semibold text-netland-primary">
-            {project.available_count} lotes disponibles
-          </span>
+        <div className="mt-6 flex items-center justify-between border-t border-netland-light pt-6">
+          <div className="text-sm">
+            <span className="block font-bold text-netland-dark">{project.available_count}</span>
+            <span className="text-netland-muted">lotes disponibles</span>
+          </div>
           <div className="flex gap-3">
             <Link
               to={`/proyectos/${project.slug}`}
-              className="btn-outline !border-netland-primary !py-2 !text-xs !text-netland-primary hover:!bg-netland-primary hover:!text-white"
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-netland-primary px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-netland-primary transition-all hover:bg-netland-primary hover:text-white"
             >
               Ver proyecto
             </Link>
             <Link
               to={`/proyectos/${project.slug}?tab=lotes`}
-              className="btn-primary !py-2 !text-xs"
+              className="inline-flex items-center gap-2 rounded-lg bg-netland-primary px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition-all hover:bg-netland-primaryDark"
             >
               Ver lotes
               <ArrowRight className="h-3.5 w-3.5" />
@@ -121,21 +123,14 @@ export function PageHero({
   subtitle: string;
 }) {
   return (
-    <section className="relative overflow-hidden bg-netland-dark pt-36 pb-20 text-white">
-      <div
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 20% 30%, rgba(185,146,78,0.5), transparent 40%), radial-gradient(circle at 80% 70%, rgba(20,83,45,0.6), transparent 45%)",
-        }}
-      />
+    <section className="relative overflow-hidden bg-netland-dark pb-20 pt-36 text-white">
       <div className="container-netland relative z-10">
         <Reveal>
           <p className="eyebrow">Netland</p>
-          <h1 className="max-w-2xl text-balance font-display text-5xl font-semibold sm:text-6xl">
+          <h1 className="max-w-3xl text-balance font-display text-5xl font-bold leading-tight sm:text-6xl lg:text-7xl">
             {title}
           </h1>
-          <p className="mt-4 max-w-xl text-white/75">{subtitle}</p>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/80">{subtitle}</p>
         </Reveal>
       </div>
     </section>
