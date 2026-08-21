@@ -283,7 +283,7 @@ def delete_gallery_item(image_id: int, db: Session = Depends(get_db)):
 def list_videos(project_identifier: str, db: Session = Depends(get_db)):
     project = get_project_or_404(db, project_identifier)
     videos = db.query(ProjectVideo).filter(ProjectVideo.project_id == project.id).order_by(ProjectVideo.sort_order).all()
-    return [{"id": v.id, "url": v.url, "title": v.title, "video_type": v.video_type} for v in videos]
+    return [{"id": v.id, "url": v.url, "title": v.title, "description": getattr(v, "description", ""), "video_type": v.video_type} for v in videos]
 
 
 @router.post("/videos", response_model=dict, dependencies=[Depends(require_admin)])

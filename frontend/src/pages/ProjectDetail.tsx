@@ -7,6 +7,7 @@ import {
   FileText,
   MapPin,
   MessageCircle,
+  Video,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { whatsappLink } from "../lib/constants";
@@ -94,17 +95,43 @@ export default function ProjectDetail() {
       <section
         className="relative flex min-h-[75vh] items-end overflow-hidden bg-netland-dark"
       >
-        {mainVideo && VIDEO_IDS(mainVideo.url) ? (
-          <div className="absolute inset-0">
-            <iframe
-              src={`https://www.youtube.com/embed/${VIDEO_IDS(mainVideo.url)}?autoplay=0&mute=1&loop=0&controls=1&modestbranding=1`}
-              title={mainVideo.title}
-              className="h-full w-full object-cover"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        ) : (
+        {mainVideo ? (() => {
+          const videoId = VIDEO_IDS(mainVideo.url);
+          const isCloudinary = mainVideo.url.includes("cloudinary") || mainVideo.url.includes(".mp4") || mainVideo.url.includes(".webm");
+          
+          return videoId || isCloudinary ? (
+            <div className="absolute inset-0">
+              {videoId ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=0&mute=1&loop=0&controls=1&modestbranding=1`}
+                  title={mainVideo.title}
+                  className="h-full w-full object-cover"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={mainVideo.url}
+                  controls
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                  className="h-full w-full object-cover"
+                />
+              )}
+            </div>
+          ) : (
+            <div className="absolute inset-0">
+              <img
+                src={project.hero_image || FALLBACK_IMAGE}
+                alt={project.name}
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-netland-dark/90 via-netland-dark/50 to-transparent" />
+            </div>
+          );
+        })() : (
           <div className="absolute inset-0">
             <img
               src={project.hero_image || FALLBACK_IMAGE}
@@ -275,42 +302,65 @@ export default function ProjectDetail() {
         </div>
       </section>
 
-      {videos.length > 0 && (
-        <section className="section-padding bg-netland-dark">
-          <div className="container-netland">
-            <Reveal>
-              <div className="mb-12 max-w-2xl text-white">
-                <p className="eyebrow justify-start">Videos del proyecto</p>
-                <h2 className="font-display text-4xl font-bold lg:text-5xl">
-                  Conoce {project.short_name} en video
-                </h2>
-                <p className="mt-4 text-white/70">
-                  Explora cada detalle del proyecto a través de nuestros recorridos virtuales y videos informativos.
-                </p>
-              </div>
-            </Reveal>
+      {/* Sección de Videos - Siempre visible para debug */}
+      <section className="section-padding bg-netland-dark">
+        <div className="container-netland">
+          <Reveal>
+            <div className="mb-12 max-w-2xl text-white">
+              <p className="eyebrow justify-start">Videos del proyecto</p>
+              <h2 className="font-display text-4xl font-bold lg:text-5xl">
+                Conoce {project.short_name} en video
+              </h2>
+              <p className="mt-4 text-white/70">
+                Explora cada detalle del proyecto a través de nuestros recorridos virtuales y videos informativos.
+              </p>
+            </div>
+          </Reveal>
+          
+          {videos && videos.length > 0 ? (
             <div className="grid gap-8 lg:grid-cols-2">
               {videos.map((video, i) => {
                 const id = VIDEO_IDS(video.url);
-                if (!id) return null;
+                const isCloudinary = video.url && (video.url.includes("cloudinary") || video.url.includes(".mp4") || video.url.includes(".webm") || video.url.includes(".mov"));
+                
+                // Si no es YouTube ni Cloudinary, skip
+                if (!id && !isCloudinary) {
+                  console.warn("Video URL no válida:", video.url);
+                  return null;
+                }
+                
                 return (
                   <Reveal key={video.id} delay={i * 100}>
                     <div className="group overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:border-netland-accent/50">
-                      <div className="relative aspect-video overflow-hidden">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${id}?modestbranding=1`}
-                          title={video.title}
-                          className="h-full w-full"
-                          loading="lazy"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
+                      <div className="relative aspect-video overflow-hidden bg-black">
+                        {id ? (
+                          <iframe
+                            src={`https://www.youtube.com/embed/${id}?modestbranding=1`}
+                            title={video.title || "Video del proyecto"}
+                            className="h-full w-full"
+                            loading="lazy"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video
+                            src={video.url}
+                            controls
+                            className="h-full w-full"
+                            preload="metadata"
+                            controlsList="nodownload"
+                          >
+                            Tu navegador no soporta el elemento de video.
+                          </video>
+                        )}
                       </div>
-                      {video.title && (
+                      {(video.title || video.description) && (
                         <div className="p-6">
-                          <h3 className="font-display text-xl font-bold text-white">
-                            {video.title}
-                          </h3>
+                          {video.title && (
+                            <h3 className="font-display text-xl font-bold text-white">
+                              {video.title}
+                            </h3>
+                          )}
                           {video.description && (
                             <p className="mt-2 text-sm text-white/60">
                               {video.description}
@@ -323,9 +373,19 @@ export default function ProjectDetail() {
                 );
               })}
             </div>
-          </div>
-        </section>
-      )}
+          ) : (
+            <div className="rounded-xl border border-white/10 bg-white/5 p-12 text-center">
+              <Video className="mx-auto mb-4 h-12 w-12 text-white/30" />
+              <p className="text-lg font-semibold text-white">
+                Aún no hay videos para este proyecto
+              </p>
+              <p className="mt-2 text-sm text-white/60">
+                Los videos del proyecto se mostrarán aquí una vez que sean agregados desde el panel administrativo.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
 
       {gallery.length > 0 && (
         <section className="section-padding bg-white">

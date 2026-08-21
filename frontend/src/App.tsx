@@ -30,6 +30,7 @@ const AdminQuotes = lazy(() => import("./features/admin/pages/Quotes"));
 const AdminVisits = lazy(() => import("./features/admin/pages/Visits"));
 const AdminMedia = lazy(() => import("./features/admin/pages/Media"));
 const AdminUsers = lazy(() => import("./features/admin/pages/Users"));
+const AdminSiteSettings = lazy(() => import("./features/admin/pages/SiteSettings"));
 
 export default function App() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="cotizaciones" element={<AdminQuotes />} />
             <Route path="visitas" element={<AdminVisits />} />
             <Route path="multimedia" element={<AdminMedia />} />
+            <Route path="configuracion" element={<AdminSiteSettings />} />
             <Route path="usuarios" element={<AdminUsers />} />
           </Route>
 

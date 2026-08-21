@@ -10,6 +10,7 @@ import {
   Landmark,
   MapPin,
   MessageCircle,
+  Play,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -20,6 +21,13 @@ import { whatsappLink } from "../lib/constants";
 import type { Project } from "../types";
 import { Reveal } from "../components/Reveal";
 import { CardSkeleton } from "../components/ui/Skeleton";
+import { useState } from "react";
+
+interface SiteConfig {
+  hero_video_url?: string;
+  hero_video_title?: string;
+  [key: string]: string | undefined;
+}
 
 const trustItems = [
   { icon: Landmark, title: "Empresa legalmente constituida" },
@@ -57,15 +65,27 @@ const whyItems = [
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=80";
 
+const VIDEO_ID_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\ w-]{11})/;
+
+function extractVideoId(url: string): string | null {
+  const match = url.match(VIDEO_ID_REGEX);
+  return match ? match[1] : null;
+}
+
 export default function Home() {
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: () => api.get<Project[]>("/projects?published_only=true"),
   });
 
+  const { data: config } = useQuery<SiteConfig>({
+    queryKey: ["public-config"],
+    queryFn: () => api.get("/config/public"),
+  });
+
   return (
     <div>
-      <Hero />
+      <Hero config={config} />
       <ProjectsSection projects={projects} loading={isLoading} />
       <TrustSection />
       <WhySection />
@@ -75,17 +95,57 @@ export default function Home() {
   );
 }
 
-function Hero() {
+function Hero({ config }: { config?: SiteConfig }) {
+  const [showVideo, setShowVideo] = useState(false);
+  const videoUrl = config?.hero_video_url || "";
+  const videoId = videoUrl ? extractVideoId(videoUrl) : null;
+  const isCloudinaryVideo = videoUrl.includes("cloudinary") || videoUrl.includes(".mp4") || videoUrl.includes(".webm");
+  const hasVideo = !!(videoId || isCloudinaryVideo);
+
   return (
     <section className="relative flex min-h-[92vh] items-center overflow-hidden">
+      {/* Background Image or Video */}
       <div className="absolute inset-0">
-        <img
-          src={HERO_IMAGE}
-          alt="Campo verde en Cañete"
-          className="h-full w-full object-cover"
-          fetchPriority="high"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-netland-dark/90 via-netland-dark/50 to-netland-dark/30" />
+        {hasVideo && showVideo ? (
+          <div className="relative h-full w-full">
+            {videoId ? (
+              // YouTube video
+              <>
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&showinfo=0`}
+                  title={config?.hero_video_title || "Video hero"}
+                  className="absolute inset-0 h-full w-full scale-150 object-cover"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  style={{ pointerEvents: 'none' }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-netland-dark/90 via-netland-dark/40 to-netland-dark/20" />
+              </>
+            ) : (
+              // Cloudinary or direct video
+              <>
+                <video
+                  src={videoUrl}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-netland-dark/90 via-netland-dark/40 to-netland-dark/20" />
+              </>
+            )}
+          </div>
+        ) : (
+          <>
+            <img
+              src={HERO_IMAGE}
+              alt="Campo verde en Cañete"
+              className="h-full w-full object-cover"
+              fetchPriority="high"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-netland-dark/90 via-netland-dark/50 to-netland-dark/30" />
+          </>
+        )}
       </div>
 
       <div className="container-netland relative z-10 pb-24 pt-36 text-white">
@@ -94,14 +154,14 @@ function Hero() {
             <MapPin className="h-3.5 w-3.5 text-netland-accent" />
             Cañete, Perú
           </p>
-          <h1 className="max-w-3xl text-balance font-display text-5xl font-semibold leading-[1.05] sm:text-6xl lg:text-7xl">
+          <h1 className="max-w-3xl text-balance font-display text-5xl font-bold leading-[1.05] sm:text-6xl lg:text-7xl">
             El lugar donde <span className="text-netland-accent">mereces vivir</span>
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/80">
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/90">
             Invierte en proyectos inmobiliarios pensados para tu futuro, con
             respaldo, confianza y oportunidades de crecimiento en Cañete.
           </p>
-          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+          <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
             <Link to="/proyectos" className="btn-primary">
               Ver proyectos
               <ArrowRight className="h-4 w-4" />
@@ -115,6 +175,15 @@ function Hero() {
               <MessageCircle className="h-4 w-4" />
               Hablar con un asesor
             </a>
+            {hasVideo && !showVideo && (
+              <button
+                onClick={() => setShowVideo(true)}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-white/80 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur transition-all hover:bg-white/20"
+              >
+                <Play className="h-4 w-4" />
+                Ver video
+              </button>
+            )}
           </div>
         </Reveal>
       </div>

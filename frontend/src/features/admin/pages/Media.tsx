@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { FileText, Image as ImageIcon, Plus, Trash2, Video } from "lucide-react";
+import { FileText, Image as ImageIcon, Plus, Trash2, Video, Upload } from "lucide-react";
 import { api } from "../../../lib/api";
 import type { GalleryItem, Project, ProjectDocument, ProjectVideo } from "../../../types";
-import { PageHeader, Button, Card, Field, Input, Select, Textarea, Table } from "../ui";
+import { PageHeader, Button, Card, Field, Input, Select, Textarea } from "../ui";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { FileUploader } from "../../../components/ui/FileUploader";
 
 type MediaTab = "galeria" | "videos" | "documentos";
 
@@ -16,6 +17,7 @@ export default function AdminMedia() {
   const [tab, setTab] = useState<MediaTab>("galeria");
   const [projectId, setProjectId] = useState<number | "">("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [uploadMethod, setUploadMethod] = useState<"url" | "upload">("url");
   const [form, setForm] = useState({
     url: "",
     caption: "",
@@ -135,7 +137,7 @@ export default function AdminMedia() {
     onError: (e) => toast(e.message, "error"),
   });
 
-  const resetForm = () =>
+  const resetForm = () => {
     setForm({
       url: "",
       caption: "",
@@ -145,6 +147,8 @@ export default function AdminMedia() {
       description: "",
       is_cover: false,
     });
+    setUploadMethod("url");
+  };
 
   const openAdd = () => {
     resetForm();
@@ -244,23 +248,46 @@ export default function AdminMedia() {
 
       {tab === "videos" &&
         (videos.data?.length ? (
-          <Table headers={["Título", "Tipo", "URL", "Acciones"]}>
-            {videos.data.map((video) => (
-              <tr key={video.id}>
-                <td className="px-5 py-3 font-medium text-netland-dark">{video.title || "—"}</td>
-                <td className="px-5 py-3 text-netland-muted">{video.video_type}</td>
-                <td className="max-w-[300px] truncate px-5 py-3 text-netland-muted">{video.url}</td>
-                <td className="px-5 py-3">
-                  <Button variant="danger" className="!px-2.5 !py-1.5" onClick={() => deleteVideo.mutate(video.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </Table>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {videos.data.map((video) => {
+              const videoId = video.url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\ w-]{11})/)?.[1];
+              return (
+                <Card key={video.id}>
+                  <div className="space-y-4">
+                    {videoId && (
+                      <div className="aspect-video overflow-hidden rounded-lg">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${videoId}?modestbranding=1`}
+                          title={video.title}
+                          className="h-full w-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-semibold text-netland-dark">{video.title || "Sin título"}</h3>
+                      <p className="mt-1 text-xs text-netland-muted">
+                        Tipo: <span className="font-medium">{video.video_type}</span>
+                      </p>
+                      <p className="mt-1 truncate text-xs text-netland-muted">{video.url}</p>
+                    </div>
+                    <Button
+                      variant="danger"
+                      className="w-full"
+                      onClick={() => deleteVideo.mutate(video.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Eliminar
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         ) : (
           <Card>
-            <EmptyState title="Sin videos" description="Agrega videos promocionales o de avance." />
+            <EmptyState title="Sin videos" description="Agrega videos promocionales de YouTube para mostrar en tu web pública." />
           </Card>
         ))}
 
@@ -294,14 +321,87 @@ export default function AdminMedia() {
         }
       >
         <div className="space-y-4 p-6">
+          {/* Método de carga para videos e imágenes */}
+          {(tab === "galeria" || tab === "videos") && (
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-netland-dark">
+                Método de carga
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUploadMethod("url")}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                    uploadMethod === "url"
+                      ? "border-netland-primary bg-netland-primary/5 text-netland-primary"
+                      : "border-netland-light bg-white text-netland-muted hover:border-netland-primary/30"
+                  }`}
+                >
+                  URL {tab === "videos" ? "(YouTube/Cloudinary)" : "(Cloudinary)"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadMethod("upload")}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                    uploadMethod === "upload"
+                      ? "border-netland-primary bg-netland-primary/5 text-netland-primary"
+                      : "border-netland-light bg-white text-netland-muted hover:border-netland-primary/30"
+                  }`}
+                >
+                  <Upload className="mx-auto h-4 w-4" />
+                  Subir archivo
+                </button>
+              </div>
+            </div>
+          )}
+
           {tab === "documentos" && (
             <Field label="Nombre del documento">
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </Field>
           )}
-          <Field label="URL (Cloudinary)">
-            <Input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://res.cloudinary.com/..." />
-          </Field>
+
+          {/* Subir archivo o ingresar URL */}
+          {uploadMethod === "upload" && (tab === "galeria" || tab === "videos") ? (
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-netland-dark">
+                Subir {tab === "galeria" ? "imagen" : "video"}
+              </label>
+              <FileUploader
+                accept={tab === "galeria" ? "image/*" : "video/*"}
+                folder={`projects/${selectedProject}/${tab === "galeria" ? "gallery" : "videos"}`}
+                onUploadComplete={(url) => setForm({ ...form, url })}
+                maxSizeMB={tab === "videos" ? 100 : 10}
+                label={`Arrastra tu ${tab === "galeria" ? "imagen" : "video"} aquí`}
+                hint={
+                  tab === "galeria"
+                    ? "Formatos: JPG, PNG, WebP. Máximo 10MB."
+                    : "Formatos: MP4, WebM, MOV. Máximo 100MB."
+                }
+                preview={tab === "galeria"}
+              />
+              {form.url && (
+                <div className="mt-2 rounded-lg border border-green-200 bg-green-50 p-2">
+                  <p className="text-xs font-semibold text-green-800">
+                    ✓ Archivo subido correctamente
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Field label={tab === "videos" ? "URL (YouTube o Cloudinary)" : "URL (Cloudinary)"}>
+              <Input
+                value={form.url}
+                onChange={(e) => setForm({ ...form, url: e.target.value })}
+                placeholder={
+                  tab === "videos"
+                    ? "https://www.youtube.com/watch?v=... o https://res.cloudinary.com/..."
+                    : "https://res.cloudinary.com/..."
+                }
+              />
+            </Field>
+          )}
+
           {tab === "galeria" && (
             <>
               <Field label="Descripción">
@@ -327,13 +427,50 @@ export default function AdminMedia() {
               </label>
             </>
           )}
+
           {tab === "videos" && (
-            <Field label="Título">
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-            </Field>
+            <>
+              <Field label="Título">
+                <Input
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="Recorrido virtual del proyecto"
+                />
+              </Field>
+              {form.url && (() => {
+                const videoId = form.url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\ w-]{11})/)?.[1];
+                const isCloudinary = form.url.includes("cloudinary");
+                return videoId || isCloudinary ? (
+                  <div className="rounded-lg border border-netland-light bg-netland-background p-3">
+                    <p className="mb-2 text-xs font-semibold text-netland-dark">Vista previa:</p>
+                    <div className="aspect-video overflow-hidden rounded-lg">
+                      {videoId ? (
+                        <iframe
+                          src={`https://www.youtube.com/embed/${videoId}?modestbranding=1`}
+                          title="Video preview"
+                          className="h-full w-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video src={form.url} controls className="h-full w-full bg-black" preload="metadata" />
+                      )}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+            </>
           )}
+
           {tab === "documentos" && (
             <>
+              <Field label="URL (Cloudinary)">
+                <Input
+                  value={form.url}
+                  onChange={(e) => setForm({ ...form, url: e.target.value })}
+                  placeholder="https://res.cloudinary.com/..."
+                />
+              </Field>
               <Field label="Categoría">
                 <Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
                   <option value="brochure">Brochure</option>
@@ -347,10 +484,15 @@ export default function AdminMedia() {
               </Field>
             </>
           )}
-          <p className="text-xs text-netland-muted">
-            Los archivos se suben a Cloudinary y aquí solo se guarda la URL. Usa el
-            endpoint /api/uploads o el panel de Cloudinary para obtener la URL.
-          </p>
+
+          {uploadMethod === "url" && (
+            <p className="text-xs text-netland-muted">
+              {tab === "videos"
+                ? "Puedes usar URLs de YouTube o videos alojados en Cloudinary."
+                : "Los archivos deben estar alojados en Cloudinary. Usa el botón 'Subir archivo' para cargar desde tu PC."}
+            </p>
+          )}
+
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setModalOpen(false)}>
               Cancelar

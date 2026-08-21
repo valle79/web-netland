@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Milestone,
   Quote as QuoteIcon,
+  Settings,
   Sparkles,
   Users,
   X,
@@ -71,6 +72,12 @@ const navItems = [
     to: "/admin/multimedia",
     label: "Multimedia",
     icon: FileText,
+    roles: ["SUPER_ADMIN", "ADMIN"],
+  },
+  {
+    to: "/admin/configuracion",
+    label: "Configuración",
+    icon: Settings,
     roles: ["SUPER_ADMIN", "ADMIN"],
   },
   {

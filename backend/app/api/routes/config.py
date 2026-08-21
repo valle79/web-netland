@@ -7,7 +7,7 @@ from app.domain.models import SiteConfig
 
 router = APIRouter(prefix="/config", tags=["config"])
 
-PUBLIC_KEYS = {"company_legal_info", "company_schedules", "company_facebook", "company_instagram"}
+PUBLIC_KEYS = {"company_legal_info", "company_schedules", "company_facebook", "company_instagram", "hero_video_url", "hero_video_title"}
 
 
 @router.get("/public")
