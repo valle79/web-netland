@@ -12,3 +12,10 @@ python-multipart>=0.0.20
 cloudinary>=1.42.0
 reportlab>=4.2.5
 email-validator>=2.2.0
+
+# Plan Import Dependencies
+pdf2image>=1.17.0
+Pillow>=10.4.0
+pytesseract>=0.3.13
+opencv-python>=4.10.0.84
+numpy>=1.26.4

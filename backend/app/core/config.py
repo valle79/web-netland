@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     COMPANY_WHATSAPP: str = "51985928062"
     COMPANY_PHONE: str = "985928062"
 
+    # Plan Import Settings
+    MAX_PLAN_PDF_SIZE_MB: int = 30
+    PLAN_OCR_DPI: int = 300
+    PLAN_OCR_LANG: str = "spa+eng"
+    PLAN_CONFIDENCE_THRESHOLD: float = 0.60
+
     @property
     def is_cloudinary_configured(self) -> bool:
         return bool(

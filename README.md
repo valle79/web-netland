@@ -75,6 +75,10 @@ cp .env.example .env   # editar VITE_API_URL
 | `FRONTEND_URL` | URL del frontend (origen permitido por CORS) |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Credenciales del primer administrador |
 | `COMPANY_WHATSAPP` | Número de WhatsApp principal (con código de país) |
+| `MAX_PLAN_PDF_SIZE_MB` | Tamaño máximo de plano PDF (por defecto: 30 MB) |
+| `PLAN_OCR_DPI` | Resolución OCR para planos (por defecto: 300) |
+| `PLAN_OCR_LANG` | Idiomas OCR (por defecto: `spa+eng`) |
+| `PLAN_CONFIDENCE_THRESHOLD` | Umbral de confianza OCR (por defecto: 0.60) |
 
 ### Frontend (`frontend/.env`)
 
@@ -334,3 +338,78 @@ frontend/
 3. Ingresar precios y promociones reales desde el panel.
 4. Cambiar las contraseñas por defecto en producción.
 5. Conectar los formularios de contacto con el WhatsApp del asesor asignado.
+
+
+---
+
+## 📄 Importación de Lotes desde Planos PDF (NUEVA FUNCIONALIDAD)
+
+El sistema ahora incluye una funcionalidad avanzada para **detectar automáticamente lotes** desde planos PDF utilizando OCR y análisis espacial.
+
+### Características
+- **OCR de alta resolución**: Renderiza el PDF a 300 DPI y extrae texto con Tesseract
+- **Análisis espacial**: Detecta manzanas y asocia lotes usando coordenadas
+- **Preprocesamiento inteligente**: Mejora la imagen automáticamente para mejor precisión
+- **Validación contra BD**: Identifica lotes nuevos vs. existentes
+- **Revisión manual obligatoria**: El administrador corrige datos antes de importar
+- **Sin duplicados**: Previene importaciones duplicadas con constraint único
+- **Transaccional**: Rollback completo en caso de error
+
+### Requisitos Adicionales
+- **Tesseract OCR** (instalación externa requerida)
+- **Poppler** (para renderizar PDFs a imágenes)
+
+### Instalación Rápida
+
+```bash
+# Windows: Descargar e instalar Tesseract
+# https://github.com/UB-Mannheim/tesseract/wiki
+
+# Linux:
+sudo apt install tesseract-ocr tesseract-ocr-spa tesseract-ocr-eng poppler-utils
+
+# macOS:
+brew install tesseract tesseract-lang poppler
+
+# Verificar instalación:
+cd backend
+python test_ocr_setup.py
+```
+
+### Uso desde el Panel Admin
+1. Ve a **Admin → Proyectos**
+2. Selecciona un proyecto
+3. Haz clic en **📄 Importar**
+4. Sube el PDF del plano
+5. Revisa los lotes detectados
+6. Corrige datos si es necesario
+7. Confirma la importación
+
+### Endpoints de la API
+
+```http
+# Analizar plano PDF
+POST /api/projects/{project_id}/lots/plan/analyze
+Content-Type: multipart/form-data
+Authorization: Bearer {token}
+
+# Importar lotes confirmados
+POST /api/projects/{project_id}/lots/plan/import
+Content-Type: application/json
+Authorization: Bearer {token}
+
+{
+  "project_id": 1,
+  "lots": [
+    {
+      "block": "A",
+      "lot_number": "01",
+      "area_m2": 105.50,
+      "notes": ""
+    }
+  ]
+}
+```
+
+**Documentación completa:** Ver `backend/PLAN_IMPORT_SETUP.md` para instrucciones detalladas, configuración avanzada y solución de problemas.
+

@@ -98,6 +98,11 @@ export default function AdminProjects() {
                       Plano
                     </Button>
                   </Link>
+                  <Link to={`/admin/proyectos/${project.id}/importar-plano`}>
+                    <Button variant="outline" className="!px-3 !py-2" title="Importar lotes desde plano PDF">
+                      📄 Importar
+                    </Button>
+                  </Link>
                   <Button
                     variant="danger"
                     className="!px-3 !py-2"
