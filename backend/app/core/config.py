@@ -35,9 +35,10 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        origins = [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
-        if self.FRONTEND_URL not in origins:
-            origins.append(self.FRONTEND_URL)
+        origins = [o.strip().rstrip("/") for o in self.CORS_ORIGINS.split(",") if o.strip()]
+        frontend_url = self.FRONTEND_URL.strip().rstrip("/")
+        if frontend_url and frontend_url not in origins:
+            origins.append(frontend_url)
         return origins
 
     SEED_ADMIN_EMAIL: str = "admin@netlandcorp.com"

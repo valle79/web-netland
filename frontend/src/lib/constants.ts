@@ -1,5 +1,8 @@
-export const API_URL =
-  (import.meta.env.VITE_API_URL as string) || "http://localhost:8000/api";
+const configuredApiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "");
+
+export const API_URL = configuredApiUrl
+  ? `${configuredApiUrl.replace(/\/api$/, "")}/api`
+  : "http://localhost:8000/api";
 
 export const WHATSAPP_NUMBER: string =
   (import.meta.env.VITE_WHATSAPP_NUMBER as string) || "51985928062";

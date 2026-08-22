@@ -75,12 +75,12 @@ function extractVideoId(url: string): string | null {
 export default function Home() {
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects"],
-    queryFn: () => api.get<Project[]>("/api/projects?published_only=true"),
+    queryFn: () => api.get<Project[]>("/projects?published_only=true"),
   });
 
   const { data: config } = useQuery<SiteConfig>({
     queryKey: ["public-config"],
-    queryFn: () => api.get("/api/config/public"),
+    queryFn: () => api.get("/config/public"),
   });
 
   return (
