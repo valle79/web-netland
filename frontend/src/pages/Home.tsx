@@ -225,36 +225,62 @@ function ProjectsSection({
               <Reveal key={project.id} delay={i * 120}>
                 <Link
                   to={`/proyectos/${project.slug}`}
-                  className="group relative block overflow-hidden rounded-lg"
+                  className="group relative block overflow-hidden rounded-xl shadow-lg transition-shadow duration-300 hover:shadow-2xl"
                 >
-                  <div className="aspect-[4/3] overflow-hidden">
+                  {/* Imagen con mejor calidad */}
+                  <div className="aspect-[4/3] overflow-hidden bg-netland-dark">
                     <img
-                      src={project.hero_image || HERO_IMAGE}
+                      src={
+                        project.hero_image
+                          ? project.hero_image.replace(/upload\//, 'upload/q_auto:best,f_auto,w_1200/')
+                          : HERO_IMAGE
+                      }
                       alt={project.name}
                       loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-netland-dark/85 via-netland-dark/20 to-transparent" />
+                  
+                  {/* Overlay mejorado con mejor gradiente */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+                  
+                  {/* Contenido con mejor contraste */}
                   <div className="absolute inset-x-0 bottom-0 p-7">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-[0.25em] text-netland-accent">
+                    {/* Badge de tipo */}
+                    <span className="mb-3 inline-block rounded-full bg-netland-accent px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-lg">
                       {project.project_type === "condominio_campestre"
                         ? "Condominio campestre"
                         : "Urbanización"}
-                    </p>
-                    <h3 className="font-display text-3xl font-semibold text-white">
+                    </span>
+                    
+                    {/* Título con sombra de texto para mejor legibilidad */}
+                    <h3 className="font-display text-3xl font-bold text-white drop-shadow-lg">
                       {project.short_name}
                     </h3>
-                    <p className="mt-1 flex items-center gap-1.5 text-sm text-white/75">
-                      <MapPin className="h-4 w-4" />
-                      {project.location}
+                    
+                    {/* Ubicación */}
+                    <p className="mt-2 flex items-center gap-2 text-sm text-white drop-shadow-md">
+                      <MapPin className="h-4 w-4 text-netland-accent" />
+                      <span className="font-medium">{project.location}</span>
                     </p>
-                    <div className="mt-4 flex items-center gap-6 text-sm">
-                      <span className="font-semibold text-emerald-300">
-                        {project.available_count} lotes disponibles
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 text-white transition-colors group-hover:text-netland-accent">
-                        Ver proyecto <ArrowRight className="h-4 w-4" />
+                    
+                    {/* Separador sutil */}
+                    <div className="my-4 h-px bg-white/20" />
+                    
+                    {/* Info de lotes y CTA */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500">
+                          <Building2 className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-sm font-bold text-white">
+                          {project.available_count} lotes disponibles
+                        </span>
+                      </div>
+                      
+                      <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition-all group-hover:bg-netland-accent group-hover:text-white">
+                        Ver proyecto 
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                       </span>
                     </div>
                   </div>

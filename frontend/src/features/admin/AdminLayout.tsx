@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Navigate, Outlet } from "react-router-dom";
 import {
   CalendarDays,
+  ClipboardList,
   FileText,
   FolderKanban,
   LayoutDashboard,
@@ -42,6 +43,12 @@ const navItems = [
     to: "/admin/leads",
     label: "Leads",
     icon: MessageSquare,
+    roles: ["SUPER_ADMIN", "ADMIN", "ASESOR"],
+  },
+  {
+    to: "/admin/clientes-captados",
+    label: "Clientes captados",
+    icon: ClipboardList,
     roles: ["SUPER_ADMIN", "ADMIN", "ASESOR"],
   },
   {

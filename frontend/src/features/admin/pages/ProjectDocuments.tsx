@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 import { ArrowLeft, FileText, Trash2, ExternalLink } from "lucide-react";
 import { api } from "../../../lib/api";
+import type { Project } from "../../../types";
 import { PageHeader, Button, Card, Field, Input, Select, Textarea } from "../ui";
 import { useToast } from "../../../components/ui/Toast";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -30,7 +31,7 @@ export default function ProjectDocuments() {
   // Cargar proyecto
   const { data: project } = useQuery({
     queryKey: ["project-documents", id],
-    queryFn: () => api.get(`/projects/${id}`),
+    queryFn: () => api.get<Project>(`/projects/${id}`),
   });
 
   // Cargar documentos
@@ -63,7 +64,7 @@ export default function ProjectDocuments() {
 
   // Eliminar documento
   const deleteDocumentMutation = useMutation({
-    mutationFn: (docId: number) => api.delete(`/projects/documents/${docId}`, true),
+    mutationFn: (docId: number) => api.del(`/projects/documents/${docId}`, true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-documents-list", id] });
       toast("Documento eliminado");
@@ -71,7 +72,7 @@ export default function ProjectDocuments() {
     onError: (e: Error) => toast(e.message, "error"),
   });
 
-  const handleFileUpload = (url: string, publicId?: string) => {
+  const handleFileUpload = (url: string, _publicId?: string) => {
     setDocumentUrl(url);
   };
 
@@ -129,7 +130,7 @@ export default function ProjectDocuments() {
           <h3 className="text-lg font-semibold text-netland-dark mb-4">Agregar documento</h3>
 
           <div className="space-y-4">
-            <Field label="Nombre del documento" required>
+            <Field label="Nombre del documento *">
               <Input
                 value={documentName}
                 onChange={(e) => setDocumentName(e.target.value)}
@@ -137,7 +138,7 @@ export default function ProjectDocuments() {
               />
             </Field>
 
-            <Field label="Categoría" required>
+            <Field label="Categoría *">
               <Select
                 value={documentCategory}
                 onChange={(e) => setDocumentCategory(e.target.value)}

@@ -4,6 +4,7 @@ import { MessageCircle } from "lucide-react";
 import { api } from "../../../lib/api";
 import type { Lead } from "../../../types";
 import {
+  CAPTURED_SOURCES,
   LEAD_STATUS_LABELS,
   LEAD_STATUSES,
   whatsappLink,
@@ -34,7 +35,12 @@ export default function AdminLeads() {
 
   const { data: leads } = useQuery({
     queryKey: ["leads", filter],
-    queryFn: () => api.get<Lead[]>(`/leads${filter ? `?status=${filter}` : ""}`, true),
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.set("exclude_source", CAPTURED_SOURCES.join(","));
+      if (filter) params.set("status", filter);
+      return api.get<Lead[]>(`/leads?${params.toString()}`, true);
+    },
   });
 
   const statusMutation = useMutation({
@@ -64,8 +70,8 @@ export default function AdminLeads() {
   return (
     <div>
       <PageHeader
-        title="Leads"
-        subtitle="Gestiona clientes potenciales y su seguimiento."
+        title="Leads web"
+        subtitle="Clientes que llegan desde los formularios del sitio público."
       />
 
       <div className="mb-6 max-w-xs">

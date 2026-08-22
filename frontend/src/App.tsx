@@ -12,6 +12,7 @@ const Projects = lazy(() => import("./pages/Projects"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Contact = lazy(() => import("./pages/Contact"));
 const About = lazy(() => import("./pages/About"));
+const Advisors = lazy(() => import("./pages/Advisors"));
 
 const AdminLogin = lazy(() => import("./features/admin/AdminLogin"));
 const AdminLayout = lazy(() => import("./features/admin/AdminLayout"));
@@ -24,6 +25,9 @@ const AdminLots = lazy(() => import("./features/admin/pages/Lots"));
 const AdminPlan = lazy(() => import("./features/admin/pages/PlanEditor"));
 const AdminPlanImport = lazy(() => import("./features/admin/pages/PlanImport"));
 const AdminLeads = lazy(() => import("./features/admin/pages/Leads"));
+const AdminCapturedClients = lazy(() =>
+  import("./features/admin/pages/CapturedClients")
+);
 const AdminAdvisors = lazy(() => import("./features/admin/pages/Advisors"));
 const AdminPromotions = lazy(() => import("./features/admin/pages/Promotions"));
 const AdminQuotes = lazy(() => import("./features/admin/pages/Quotes"));
@@ -50,6 +54,7 @@ export default function App() {
             <Route path="lotes" element={<AdminLots />} />
             <Route path="plano/:projectId" element={<AdminPlan />} />
             <Route path="leads" element={<AdminLeads />} />
+            <Route path="clientes-captados" element={<AdminCapturedClients />} />
             <Route path="asesores" element={<AdminAdvisors />} />
             <Route path="promociones" element={<AdminPromotions />} />
             <Route path="cotizaciones" element={<AdminQuotes />} />
@@ -63,6 +68,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/proyectos" element={<Projects />} />
             <Route path="/proyectos/:slug" element={<ProjectDetail />} />
+            <Route path="/asesores" element={<Advisors />} />
             <Route path="/contacto" element={<Contact />} />
             <Route path="/nosotros" element={<About />} />
             <Route path="*" element={<Navigate to="/" replace />} />

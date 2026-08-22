@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
-import { ArrowLeft, Image as ImageIcon, Video as VideoIcon, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Video as VideoIcon, Trash2 } from "lucide-react";
 import { api } from "../../../lib/api";
+import type { Project } from "../../../types";
 import { PageHeader, Button, Card } from "../ui";
 import { useToast } from "../../../components/ui/Toast";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -37,7 +38,7 @@ export default function ProjectGallery() {
   // Cargar proyecto
   const { data: project } = useQuery({
     queryKey: ["project-gallery", id],
-    queryFn: () => api.get(`/projects/${id}`),
+    queryFn: () => api.get<Project>(`/projects/${id}`),
   });
 
   // Cargar galería de imágenes
@@ -76,7 +77,7 @@ export default function ProjectGallery() {
 
   // Eliminar imagen
   const deleteImageMutation = useMutation({
-    mutationFn: (imageId: number) => api.delete(`/projects/gallery/${imageId}`, true),
+    mutationFn: (imageId: number) => api.del(`/projects/gallery/${imageId}`, true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-gallery-images", id] });
       toast("Imagen eliminada");
@@ -86,7 +87,7 @@ export default function ProjectGallery() {
 
   // Eliminar video
   const deleteVideoMutation = useMutation({
-    mutationFn: (videoId: number) => api.delete(`/projects/videos/${videoId}`, true),
+    mutationFn: (videoId: number) => api.del(`/projects/videos/${videoId}`, true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-videos", id] });
       toast("Video eliminado");
@@ -98,7 +99,7 @@ export default function ProjectGallery() {
     if (!project) return;
 
     // Agregar todas las imágenes a la galería
-    files.forEach((file, index) => {
+    files.forEach((file) => {
       addImageMutation.mutate({
         project_id: project.id,
         url: file.url,
@@ -204,10 +205,9 @@ export default function ProjectGallery() {
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <Button
                       variant="outline"
-                      size="sm"
                       onClick={() => deleteImageMutation.mutate(image.id)}
                       disabled={deleteImageMutation.isPending}
-                      className="bg-white text-red-600 hover:bg-red-50"
+                      className="!px-3 !py-1.5 text-xs bg-white text-red-600 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
                       Eliminar
@@ -277,10 +277,9 @@ export default function ProjectGallery() {
                     </div>
                     <Button
                       variant="outline"
-                      size="sm"
                       onClick={() => deleteVideoMutation.mutate(video.id)}
                       disabled={deleteVideoMutation.isPending}
-                      className="text-red-600 hover:bg-red-50 flex-shrink-0"
+                      className="!px-3 !py-1.5 text-red-600 hover:bg-red-50 flex-shrink-0"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

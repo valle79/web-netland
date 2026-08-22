@@ -3,7 +3,7 @@ import { useState } from "react";
 import { FileText, Image as ImageIcon, Plus, Trash2, Video, Upload } from "lucide-react";
 import { api } from "../../../lib/api";
 import type { GalleryItem, Project, ProjectDocument, ProjectVideo } from "../../../types";
-import { PageHeader, Button, Card, Field, Input, Select, Textarea } from "../ui";
+import { PageHeader, Button, Card, Field, Input, Select, Table, Textarea } from "../ui";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";

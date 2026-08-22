@@ -22,6 +22,7 @@ import { api } from "../../../lib/api";
 import type { DashboardStats } from "../../../types";
 import { LEAD_STATUS_LABELS, LOT_STATUS_LABELS, LOT_STATUS_COLORS } from "../../../lib/constants";
 import { PageHeader, Card, StatCard, Table } from "../ui";
+import { useAuth } from "../AuthContext";
 import { Skeleton } from "../../../components/ui/Skeleton";
 
 const statusColors: Record<string, string> = {
@@ -38,6 +39,9 @@ const statusColors: Record<string, string> = {
 };
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const isAdvisorOnly = user?.role?.toUpperCase() === "ASESOR";
+
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => api.get<DashboardStats>("/dashboard/stats", true),
@@ -73,7 +77,14 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Dashboard" subtitle="Resumen general de la plataforma Netland." />
+      <PageHeader
+        title={`Hola, ${user?.name?.split(" ")[0] ?? ""}`}
+        subtitle={
+          isAdvisorOnly
+            ? "Este es el resumen de tu actividad: tus clientes y tus gestiones."
+            : "Resumen general de la plataforma Netland."
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Proyectos" value={stats.projects_total} icon={<FolderKanban className="h-4 w-4" />} />
@@ -83,7 +94,7 @@ export default function Dashboard() {
         <StatCard label="Leads nuevos" value={stats.leads_new} icon={<MessageSquare className="h-4 w-4" />} accent="#2563eb" />
         <StatCard label="Visitas programadas" value={stats.leads_visit_scheduled} icon={<CalendarDays className="h-4 w-4" />} accent="#0891b2" />
         <StatCard label="Asesores" value={stats.advisors_total} icon={<Users className="h-4 w-4" />} />
-        <StatCard label="Cotizaciones" value={stats.quotes_total} icon={<Sparkles className="h-4 w-4" />} accent="#b9924e" />
+        <StatCard label="Cotizaciones" value={stats.quotes_total} icon={<Sparkles className="h-4 w-4" />} accent="#f5a623" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -122,7 +133,7 @@ export default function Dashboard() {
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="value" fill="#14532d" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" fill="#0d7a44" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -139,7 +150,7 @@ export default function Dashboard() {
               <XAxis dataKey="project" tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} />
               <Tooltip />
-              <Bar dataKey="count" fill="#b9924e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="count" fill="#f5a623" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

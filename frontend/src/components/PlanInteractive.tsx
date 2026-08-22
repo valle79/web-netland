@@ -112,7 +112,7 @@ export function PlanInteractive({
                   rx="6"
                   fill={color}
                   fillOpacity={STATUS_OPACITY[lot.status] ?? 0.6}
-                  stroke={isSelected || isHovered ? "#b9924e" : "#ffffff"}
+                  stroke={isSelected || isHovered ? "#f5a623" : "#ffffff"}
                   strokeWidth={isSelected || isHovered ? 6 : 3}
                   className="transition-all duration-200"
                 />

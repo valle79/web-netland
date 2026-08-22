@@ -52,10 +52,31 @@ class LeadUpdate(BaseModel):
     lot_id: int | None = None
     advisor_id: int | None = None
     budget: float | None = None
+    source: str | None = None
     follow_up: str | None = None
     phone: str | None = None
     whatsapp: str | None = None
     email: EmailStr | None = None
+
+
+class CapturedLeadCreate(BaseModel):
+    """Registro manual de clientes captados por asesores (campo / llamada)."""
+    name: str = Field(min_length=2)
+    last_name: str = ""
+    phone: str = Field(min_length=6)
+    whatsapp: str = ""
+    email: EmailStr | None = None
+    project_id: int | None = None
+    budget: float | None = None
+    source: str = "campo"
+    message: str = ""
+    follow_up: str = ""
+    advisor_id: int | None = None
+
+    @field_validator("source")
+    @classmethod
+    def normalize_source(cls, value: str) -> str:
+        return value.strip().lower()[:60] or "campo"
 
 
 class LeadOut(BaseModel):

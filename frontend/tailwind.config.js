@@ -21,8 +21,8 @@ export default {
         sans: ["var(--font-sans)", "sans-serif"],
       },
       boxShadow: {
-        soft: "0 8px 30px rgba(20, 61, 45, 0.10)",
-        lift: "0 18px 40px rgba(20, 61, 45, 0.16)",
+        soft: "0 8px 30px rgba(13, 122, 68, 0.12)",
+        lift: "0 18px 40px rgba(11, 22, 36, 0.18)",
       },
       keyframes: {
         fadeUp: {

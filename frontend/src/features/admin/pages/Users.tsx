@@ -9,9 +9,9 @@ import { useToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";
 
 const roleColors: Record<string, string> = {
-  SUPER_ADMIN: "#b9924e",
-  ADMIN: "#14532d",
-  ASESOR: "#1e3a5f",
+  SUPER_ADMIN: "#f5a623",
+  ADMIN: "#0d7a44",
+  ASESOR: "#1e40af",
 };
 
 export default function AdminUsers() {

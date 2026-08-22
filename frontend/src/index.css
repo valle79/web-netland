@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --netland-primary: #14532d;
-  --netland-primary-dark: #0f3d2e;
-  --netland-secondary: #1e3a5f;
-  --netland-accent: #b9924e;
-  --netland-dark: #101820;
-  --netland-light: #f5f5f0;
-  --netland-background: #fafaf9;
-  --netland-text: #1a1a1a;
-  --netland-muted: #737373;
+  --netland-primary: #0d7a44;
+  --netland-primary-dark: #085a31;
+  --netland-secondary: #1e40af;
+  --netland-accent: #f5a623;
+  --netland-dark: #0b1624;
+  --netland-light: #eef2f7;
+  --netland-background: #f8fafc;
+  --netland-text: #131c2b;
+  --netland-muted: #64748b;
   --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }

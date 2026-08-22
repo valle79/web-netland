@@ -64,3 +64,19 @@ export const lotWhatsappMessage = (
   `Hola Luis, estoy interesado en el lote ${lotCode} de ${projectName}${
     price ? ` con precio de S/ ${price.toLocaleString("es-PE")}` : ""
   }.`;
+
+export const CAPTURED_SOURCES = ["campo", "llamada", "referido", "whatsapp"] as const;
+
+export const CAPTURED_SOURCE_LABELS: Record<string, string> = {
+  campo: "EN CAMPO",
+  llamada: "LLAMADA",
+  referido: "REFERIDO",
+  whatsapp: "WHATSAPP",
+};
+
+export const CAPTURED_SOURCE_COLORS: Record<string, string> = {
+  campo: "#0d9488",
+  llamada: "#4f46e5",
+  referido: "#db2777",
+  whatsapp: "#16a34a",
+};

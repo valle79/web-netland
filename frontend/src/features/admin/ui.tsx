@@ -64,7 +64,7 @@ export function StatCard({
   label,
   value,
   icon,
-  accent = "#14532d",
+  accent = "#0d7a44",
 }: {
   label: string;
   value: ReactNode;

@@ -7,6 +7,7 @@ import { whatsappLink } from "../../lib/constants";
 const links = [
   { to: "/", label: "Inicio" },
   { to: "/proyectos", label: "Proyectos" },
+  { to: "/asesores", label: "Asesores" },
   { to: "/nosotros", label: "Nosotros" },
   { to: "/contacto", label: "Contacto" },
 ];

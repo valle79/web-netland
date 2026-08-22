@@ -6,7 +6,6 @@ import { whatsappLink } from "../lib/constants";
 import type { Advisor, Project } from "../types";
 import { Reveal } from "../components/Reveal";
 import { useLeadForm } from "../features/leads/useLeadForm";
-import { PageHero } from "./Projects";
 import { CheckCircle2 } from "lucide-react";
 
 export default function Contact() {
@@ -43,10 +42,57 @@ export default function Contact() {
 
   return (
     <div>
-      <PageHero
-        title="Contacto"
-        subtitle="Habla con un asesor, agenda una visita o resuelve todas tus dudas."
-      />
+      {/* Hero moderno y dinámico */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-netland-primary via-green-700 to-emerald-900 pb-20 pt-36 text-white">
+        {/* Imagen de fondo con overlay */}
+        <div className="absolute inset-0 opacity-15">
+          <img
+            src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1920&q=80"
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        </div>
+
+        {/* Patrón geométrico moderno */}
+        <div className="absolute inset-0">
+          <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid-contact" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid-contact)" />
+          </svg>
+        </div>
+
+        {/* Formas decorativas flotantes */}
+        <div className="absolute -right-20 top-20 h-72 w-72 rounded-full bg-netland-accent/20 blur-3xl animate-pulse" />
+        <div className="absolute -left-20 bottom-20 h-96 w-96 rounded-full bg-emerald-400/15 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute right-1/3 top-1/3 h-64 w-64 rounded-full bg-yellow-400/10 blur-2xl animate-pulse" style={{ animationDelay: '2s' }} />
+
+        {/* Contenido */}
+        <div className="container-netland relative z-10">
+          <Reveal>
+            <p className="eyebrow justify-start !text-white/95 drop-shadow-lg">Netland</p>
+            <h1 className="max-w-3xl text-balance font-display text-5xl font-bold leading-tight drop-shadow-xl sm:text-6xl lg:text-7xl">
+              <span className="text-netland-accent">Contacto</span>
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/95 drop-shadow-md">
+              Habla con un asesor, agenda una visita o resuelve todas tus dudas.
+            </p>
+          </Reveal>
+        </div>
+
+        {/* Onda decorativa en la parte inferior */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="h-20 w-full">
+            <path
+              d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 80C1200 80 1320 70 1380 65L1440 60V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z"
+              fill="white"
+            />
+          </svg>
+        </div>
+      </section>
 
       <section className="section-padding bg-netland-background">
         <div className="container-netland grid gap-14 lg:grid-cols-5">

@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { api } from "../../../lib/api";
 import type { Advisor } from "../../../types";
-import { whatsappLink } from "../../../lib/constants";
 import { PageHeader, Button, Card, Field, Input, Textarea, Table, Badge } from "../ui";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { FileUploader } from "../../../components/ui/FileUploader";
 
 const emptyForm = {
   name: "",
@@ -28,6 +28,7 @@ export default function AdminAdvisors() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Advisor | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [uploadMethod, setUploadMethod] = useState<"url" | "upload">("upload");
 
   const { data: advisors } = useQuery({
     queryKey: ["advisors-admin"],
@@ -59,6 +60,7 @@ export default function AdminAdvisors() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
+    setUploadMethod("upload");
     setModalOpen(true);
   };
 
@@ -76,6 +78,7 @@ export default function AdminAdvisors() {
       bio: advisor.bio,
       sort_order: advisor.sort_order,
     });
+    setUploadMethod(advisor.photo_url ? "url" : "upload");
     setModalOpen(true);
   };
 
@@ -97,7 +100,7 @@ export default function AdminAdvisors() {
           <EmptyState title="Sin asesores" description="Agrega el equipo comercial de Netland." />
         </Card>
       ) : (
-        <Table headers={["Asesor", "Cargo", "Contacto", "Proyectos", "Estado", "Acciones"]}>
+        <Table headers={["Asesor", "Cargo", "Celular", "Proyectos", "Estado", "Acciones"]}>
           {advisors.map((advisor) => (
             <tr key={advisor.id} className="hover:bg-netland-light/30">
               <td className="px-5 py-3">
@@ -115,14 +118,16 @@ export default function AdminAdvisors() {
               <td className="px-5 py-3 text-netland-muted">{advisor.role_title}</td>
               <td className="px-5 py-3">
                 <p className="text-netland-muted">{advisor.phone || "—"}</p>
-                <a
-                  href={whatsappLink(`Hola ${advisor.name.split(" ")[0]}, te contactamos desde Netland.`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-medium text-netland-accent hover:underline"
-                >
-                  WhatsApp →
-                </a>
+                {advisor.phone && (
+                  <a
+                    href={`https://wa.me/${advisor.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${advisor.name.split(" ")[0]}, te contactamos desde Netland.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-medium text-green-600 hover:underline"
+                  >
+                    WhatsApp →
+                  </a>
+                )}
               </td>
               <td className="px-5 py-3 text-netland-muted">{advisor.project_ids || "—"}</td>
               <td className="px-5 py-3">
@@ -159,30 +164,110 @@ export default function AdminAdvisors() {
         title={editing ? `Editar ${editing.name}` : "Nuevo asesor"}
       >
         <div className="space-y-4 p-6">
-          <Field label="Nombre">
+          <Field label="Nombre completo">
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </Field>
+          
           <Field label="Cargo">
             <Input value={form.role_title} onChange={(e) => setForm({ ...form, role_title: e.target.value })} />
           </Field>
-          <Field label="Teléfono">
-            <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="985928062" />
+
+          {/* Foto del asesor */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-netland-dark">
+              Foto del asesor
+            </label>
+            <div className="flex gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setUploadMethod("upload")}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                  uploadMethod === "upload"
+                    ? "border-netland-primary bg-netland-primary/5 text-netland-primary"
+                    : "border-netland-light bg-white text-netland-muted hover:border-netland-primary/30"
+                }`}
+              >
+                <Upload className="mx-auto h-4 w-4" />
+                Subir foto
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMethod("url")}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                  uploadMethod === "url"
+                    ? "border-netland-primary bg-netland-primary/5 text-netland-primary"
+                    : "border-netland-light bg-white text-netland-muted hover:border-netland-primary/30"
+                }`}
+              >
+                URL
+              </button>
+            </div>
+
+            {uploadMethod === "upload" ? (
+              <FileUploader
+                accept="image/*"
+                folder="advisors"
+                onUploadComplete={(url) => setForm({ ...form, photo_url: url })}
+                maxSizeMB={5}
+                label=""
+                hint="Formatos: JPG, PNG, WebP. Máximo 5MB. Recomendado: foto profesional con fondo neutro."
+                preview={true}
+                currentUrl={form.photo_url}
+              />
+            ) : (
+              <Input 
+                value={form.photo_url} 
+                onChange={(e) => setForm({ ...form, photo_url: e.target.value })} 
+                placeholder="https://res.cloudinary.com/..."
+              />
+            )}
+          </div>
+
+          <Field label="Celular (con código de país para WhatsApp)">
+            <Input 
+              value={form.phone} 
+              onChange={(e) => setForm({ ...form, phone: e.target.value })} 
+              placeholder="51985928062"
+            />
+            <p className="mt-1 text-xs text-netland-muted">
+              Este número se usará también para WhatsApp. Incluye el código de país (ej: 51 para Perú).
+            </p>
           </Field>
-          <Field label="WhatsApp (con código de país)">
-            <Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="51985928062" />
+
+          <Field label="Correo electrónico">
+            <Input 
+              type="email" 
+              value={form.email} 
+              onChange={(e) => setForm({ ...form, email: e.target.value })} 
+              placeholder="asesor@netlandcorp.com"
+            />
           </Field>
-          <Field label="Correo">
-            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          </Field>
-          <Field label="Foto (URL Cloudinary)">
-            <Input value={form.photo_url} onChange={(e) => setForm({ ...form, photo_url: e.target.value })} />
-          </Field>
+
           <Field label="Proyectos asignados (IDs separados por coma)">
-            <Input value={form.project_ids} onChange={(e) => setForm({ ...form, project_ids: e.target.value })} placeholder="1,2" />
+            <Input value={form.project_ids} onChange={(e) => setForm({ ...form, project_ids: e.target.value })} placeholder="1,2,3" />
           </Field>
-          <Field label="Bio">
-            <Textarea rows={3} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
+          
+          <Field label="Biografía">
+            <Textarea 
+              rows={3} 
+              value={form.bio} 
+              onChange={(e) => setForm({ ...form, bio: e.target.value })} 
+              placeholder="Describe la experiencia y especialización del asesor..."
+            />
           </Field>
+
+          <Field label="Orden de visualización">
+            <Input 
+              type="number" 
+              value={form.sort_order} 
+              onChange={(e) => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })} 
+              placeholder="0"
+            />
+            <p className="mt-1 text-xs text-netland-muted">
+              Los asesores se ordenan de menor a mayor. 0 aparece primero.
+            </p>
+          </Field>
+
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -190,14 +275,15 @@ export default function AdminAdvisors() {
               onChange={(e) => setForm({ ...form, is_available: e.target.checked })}
               className="h-4 w-4 accent-netland-primary"
             />
-            Disponible para nuevos clientes
+            Disponible para nuevos clientes (se mostrará en la web pública)
           </label>
+
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setModalOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              {editing ? "Guardar" : "Crear asesor"}
+              {editing ? "Guardar cambios" : "Crear asesor"}
             </Button>
           </div>
         </div>

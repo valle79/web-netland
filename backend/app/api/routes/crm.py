@@ -15,6 +15,7 @@ from app.domain.models import (
     Project,
     Quote,
     QuoteItem,
+    User,
     Visit,
 )
 from app.infrastructure.pdf_service import generate_quote_pdf
@@ -22,6 +23,7 @@ from app.schemas.crm import (
     AdvisorCreate,
     AdvisorOut,
     AdvisorUpdate,
+    CapturedLeadCreate,
     ClientOut,
     LeadCreate,
     LeadOut,
@@ -72,6 +74,22 @@ def _quote_out(quote: Quote) -> QuoteOut:
     return out
 
 
+def _is_admin_user(user: User) -> bool:
+    return bool(user.role and user.role.name in ("SUPER_ADMIN", "ADMIN"))
+
+
+def _ensure_lead_access(user: User, lead: Lead) -> None:
+    """Los asesores solo pueden acceder a los leads que ellos gestionan."""
+    if _is_admin_user(user):
+        return
+    advisor = user.advisor
+    if advisor is None or lead.advisor_id != advisor.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso a este cliente.",
+        )
+
+
 # ---- Leads ----
 
 @router.post("/leads", response_model=LeadOut, status_code=201)
@@ -102,17 +120,86 @@ def create_lead(payload: PublicLeadCreate | LeadCreate, db: Session = Depends(ge
     return _lead_out(lead)
 
 
-@router.get("/leads", response_model=list[LeadOut], dependencies=[Depends(get_current_user)])
+@router.post("/leads/captured", response_model=LeadOut, status_code=201)
+def create_captured_lead(
+    payload: CapturedLeadCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Registro manual de clientes captados en campo o por llamada.
+
+    - ASESOR: el lead se asigna automáticamente a su propio perfil de asesor
+      (se crea uno si aún no tiene) y no puede asignar a otro asesor.
+    - ADMIN / SUPER_ADMIN: pueden elegir asesor; por defecto se usa su propio
+      perfil de asesor si existe.
+    """
+    role_name = current_user.role.name if current_user.role else ""
+    is_admin = role_name in ("SUPER_ADMIN", "ADMIN")
+
+    advisor: Advisor | None = None
+    if is_admin and payload.advisor_id:
+        advisor = db.get(Advisor, payload.advisor_id)
+        if not advisor:
+            raise HTTPException(status_code=404, detail="Asesor no encontrado.")
+    elif current_user.advisor:
+        advisor = current_user.advisor
+
+    if advisor is None:
+        advisor = Advisor(name=current_user.name, email=current_user.email)
+        db.add(advisor)
+        db.flush()
+        current_user.advisor = advisor
+
+    client = Client(
+        name=payload.name,
+        last_name=payload.last_name,
+        phone=payload.phone,
+        whatsapp=payload.whatsapp or payload.phone,
+        email=payload.email,
+    )
+    db.add(client)
+    db.flush()
+
+    lead = Lead(
+        client_id=client.id,
+        project_id=payload.project_id,
+        advisor_id=advisor.id,
+        budget=payload.budget,
+        source=payload.source,
+        message=payload.message,
+        follow_up=payload.follow_up,
+    )
+    db.add(lead)
+    db.commit()
+    db.refresh(lead)
+    return _lead_out(lead)
+
+
+@router.get("/leads", response_model=list[LeadOut])
 def list_leads(
     status_filter: str | None = Query(default=None, alias="status"),
+    source: str | None = Query(default=None, description="Origen(es) separados por coma, ej: campo,llamada"),
+    exclude_source: str | None = Query(default=None, description="Origen(es) a excluir, ej: campo,llamada"),
     advisor_id: int | None = None,
     project_id: int | None = None,
     search: str | None = None,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     q = db.query(Lead).options(joinedload(Lead.client), joinedload(Lead.project), joinedload(Lead.lot), joinedload(Lead.advisor))
+    if not _is_admin_user(current_user):
+        advisor = current_user.advisor
+        q = q.filter(Lead.advisor_id == (advisor.id if advisor else -1))
     if status_filter:
         q = q.filter(Lead.status == status_filter)
+    if source:
+        sources = [s.strip().lower() for s in source.split(",") if s.strip()]
+        if sources:
+            q = q.filter(Lead.source.in_(sources))
+    if exclude_source:
+        excluded = [s.strip().lower() for s in exclude_source.split(",") if s.strip()]
+        if excluded:
+            q = q.filter(~Lead.source.in_(excluded))
     if advisor_id:
         q = q.filter(Lead.advisor_id == advisor_id)
     if project_id:
@@ -126,19 +213,33 @@ def list_leads(
 
 
 @router.get("/leads/{lead_id}", response_model=LeadOut, dependencies=[Depends(get_current_user)])
-def get_lead(lead_id: int, db: Session = Depends(get_db)):
+def get_lead(
+    lead_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     lead = db.get(Lead, lead_id)
     if not lead:
         raise HTTPException(status_code=404, detail="Lead no encontrado.")
+    _ensure_lead_access(current_user, lead)
     return _lead_out(lead)
 
 
-@router.patch("/leads/{lead_id}", response_model=LeadOut, dependencies=[Depends(get_current_user)])
-def update_lead(lead_id: int, payload: LeadUpdate, db: Session = Depends(get_db)):
+@router.patch("/leads/{lead_id}", response_model=LeadOut)
+def update_lead(
+    lead_id: int,
+    payload: LeadUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     lead = db.get(Lead, lead_id)
     if not lead:
         raise HTTPException(status_code=404, detail="Lead no encontrado.")
+    _ensure_lead_access(current_user, lead)
     data = payload.model_dump(exclude_unset=True)
+
+    if not _is_admin_user(current_user):
+        data.pop("advisor_id", None)
 
     if "status" in data:
         if data["status"] not in LEAD_STATUSES:
@@ -157,7 +258,7 @@ def update_lead(lead_id: int, payload: LeadUpdate, db: Session = Depends(get_db)
     if "email" in data and lead.client:
         lead.client.email = data["email"]
 
-    for key in ("status", "project_id", "lot_id", "advisor_id", "budget", "follow_up"):
+    for key in ("status", "project_id", "lot_id", "advisor_id", "budget", "follow_up", "source"):
         if key in data:
             setattr(lead, key, data[key])
 

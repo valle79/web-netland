@@ -166,7 +166,7 @@ export default function PlanEditor() {
                         rx="6"
                         fill={color}
                         fillOpacity={0.85}
-                        stroke={isSelected ? "#b9924e" : "#ffffff"}
+                        stroke={isSelected ? "#f5a623" : "#ffffff"}
                         strokeWidth={isSelected ? 5 : 2}
                       />
                       <text
