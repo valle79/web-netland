@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
@@ -124,11 +124,51 @@ def _ensure_quote_access(user: User, quote: Quote) -> None:
         )
 
 
+def _auto_assign_lead_to_advisor(lead: Lead, db: Session) -> None:
+    """Asigna automáticamente un lead a un asesor disponible usando distribución equitativa.
+    
+    Lógica:
+    1. Busca asesores disponibles (is_available=True)
+    2. Cuenta los leads asignados a cada asesor
+    3. Asigna al asesor con menos leads activos
+    4. Si hay empate, asigna al asesor creado más recientemente
+    """
+    # Obtener asesores disponibles
+    advisors = db.query(Advisor).filter(Advisor.is_available == True).order_by(Advisor.created_at.desc()).all()
+    
+    if not advisors:
+        # Si no hay asesores disponibles, no asignar
+        return
+    
+    # Contar leads por asesor (excluyendo los descartados)
+    advisor_lead_counts = {}
+    for advisor in advisors:
+        count = db.query(func.count(Lead.id)).filter(
+            Lead.advisor_id == advisor.id,
+            Lead.status.not_in(["discarded", "sold"])
+        ).scalar()
+        advisor_lead_counts[advisor.id] = count or 0
+    
+    # Encontrar el asesor con menos leads
+    min_leads = min(advisor_lead_counts.values())
+    candidates = [aid for aid, count in advisor_lead_counts.items() if count == min_leads]
+    
+    # Si hay empate, tomar el asesor más reciente de los candidatos
+    selected_advisor = next((a for a in advisors if a.id in candidates), None)
+    
+    if selected_advisor:
+        lead.advisor_id = selected_advisor.id
+
+
 # ---- Leads ----
 
 @router.post("/leads", response_model=LeadOut, status_code=201)
 def create_lead(payload: PublicLeadCreate | LeadCreate, db: Session = Depends(get_db)):
-    """Endpoint público y admin para crear un lead."""
+    """Endpoint público y admin para crear un lead.
+    
+    - Si no se especifica advisor_id, se asigna automáticamente
+    - Admin puede especificar advisor_id manualmente
+    """
     client = Client(
         name=payload.name,
         last_name=payload.last_name,
@@ -148,6 +188,11 @@ def create_lead(payload: PublicLeadCreate | LeadCreate, db: Session = Depends(ge
         source=getattr(payload, "source", "web"),
         message=getattr(payload, "message", ""),
     )
+    
+    # Si no se especificó advisor, asignar automáticamente
+    if lead.advisor_id is None:
+        _auto_assign_lead_to_advisor(lead, db)
+    
     db.add(lead)
     db.commit()
     db.refresh(lead)
@@ -217,31 +262,75 @@ def list_leads(
     advisor_id: int | None = None,
     project_id: int | None = None,
     search: str | None = None,
+    date_from: date | None = Query(default=None, description="Fecha desde (YYYY-MM-DD)"),
+    date_to: date | None = Query(default=None, description="Fecha hasta (YYYY-MM-DD)"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Lead).options(joinedload(Lead.client), joinedload(Lead.project), joinedload(Lead.lot), joinedload(Lead.advisor))
+    """Listar leads con filtros avanzados.
+    
+    Filtros disponibles:
+    - status: Estado del lead
+    - source: Fuente(s) separadas por coma
+    - exclude_source: Fuente(s) a excluir
+    - advisor_id: ID del asesor asignado
+    - project_id: ID del proyecto
+    - search: Búsqueda por nombre, apellido o teléfono
+    - date_from: Fecha desde (incluida)
+    - date_to: Fecha hasta (incluida)
+    """
+    q = db.query(Lead).options(
+        joinedload(Lead.client),
+        joinedload(Lead.project),
+        joinedload(Lead.lot),
+        joinedload(Lead.advisor)
+    )
+    
+    # Control de acceso: asesores solo ven sus leads
     if not _is_admin_user(current_user):
         advisor = current_user.advisor
         q = q.filter(Lead.advisor_id == (advisor.id if advisor else -1))
+    
+    # Filtro por estado
     if status_filter:
         q = q.filter(Lead.status == status_filter)
+    
+    # Filtro por fuente (incluir)
     if source:
         sources = [s.strip().lower() for s in source.split(",") if s.strip()]
         if sources:
             q = q.filter(Lead.source.in_(sources))
+    
+    # Filtro por fuente (excluir)
     if exclude_source:
         excluded = [s.strip().lower() for s in exclude_source.split(",") if s.strip()]
         if excluded:
             q = q.filter(~Lead.source.in_(excluded))
+    
+    # Filtro por asesor
     if advisor_id:
         q = q.filter(Lead.advisor_id == advisor_id)
+    
+    # Filtro por proyecto
     if project_id:
         q = q.filter(Lead.project_id == project_id)
+    
+    # Filtro por fecha (desde)
+    if date_from:
+        q = q.filter(func.date(Lead.created_at) >= date_from)
+    
+    # Filtro por fecha (hasta)
+    if date_to:
+        q = q.filter(func.date(Lead.created_at) <= date_to)
+    
+    # Búsqueda por texto
     if search:
-        q = q.filter(
-            (Client.name.ilike(f"%{search}%")) | (Client.last_name.ilike(f"%{search}%")) | (Client.phone.ilike(f"%{search}%"))
+        q = q.join(Client).filter(
+            (Client.name.ilike(f"%{search}%")) |
+            (Client.last_name.ilike(f"%{search}%")) |
+            (Client.phone.ilike(f"%{search}%"))
         )
+    
     leads = q.order_by(Lead.created_at.desc()).all()
     return [_lead_out(lead) for lead in leads]
 
