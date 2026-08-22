@@ -22,8 +22,6 @@ const AdminProjectForm = lazy(() => import("./features/admin/pages/ProjectForm")
 const AdminProjectGallery = lazy(() => import("./features/admin/pages/ProjectGallery"));
 const AdminProjectDocuments = lazy(() => import("./features/admin/pages/ProjectDocuments"));
 const AdminLots = lazy(() => import("./features/admin/pages/Lots"));
-const AdminPlan = lazy(() => import("./features/admin/pages/PlanEditor"));
-const AdminPlanImport = lazy(() => import("./features/admin/pages/PlanImport"));
 const AdminLeads = lazy(() => import("./features/admin/pages/Leads"));
 const AdminCapturedClients = lazy(() =>
   import("./features/admin/pages/CapturedClients")
@@ -50,9 +48,7 @@ export default function App() {
             <Route path="proyectos/:id/editar" element={<AdminProjectForm />} />
             <Route path="proyectos/:id/galeria" element={<AdminProjectGallery />} />
             <Route path="proyectos/:id/documentos" element={<AdminProjectDocuments />} />
-            <Route path="proyectos/:projectId/importar-plano" element={<AdminPlanImport />} />
             <Route path="lotes" element={<AdminLots />} />
-            <Route path="plano/:projectId" element={<AdminPlan />} />
             <Route path="leads" element={<AdminLeads />} />
             <Route path="clientes-captados" element={<AdminCapturedClients />} />
             <Route path="asesores" element={<AdminAdvisors />} />

@@ -23,6 +23,7 @@ class ProjectBase(BaseModel):
     hero_image: str = ""
     hero_video: str = ""
     logo_url: str = ""
+    plan_pdf_url: str = ""
     status: str = "active"
     is_published: bool = True
     legal_info: str = ""
@@ -54,6 +55,7 @@ class ProjectUpdate(BaseModel):
     hero_image: str | None = None
     hero_video: str | None = None
     logo_url: str | None = None
+    plan_pdf_url: str | None = None
     status: str | None = None
     is_published: bool | None = None
     legal_info: str | None = None

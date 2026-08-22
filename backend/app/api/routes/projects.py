@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
+import httpx
 
 from app.core.database import get_db
 from app.core.dependencies import require_admin, require_roles, get_current_user
@@ -366,3 +368,41 @@ def delete_promotion(promotion_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Promoción no encontrada.")
     db.delete(promotion)
     db.commit()
+
+
+# ---- PDF Proxy (Secure) ----
+
+@router.get("/{project_identifier}/plan-pdf")
+async def get_project_plan_pdf(project_identifier: str, db: Session = Depends(get_db)):
+    """
+    Endpoint seguro para servir el PDF del plano sin exponer la URL de Cloudinary.
+    Descarga el PDF desde Cloudinary y lo sirve como streaming response.
+    """
+    project = get_project_or_404(db, project_identifier)
+    
+    if not project.plan_pdf_url:
+        raise HTTPException(
+            status_code=404, 
+            detail="Este proyecto no tiene un plano PDF disponible."
+        )
+    
+    # Descargar el PDF desde Cloudinary
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.get(project.plan_pdf_url)
+            response.raise_for_status()
+        except httpx.HTTPError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Error al obtener el PDF: {str(e)}"
+            )
+    
+    # Servir el PDF como streaming response
+    return StreamingResponse(
+        iter([response.content]),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="Plano-{project.slug}.pdf"',
+            "Cache-Control": "public, max-age=3600",  # Cache por 1 hora
+        }
+    )

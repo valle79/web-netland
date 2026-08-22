@@ -20,6 +20,7 @@ export interface Project {
   hero_image: string;
   hero_video: string;
   logo_url: string;
+  plan_pdf_url: string;
   status: string;
   is_published: boolean;
   legal_info: string;

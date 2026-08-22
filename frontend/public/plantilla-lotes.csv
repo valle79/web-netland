@@ -1,0 +1,5 @@
+﻿codigo,manzana,area_m2,precio,estado
+MZ A-01,A,120.50,50000,disponible
+MZ A-02,A,115.75,48000,disponible
+MZ B-01,B,135.00,55000,reservado
+MZ B-02,B,128.30,52000,vendido

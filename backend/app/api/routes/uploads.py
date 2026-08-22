@@ -37,6 +37,8 @@ async def upload(
     """
     Endpoint para subir archivos (imágenes, videos, PDFs, documentos).
     Sube el archivo a Cloudinary y devuelve la URL pública.
+    
+    NOTA: Si es un PDF y folder="plans", se convierte automáticamente a imagen.
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="El archivo debe tener un nombre.")
@@ -53,7 +55,11 @@ async def upload(
 
     # Determinar resource_type automáticamente si es "auto"
     if resource_type == "auto":
-        resource_type = get_resource_type_from_extension(extension)
+        # Si es un PDF en la carpeta "plans", convertirlo a imagen automáticamente
+        if extension == "pdf" and folder == "plans":
+            resource_type = "image"
+        else:
+            resource_type = get_resource_type_from_extension(extension)
 
     # Guardar archivo temporalmente
     with tempfile.NamedTemporaryFile(delete=False, suffix=f".{extension}") as tmp:
@@ -62,6 +68,17 @@ async def upload(
 
     try:
         result = upload_file(tmp_path, folder=folder, resource_type=resource_type)
+        
+        # Si es un PDF convertido a imagen, agregar transformaciones para mejor calidad
+        if extension == "pdf" and resource_type == "image":
+            # Cloudinary convierte PDFs a PNG por defecto
+            # Agregar transformaciones para alta calidad
+            base_url = result["url"]
+            # Agregar transformación de calidad: q_auto:best,f_auto,dpr_2.0
+            if "/upload/" in base_url:
+                url_parts = base_url.split("/upload/")
+                result["url"] = f"{url_parts[0]}/upload/q_auto:best,f_auto,dpr_2.0/{url_parts[1]}"
+                
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     finally:

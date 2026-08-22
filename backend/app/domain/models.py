@@ -108,6 +108,7 @@ class Project(Base):
     hero_image = Column(String(500), default="")
     hero_video = Column(String(500), default="")
     logo_url = Column(String(500), default="")
+    plan_pdf_url = Column(String(500), default="")  # PDF del plano del proyecto
     status = Column(String(30), default="active")
     is_published = Column(Boolean, default=True, nullable=False)
     legal_info = Column(Text, default="")

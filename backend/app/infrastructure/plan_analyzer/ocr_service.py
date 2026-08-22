@@ -42,6 +42,23 @@ class OCRService:
     def _verify_tesseract(self):
         """Verifica que Tesseract esté instalado."""
         try:
+            # En Windows, intentar configurar la ruta de Tesseract automáticamente
+            import platform
+            import os
+            
+            if platform.system() == "Windows":
+                # Rutas comunes de instalación en Windows
+                possible_paths = [
+                    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+                ]
+                
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        pytesseract.pytesseract.tesseract_cmd = path
+                        logger.info(f"Tesseract encontrado en: {path}")
+                        break
+            
             version = pytesseract.get_tesseract_version()
             logger.info(f"Tesseract OCR versión: {version}")
         except Exception as e:

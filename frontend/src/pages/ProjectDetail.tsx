@@ -284,6 +284,115 @@ export default function ProjectDetail() {
         </div>
       </section>
 
+      {project.plan_pdf_url && (
+        <section className="bg-gradient-to-br from-netland-primary/5 to-netland-accent/5 py-20 md:py-28">
+          <div className="container-netland">
+            <Reveal>
+              <div className="mb-10 max-w-2xl">
+                <p className="eyebrow">Documentación técnica</p>
+                <h2 className="font-display text-4xl font-semibold text-netland-dark">
+                  Plano del proyecto
+                </h2>
+                <p className="mt-3 text-netland-muted">
+                  Descarga el plano técnico completo del proyecto para revisar
+                  dimensiones, distribución y especificaciones.
+                </p>
+              </div>
+            </Reveal>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Reveal delay={100}>
+                <div className="overflow-hidden rounded-xl border border-netland-light bg-white shadow-soft">
+                  <div className="aspect-[4/3] overflow-hidden bg-netland-light/30">
+                    <iframe
+                      src={`${project.plan_pdf_url}#toolbar=0&navpanes=0&scrollbar=0`}
+                      title="Vista previa del plano"
+                      className="h-full w-full"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="font-display text-xl font-semibold text-netland-dark">
+                      Vista previa del plano
+                    </h3>
+                    <p className="mt-2 text-sm text-netland-muted">
+                      Visualización del documento técnico del proyecto
+                    </p>
+                  </div>
+                </div>
+              </Reveal>
+
+              <Reveal delay={200}>
+                <div className="flex flex-col justify-center space-y-6 rounded-xl border border-netland-light bg-white p-8 shadow-soft">
+                  <div>
+                    <h3 className="font-display text-2xl font-semibold text-netland-dark">
+                      Descarga el plano completo
+                    </h3>
+                    <p className="mt-3 text-netland-muted">
+                      El plano técnico incluye información detallada sobre:
+                    </p>
+                    <ul className="mt-4 space-y-2 text-sm text-netland-muted">
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-netland-primary" />
+                        Distribución y numeración de lotes
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-netland-primary" />
+                        Áreas y dimensiones exactas
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-netland-primary" />
+                        Áreas comunes y vías de acceso
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-netland-primary" />
+                        Especificaciones técnicas
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <a
+                      href={project.plan_pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-primary flex-1"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Ver plano completo
+                    </a>
+                    <a
+                      href={project.plan_pdf_url}
+                      download={`Plano-${project.slug}.pdf`}
+                      className="btn-secondary flex-1"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        />
+                      </svg>
+                      Descargar PDF
+                    </a>
+                  </div>
+
+                  <p className="text-xs text-netland-muted">
+                    Para consultas específicas sobre el plano, contacta a un asesor
+                    de Netland.
+                  </p>
+                </div>
+              </Reveal>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="bg-netland-light/50 py-20 md:py-28">
         <div className="container-netland">
           <Reveal>
