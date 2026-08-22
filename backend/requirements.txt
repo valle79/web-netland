@@ -23,3 +23,6 @@ Pillow>=10.4.0
 pytesseract>=0.3.13
 opencv-python>=4.10.0.84
 numpy>=1.26.4
+
+# HTTP Client
+httpx>=0.28.1
