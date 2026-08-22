@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Map, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { api } from "../../../lib/api";
 import type { Block, Lot, Project } from "../../../types";
 import { LOT_STATUS_COLORS, LOT_STATUS_LABELS, formatSoles } from "../../../lib/constants";
@@ -18,10 +17,6 @@ interface LotFormState {
   price: string;
   promo_price: string;
   status: string;
-  x: string;
-  y: string;
-  width: string;
-  height: string;
   notes: string;
 }
 
@@ -33,12 +28,24 @@ const emptyForm: LotFormState = {
   price: "",
   promo_price: "",
   status: "available",
-  x: "",
-  y: "",
-  width: "",
-  height: "",
   notes: "",
 };
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
+
+type PageItem = number | "ellipsis-left" | "ellipsis-right";
+
+function getPageItems(current: number, total: number): PageItem[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const items: PageItem[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) items.push("ellipsis-left");
+  for (let i = start; i <= end; i++) items.push(i);
+  if (end < total - 1) items.push("ellipsis-right");
+  items.push(total);
+  return items;
+}
 
 export default function AdminLots() {
   const queryClient = useQueryClient();
@@ -47,6 +54,8 @@ export default function AdminLots() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lot | null>(null);
   const [form, setForm] = useState<LotFormState>(emptyForm);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
 
   const { data: projects } = useQuery({
     queryKey: ["projects-admin"],
@@ -60,6 +69,12 @@ export default function AdminLots() {
     queryFn: () => api.get<Lot[]>(`/projects/${selectedProject}/lots`),
     enabled: !!selectedProject,
   });
+
+  const totalLots = lots?.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalLots / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedLots = lots?.slice(startIndex, startIndex + pageSize) ?? [];
 
   const { data: blocks } = useQuery({
     queryKey: ["admin-blocks", selectedProject],
@@ -117,10 +132,6 @@ export default function AdminLots() {
       price: lot.price?.toString() ?? "",
       promo_price: lot.promo_price?.toString() ?? "",
       status: lot.status,
-      x: lot.x?.toString() ?? "",
-      y: lot.y?.toString() ?? "",
-      width: lot.width?.toString() ?? "",
-      height: lot.height?.toString() ?? "",
       notes: lot.notes ?? "",
     });
     setModalOpen(true);
@@ -135,10 +146,6 @@ export default function AdminLots() {
       price: form.price ? Number(form.price) : null,
       promo_price: form.promo_price ? Number(form.promo_price) : null,
       status: form.status,
-      x: form.x ? Number(form.x) : null,
-      y: form.y ? Number(form.y) : null,
-      width: form.width ? Number(form.width) : null,
-      height: form.height ? Number(form.height) : null,
       notes: form.notes,
     };
     if (!payload.code) {
@@ -159,14 +166,6 @@ export default function AdminLots() {
               <Plus className="h-4 w-4" />
               Nuevo lote
             </Button>
-            {selectedProject && (
-              <Link to={`/admin/plano/${selectedProject}`}>
-                <Button variant="outline">
-                  <Map className="h-4 w-4" />
-                  Plano interactivo
-                </Button>
-              </Link>
-            )}
           </div>
         }
       />
@@ -175,7 +174,10 @@ export default function AdminLots() {
         <Field label="Proyecto">
           <Select
             value={projectId}
-            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
+            onChange={(e) => {
+              setProjectId(e.target.value ? Number(e.target.value) : "");
+              setPage(1);
+            }}
           >
             <option value="">Seleccionar proyecto...</option>
             {projects?.map((p) => (
@@ -191,12 +193,13 @@ export default function AdminLots() {
         <Card>
           <EmptyState
             title="Sin lotes en este proyecto"
-            description="Crea manzanas y lotes desde este módulo o el plano interactivo."
+            description="Crea manzanas y lotes desde este módulo."
           />
         </Card>
       ) : (
-        <Table headers={["Código", "Manzana", "Área", "Precio", "Promoción", "Estado", "Acciones"]}>
-          {lots.map((lot) => (
+        <>
+          <Table headers={["Código", "Manzana", "Área", "Precio", "Promoción", "Estado", "Acciones"]}>
+          {paginatedLots.map((lot) => (
             <tr key={lot.id} className="hover:bg-netland-light/30">
               <td className="px-5 py-3 font-semibold text-netland-dark">{lot.code}</td>
               <td className="px-5 py-3">{lot.block_code ?? "—"}</td>
@@ -245,6 +248,76 @@ export default function AdminLots() {
             </tr>
           ))}
         </Table>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+          <p className="text-sm text-netland-muted">
+            Mostrando{" "}
+            <span className="font-semibold text-netland-dark">
+              {totalLots === 0 ? 0 : startIndex + 1}–{Math.min(startIndex + pageSize, totalLots)}
+            </span>{" "}
+            de <span className="font-semibold text-netland-dark">{totalLots}</span> lotes
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="!w-auto !px-2 !py-1.5 text-xs"
+              aria-label="Lotes por página"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size} por página
+                </option>
+              ))}
+            </Select>
+
+            <Button
+              variant="outline"
+              className="!px-2.5 !py-1.5"
+              disabled={currentPage <= 1}
+              onClick={() => setPage(currentPage - 1)}
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {getPageItems(currentPage, totalPages).map((item) =>
+              typeof item === "number" ? (
+                <button
+                  key={item}
+                  onClick={() => setPage(item)}
+                  aria-current={item === currentPage ? "page" : undefined}
+                  className={`h-8 min-w-8 rounded-sm px-2 text-sm font-semibold transition-colors ${
+                    item === currentPage
+                      ? "bg-netland-primary text-white"
+                      : "border border-netland-light bg-white text-netland-dark hover:border-netland-primary hover:text-netland-primary"
+                  }`}
+                >
+                  {item}
+                </button>
+              ) : (
+                <span key={item} className="px-1 text-sm text-netland-muted">
+                  …
+                </span>
+              ),
+            )}
+
+            <Button
+              variant="outline"
+              className="!px-2.5 !py-1.5"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage(currentPage + 1)}
+              aria-label="Página siguiente"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        </>
       )}
 
       <Modal
@@ -288,26 +361,6 @@ export default function AdminLots() {
           <Field label="Precio promocional (S/)">
             <Input type="number" value={form.promo_price} onChange={(e) => setForm({ ...form, promo_price: e.target.value })} />
           </Field>
-          <div />
-          <div className="sm:col-span-2">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-netland-muted">
-              Coordenadas en el plano (SVG)
-            </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Field label="X">
-                <Input type="number" value={form.x} onChange={(e) => setForm({ ...form, x: e.target.value })} />
-              </Field>
-              <Field label="Y">
-                <Input type="number" value={form.y} onChange={(e) => setForm({ ...form, y: e.target.value })} />
-              </Field>
-              <Field label="Ancho">
-                <Input type="number" value={form.width} onChange={(e) => setForm({ ...form, width: e.target.value })} />
-              </Field>
-              <Field label="Alto">
-                <Input type="number" value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} />
-              </Field>
-            </div>
-          </div>
           <div className="sm:col-span-2">
             <Field label="Observaciones">
               <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
