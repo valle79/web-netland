@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     form.append("username", email);
     form.append("password", password);
     const response = await fetch(
-      `${API_URL}/api/auth/login`,
+      `${API_URL}/auth/login`,
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
