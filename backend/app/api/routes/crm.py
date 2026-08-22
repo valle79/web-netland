@@ -90,6 +90,40 @@ def _ensure_lead_access(user: User, lead: Lead) -> None:
         )
 
 
+def _scoped_advisor_id(user: User) -> int:
+    """ID del asesor para acotar queries de usuarios no administradores (-1 = sin resultados)."""
+    advisor = user.advisor
+    return advisor.id if advisor else -1
+
+
+def _ensure_visit_access(user: User, visit: Visit) -> None:
+    """Los asesores solo pueden acceder a sus propias visitas."""
+    if _is_admin_user(user):
+        return
+    advisor = user.advisor
+    if advisor is None or visit.advisor_id != advisor.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso a esta visita.",
+        )
+
+
+def _ensure_quote_access(user: User, quote: Quote) -> None:
+    """Los asesores solo pueden acceder a sus propias cotizaciones."""
+    if _is_admin_user(user):
+        return
+    advisor = user.advisor
+    owns_quote = advisor is not None and quote.advisor_id == advisor.id
+    owns_via_lead = (
+        quote.lead is not None and advisor is not None and quote.lead.advisor_id == advisor.id
+    )
+    if not (owns_quote or owns_via_lead):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes acceso a esta cotización.",
+        )
+
+
 # ---- Leads ----
 
 @router.post("/leads", response_model=LeadOut, status_code=201)
@@ -278,9 +312,20 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
 
 # ---- Clients ----
 
-@router.get("/clients", response_model=list[ClientOut], dependencies=[Depends(get_current_user)])
-def list_clients(search: str | None = None, db: Session = Depends(get_db)):
+@router.get("/clients", response_model=list[ClientOut])
+def list_clients(
+    search: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     q = db.query(Client)
+    if not _is_admin_user(current_user):
+        # Los asesores solo ven los clientes de sus propios leads.
+        q = (
+            q.join(Lead, Lead.client_id == Client.id)
+            .filter(Lead.advisor_id == _scoped_advisor_id(current_user))
+            .distinct()
+        )
     if search:
         q = q.filter((Client.name.ilike(f"%{search}%")) | (Client.phone.ilike(f"%{search}%")))
     return [ClientOut.model_validate(c) for c in q.order_by(Client.created_at.desc()).all()]
@@ -328,16 +373,20 @@ def delete_advisor(advisor_id: int, db: Session = Depends(get_db)):
 
 # ---- Visits ----
 
-@router.get("/visits", response_model=list[VisitOut], dependencies=[Depends(get_current_user)])
+@router.get("/visits", response_model=list[VisitOut])
 def list_visits(
     status_filter: str | None = Query(default=None, alias="status"),
     advisor_id: int | None = None,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     q = db.query(Visit).options(joinedload(Visit.lead).joinedload(Lead.client), joinedload(Visit.project), joinedload(Visit.advisor))
+    if not _is_admin_user(current_user):
+        # Los asesores solo ven sus propias visitas, sin importar los filtros enviados.
+        q = q.filter(Visit.advisor_id == _scoped_advisor_id(current_user))
     if status_filter:
         q = q.filter(Visit.status == status_filter)
-    if advisor_id:
+    if advisor_id and _is_admin_user(current_user):
         q = q.filter(Visit.advisor_id == advisor_id)
     visits = q.order_by(Visit.scheduled_at.desc()).all()
     result = []
@@ -350,24 +399,51 @@ def list_visits(
     return result
 
 
-@router.post("/visits", response_model=VisitOut, dependencies=[Depends(get_current_user)])
-def create_visit(payload: VisitCreate, db: Session = Depends(get_db)):
-    visit = Visit(**payload.model_dump())
+@router.post("/visits", response_model=VisitOut, status_code=201)
+def create_visit(
+    payload: VisitCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    lead = db.get(Lead, payload.lead_id)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead no encontrado.")
+    _ensure_lead_access(current_user, lead)
+
+    data = payload.model_dump()
+    if not _is_admin_user(current_user):
+        # Un asesor siempre queda asignado a su propio perfil.
+        advisor = current_user.advisor
+        if advisor is None:
+            advisor = Advisor(name=current_user.name, email=current_user.email)
+            db.add(advisor)
+            db.flush()
+            current_user.advisor = advisor
+        data["advisor_id"] = advisor.id
+    elif data.get("advisor_id") is None and current_user.advisor:
+        data["advisor_id"] = current_user.advisor.id
+
+    visit = Visit(**data)
     db.add(visit)
     db.flush()
-    lead = db.get(Lead, payload.lead_id)
-    if lead and lead.status == "new":
+    if lead.status == "new":
         lead.status = "visit_scheduled"
     db.commit()
     db.refresh(visit)
     return VisitOut.model_validate(visit)
 
 
-@router.patch("/visits/{visit_id}", response_model=VisitOut, dependencies=[Depends(get_current_user)])
-def update_visit(visit_id: int, payload: VisitUpdate, db: Session = Depends(get_db)):
+@router.patch("/visits/{visit_id}", response_model=VisitOut)
+def update_visit(
+    visit_id: int,
+    payload: VisitUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     visit = db.get(Visit, visit_id)
     if not visit:
         raise HTTPException(status_code=404, detail="Visita no encontrada.")
+    _ensure_visit_access(current_user, visit)
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(visit, key, value)
     db.commit()
@@ -377,19 +453,49 @@ def update_visit(visit_id: int, payload: VisitUpdate, db: Session = Depends(get_
 
 # ---- Quotes ----
 
-@router.get("/quotes", response_model=list[QuoteOut], dependencies=[Depends(get_current_user)])
-def list_quotes(advisor_id: int | None = None, db: Session = Depends(get_db)):
+@router.get("/quotes", response_model=list[QuoteOut])
+def list_quotes(
+    advisor_id: int | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     q = db.query(Quote).options(joinedload(Quote.project), joinedload(Quote.lot), joinedload(Quote.advisor))
-    if advisor_id:
+    if not _is_admin_user(current_user):
+        # Los asesores solo ven sus propias cotizaciones, sin importar los filtros enviados.
+        q = q.filter(Quote.advisor_id == _scoped_advisor_id(current_user))
+    if advisor_id and _is_admin_user(current_user):
         q = q.filter(Quote.advisor_id == advisor_id)
     return [_quote_out(quote) for quote in q.order_by(Quote.created_at.desc()).all()]
 
 
-@router.post("/quotes", response_model=QuoteOut, status_code=201, dependencies=[Depends(get_current_user)])
-def create_quote(payload: QuoteCreate, db: Session = Depends(get_db)):
+@router.post("/quotes", response_model=QuoteOut, status_code=201)
+def create_quote(
+    payload: QuoteCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     lot = db.get(Lot, payload.lot_id)
     if not lot:
         raise HTTPException(status_code=404, detail="Lote no encontrado.")
+
+    if payload.lead_id:
+        lead = db.get(Lead, payload.lead_id)
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead no encontrado.")
+        _ensure_lead_access(current_user, lead)
+
+    advisor_id = payload.advisor_id
+    if not _is_admin_user(current_user):
+        # Un asesor siempre queda asignado a su propio perfil.
+        advisor = current_user.advisor
+        if advisor is None:
+            advisor = Advisor(name=current_user.name, email=current_user.email)
+            db.add(advisor)
+            db.flush()
+            current_user.advisor = advisor
+        advisor_id = advisor.id
+    elif advisor_id is None and current_user.advisor:
+        advisor_id = current_user.advisor.id
 
     lot_price_value = lot.promo_price or lot.price
     if lot_price_value is None:
@@ -408,7 +514,7 @@ def create_quote(payload: QuoteCreate, db: Session = Depends(get_db)):
     quote = Quote(
         quote_number=quote_number,
         lead_id=payload.lead_id,
-        advisor_id=payload.advisor_id,
+        advisor_id=advisor_id,
         project_id=payload.project_id,
         lot_id=lot.id,
         lot_price=lot_price,
@@ -430,11 +536,16 @@ def create_quote(payload: QuoteCreate, db: Session = Depends(get_db)):
     return _quote_out(quote)
 
 
-@router.get("/quotes/{quote_id}/pdf", dependencies=[Depends(get_current_user)])
-def generate_quote_pdf_endpoint(quote_id: int, db: Session = Depends(get_db)):
+@router.get("/quotes/{quote_id}/pdf")
+def generate_quote_pdf_endpoint(
+    quote_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     quote = db.get(Quote, quote_id)
     if not quote:
         raise HTTPException(status_code=404, detail="Cotización no encontrada.")
+    _ensure_quote_access(current_user, quote)
 
     client_name = None
     if quote.lead and quote.lead.client:

@@ -15,12 +15,12 @@ def me(user: User = Depends(get_current_user)):
     return UserOut.from_user(user)
 
 
-@router.get("", response_model=list[UserOut], dependencies=[Depends(require_roles("SUPER_ADMIN", "ADMIN"))])
+@router.get("", response_model=list[UserOut], dependencies=[Depends(require_roles("SUPER_ADMIN"))])
 def list_users(db: Session = Depends(get_db)):
     return [UserOut.from_user(u) for u in db.query(User).all()]
 
 
-@router.post("", response_model=UserOut, status_code=201, dependencies=[Depends(require_roles("SUPER_ADMIN", "ADMIN"))])
+@router.post("", response_model=UserOut, status_code=201, dependencies=[Depends(require_roles("SUPER_ADMIN"))])
 def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     role = db.query(RoleModel).filter(RoleModel.name == payload.role).first()
     if not role:
@@ -39,7 +39,7 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     return UserOut.from_user(user)
 
 
-@router.put("/{user_id}", response_model=UserOut, dependencies=[Depends(require_roles("SUPER_ADMIN", "ADMIN"))])
+@router.put("/{user_id}", response_model=UserOut, dependencies=[Depends(require_roles("SUPER_ADMIN"))])
 def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if not user:
@@ -61,8 +61,14 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     return UserOut.from_user(user)
 
 
-@router.delete("/{user_id}", status_code=204, dependencies=[Depends(require_roles("SUPER_ADMIN", "ADMIN"))])
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+@router.delete("/{user_id}", status_code=204)
+def delete_user(
+    user_id: int,
+    current_user: User = Depends(require_roles("SUPER_ADMIN")),
+    db: Session = Depends(get_db),
+):
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="No puedes eliminar tu propio usuario.")
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")

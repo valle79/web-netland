@@ -8,6 +8,7 @@ import { PageHeader, Button, Card, Field, Input, Select, Table } from "../ui";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { useAuth } from "../AuthContext";
 
 interface LotFormState {
   block_id: string;
@@ -50,6 +51,10 @@ function getPageItems(current: number, total: number): PageItem[] {
 export default function AdminLots() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const canManageLots = ["SUPER_ADMIN", "ADMIN"].includes(
+    (user?.role ?? "").toUpperCase()
+  );
   const [projectId, setProjectId] = useState<number | "">("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Lot | null>(null);
@@ -161,12 +166,12 @@ export default function AdminLots() {
         title="Lotes"
         subtitle="Administra manzanas y lotes de cada proyecto."
         action={
-          <div className="flex gap-2">
+          canManageLots ? (
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4" />
               Nuevo lote
             </Button>
-          </div>
+          ) : undefined
         }
       />
 
@@ -228,22 +233,24 @@ export default function AdminLots() {
                 </Select>
               </td>
               <td className="px-5 py-3">
-                <div className="flex gap-2">
-                  <Button variant="outline" className="!px-2.5 !py-1.5" onClick={() => openEdit(lot)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="danger"
-                    className="!px-2.5 !py-1.5"
-                    onClick={() => {
-                      if (confirm(`¿Eliminar el lote ${lot.code}?`)) {
-                        deleteMutation.mutate(lot.id);
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                {canManageLots && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="!px-2.5 !py-1.5" onClick={() => openEdit(lot)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="danger"
+                      className="!px-2.5 !py-1.5"
+                      onClick={() => {
+                        if (confirm(`¿Eliminar el lote ${lot.code}?`)) {
+                          deleteMutation.mutate(lot.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
               </td>
             </tr>
           ))}

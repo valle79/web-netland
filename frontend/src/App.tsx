@@ -1,11 +1,23 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Navbar } from "./components/layout/Navbar";
 import { Footer } from "./components/layout/Footer";
 import { WhatsAppFloat } from "./components/layout/WhatsAppFloat";
 import { PageLoader } from "./components/ui/PageLoader";
 import { ToastProvider } from "./components/ui/Toast";
-import { AuthProvider } from "./features/admin/AuthContext";
+import { AuthProvider, useAuth } from "./features/admin/AuthContext";
+
+const SUPER_ADMIN_ROLES = ["SUPER_ADMIN"];
+const ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN"];
+
+function RequireRole({ roles, children }: { roles: string[]; children: ReactNode }) {
+  const { user } = useAuth();
+  const role = (user?.role ?? "").toUpperCase();
+  if (!roles.includes(role)) {
+    return <Navigate to="/admin" replace />;
+  }
+  return <>{children}</>;
+}
 
 const Home = lazy(() => import("./pages/Home"));
 const Projects = lazy(() => import("./pages/Projects"));
@@ -43,21 +55,91 @@ export default function App() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
-            <Route path="proyectos" element={<AdminProjects />} />
-            <Route path="proyectos/nuevo" element={<AdminProjectForm />} />
-            <Route path="proyectos/:id/editar" element={<AdminProjectForm />} />
-            <Route path="proyectos/:id/galeria" element={<AdminProjectGallery />} />
-            <Route path="proyectos/:id/documentos" element={<AdminProjectDocuments />} />
+            <Route
+              path="proyectos"
+              element={
+                <RequireRole roles={ADMIN_ROLES}>
+                  <AdminProjects />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="proyectos/nuevo"
+              element={
+                <RequireRole roles={ADMIN_ROLES}>
+                  <AdminProjectForm />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="proyectos/:id/editar"
+              element={
+                <RequireRole roles={ADMIN_ROLES}>
+                  <AdminProjectForm />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="proyectos/:id/galeria"
+              element={
+                <RequireRole roles={ADMIN_ROLES}>
+                  <AdminProjectGallery />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="proyectos/:id/documentos"
+              element={
+                <RequireRole roles={ADMIN_ROLES}>
+                  <AdminProjectDocuments />
+                </RequireRole>
+              }
+            />
             <Route path="lotes" element={<AdminLots />} />
             <Route path="leads" element={<AdminLeads />} />
             <Route path="clientes-captados" element={<AdminCapturedClients />} />
-            <Route path="asesores" element={<AdminAdvisors />} />
-            <Route path="promociones" element={<AdminPromotions />} />
+            <Route
+              path="asesores"
+              element={
+                <RequireRole roles={ADMIN_ROLES}>
+                  <AdminAdvisors />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="promociones"
+              element={
+                <RequireRole roles={ADMIN_ROLES}>
+                  <AdminPromotions />
+                </RequireRole>
+              }
+            />
             <Route path="cotizaciones" element={<AdminQuotes />} />
             <Route path="visitas" element={<AdminVisits />} />
-            <Route path="multimedia" element={<AdminMedia />} />
-            <Route path="configuracion" element={<AdminSiteSettings />} />
-            <Route path="usuarios" element={<AdminUsers />} />
+            <Route
+              path="multimedia"
+              element={
+                <RequireRole roles={ADMIN_ROLES}>
+                  <AdminMedia />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="configuracion"
+              element={
+                <RequireRole roles={ADMIN_ROLES}>
+                  <AdminSiteSettings />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="usuarios"
+              element={
+                <RequireRole roles={SUPER_ADMIN_ROLES}>
+                  <AdminUsers />
+                </RequireRole>
+              }
+            />
           </Route>
 
           <Route element={<PublicLayout />}>
