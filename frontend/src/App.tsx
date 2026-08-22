@@ -25,6 +25,7 @@ const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Contact = lazy(() => import("./pages/Contact"));
 const About = lazy(() => import("./pages/About"));
 const Advisors = lazy(() => import("./pages/Advisors"));
+const ReferAndEarn = lazy(() => import("./pages/ReferAndEarn"));
 
 const AdminLogin = lazy(() => import("./features/admin/AdminLogin"));
 const AdminLayout = lazy(() => import("./features/admin/AdminLayout"));
@@ -147,6 +148,7 @@ export default function App() {
             <Route path="/proyectos" element={<Projects />} />
             <Route path="/proyectos/:slug" element={<ProjectDetail />} />
             <Route path="/asesores" element={<Advisors />} />
+            <Route path="/refiere-y-gana" element={<ReferAndEarn />} />
             <Route path="/contacto" element={<Contact />} />
             <Route path="/nosotros" element={<About />} />
             <Route path="*" element={<Navigate to="/" replace />} />

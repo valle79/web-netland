@@ -32,6 +32,7 @@ export function useLeadForm() {
         project_id: data.project_id ?? null,
         lot_id: data.lot_id ?? null,
         budget: data.budget ?? null,
+        source: data.source ?? "web",
         message: data.message ?? "",
       };
       await api.post("/leads", payload);

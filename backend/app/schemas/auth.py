@@ -25,6 +25,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
     role: str = Field(default="ASESOR")
+    advisor_id: int | None = None
 
 
 class UserUpdate(BaseModel):
@@ -41,6 +42,8 @@ class UserOut(BaseModel):
     email: EmailStr
     role: str
     is_active: bool
+    advisor_id: int | None = None
+    advisor_name: str | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -53,5 +56,7 @@ class UserOut(BaseModel):
             email=user.email,
             role=user.role.name if user.role else "",
             is_active=user.is_active,
+            advisor_id=user.advisor.id if user.advisor else None,
+            advisor_name=user.advisor.name if user.advisor else None,
             created_at=user.created_at,
         )

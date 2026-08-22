@@ -213,4 +213,10 @@ class PublicLeadCreate(BaseModel):
     project_id: int | None = None
     lot_id: int | None = None
     budget: float | None = None
+    source: str = "web"
     message: str = ""
+
+    @field_validator("source")
+    @classmethod
+    def normalize_source(cls, value: str) -> str:
+        return value.strip().lower()[:60] or "web"

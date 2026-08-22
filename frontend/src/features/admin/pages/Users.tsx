@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, UserRoundCheck } from "lucide-react";
 import { api } from "../../../lib/api";
-import type { User } from "../../../types";
+import type { Advisor, User } from "../../../types";
 import { PageHeader, Button, Card, Field, Input, Select, Table, Badge } from "../ui";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
@@ -19,11 +19,17 @@ export default function AdminUsers() {
   const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "ASESOR", is_active: true });
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "ASESOR", is_active: true, advisor_id: "" });
 
   const { data: users } = useQuery({
     queryKey: ["users-admin"],
     queryFn: () => api.get<User[]>("/users", true),
+  });
+
+  const { data: availableAdvisors } = useQuery({
+    queryKey: ["available-advisors"],
+    queryFn: () => api.get<Advisor[]>("/users/available-advisors", true),
+    enabled: modalOpen && !editing && form.role === "ASESOR",
   });
 
   const saveMutation = useMutation({
@@ -35,10 +41,18 @@ export default function AdminUsers() {
         if (form.password) payload.password = form.password;
         return api.put(`/users/${editing.id}`, payload, true);
       }
-      return api.post("/users", { ...form, email: form.email, role: form.role }, true);
+      return api.post("/users", {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+        is_active: form.is_active,
+        advisor_id: form.role === "ASESOR" && form.advisor_id ? Number(form.advisor_id) : null,
+      }, true);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["available-advisors"] });
       toast(editing ? "Usuario actualizado." : "Usuario creado.");
       setModalOpen(false);
     },
@@ -63,7 +77,7 @@ export default function AdminUsers() {
           <Button
             onClick={() => {
               setEditing(null);
-              setForm({ name: "", email: "", password: "", role: "ASESOR", is_active: true });
+              setForm({ name: "", email: "", password: "", role: "ASESOR", is_active: true, advisor_id: "" });
               setModalOpen(true);
             }}
           >
@@ -78,13 +92,21 @@ export default function AdminUsers() {
           <EmptyState title="Sin usuarios" description="Crea usuarios para el equipo." />
         </Card>
       ) : (
-        <Table headers={["Nombre", "Correo", "Rol", "Estado", "Acciones"]}>
+        <Table headers={["Nombre", "Correo", "Rol", "Asesor vinculado", "Estado", "Acciones"]}>
           {users.map((user) => (
             <tr key={user.id} className="hover:bg-netland-light/30">
               <td className="px-5 py-3 font-medium text-netland-dark">{user.name}</td>
               <td className="px-5 py-3 text-netland-muted">{user.email}</td>
               <td className="px-5 py-3">
                 <Badge color={roleColors[user.role] ?? "#6b7280"}>{user.role}</Badge>
+              </td>
+              <td className="px-5 py-3 text-sm text-netland-muted">
+                {user.advisor_name ? (
+                  <span className="inline-flex items-center gap-1.5 text-netland-primary">
+                    <UserRoundCheck className="h-4 w-4" />
+                    {user.advisor_name}
+                  </span>
+                ) : "—"}
               </td>
               <td className="px-5 py-3">
                 <Badge color={user.is_active ? "#16a34a" : "#dc2626"}>
@@ -104,6 +126,7 @@ export default function AdminUsers() {
                         password: "",
                         role: user.role,
                         is_active: user.is_active,
+                        advisor_id: "",
                       });
                       setModalOpen(true);
                     }}
@@ -146,6 +169,24 @@ export default function AdminUsers() {
               <option value="SUPER_ADMIN">Super administrador</option>
             </Select>
           </Field>
+          {!editing && form.role === "ASESOR" && (
+            <Field label="Perfil de asesor">
+              <Select
+                value={form.advisor_id}
+                onChange={(e) => setForm({ ...form, advisor_id: e.target.value })}
+              >
+                <option value="">Crear sin vincular por ahora</option>
+                {availableAdvisors?.map((advisor) => (
+                  <option key={advisor.id} value={advisor.id}>
+                    {advisor.name}{advisor.email ? ` · ${advisor.email}` : ""}
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-1 text-xs text-netland-muted">
+                Solo aparecen perfiles de asesor que aún no tienen usuario.
+              </p>
+            </Field>
+          )}
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

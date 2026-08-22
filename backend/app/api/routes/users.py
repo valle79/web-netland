@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import require_roles, get_current_user
 from app.core.security import hash_password
-from app.domain.models import RoleModel, User
+from app.domain.models import Advisor, RoleModel, User
 from app.schemas.auth import UserCreate, UserOut, UserUpdate
+from app.schemas.crm import AdvisorOut
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -20,6 +21,12 @@ def list_users(db: Session = Depends(get_db)):
     return [UserOut.from_user(u) for u in db.query(User).all()]
 
 
+@router.get("/available-advisors", response_model=list[AdvisorOut], dependencies=[Depends(require_roles("SUPER_ADMIN"))])
+def list_available_advisors(db: Session = Depends(get_db)):
+    """Asesores que todavía no tienen una cuenta de acceso vinculada."""
+    return db.query(Advisor).filter(Advisor.user_id.is_(None)).order_by(Advisor.name.asc()).all()
+
+
 @router.post("", response_model=UserOut, status_code=201, dependencies=[Depends(require_roles("SUPER_ADMIN"))])
 def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     role = db.query(RoleModel).filter(RoleModel.name == payload.role).first()
@@ -27,6 +34,15 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Rol inválido.")
     if db.query(User).filter(User.email == payload.email.lower()).first():
         raise HTTPException(status_code=400, detail="El correo ya está registrado.")
+    advisor = None
+    if payload.advisor_id is not None:
+        if payload.role != "ASESOR":
+            raise HTTPException(status_code=400, detail="Solo los usuarios asesores pueden vincularse a un asesor.")
+        advisor = db.get(Advisor, payload.advisor_id)
+        if not advisor:
+            raise HTTPException(status_code=404, detail="Asesor no encontrado.")
+        if advisor.user_id is not None:
+            raise HTTPException(status_code=400, detail="Este asesor ya tiene un usuario asignado.")
     user = User(
         name=payload.name,
         email=payload.email.lower(),
@@ -34,6 +50,9 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
         role_id=role.id,
     )
     db.add(user)
+    if advisor:
+        db.flush()
+        advisor.user_id = user.id
     db.commit()
     db.refresh(user)
     return UserOut.from_user(user)

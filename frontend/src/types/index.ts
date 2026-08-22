@@ -175,6 +175,8 @@ export interface User {
   email: string;
   role: string;
   is_active: boolean;
+  advisor_id?: number | null;
+  advisor_name?: string | null;
 }
 
 export interface DashboardStats {
@@ -213,5 +215,6 @@ export interface LeadInput {
   project_id: number | null;
   lot_id: number | null;
   budget: number | null;
+  source?: string;
   message: string;
 }
