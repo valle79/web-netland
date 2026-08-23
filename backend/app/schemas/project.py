@@ -113,6 +113,11 @@ class LotCreate(BaseModel):
     width: float | None = None
     height: float | None = None
     notes: str = ""
+    zone: str | None = None
+    location_bonus: str | None = None
+    location_bonus_amount: float | None = None
+    normal_price_usd: float | None = None
+    normal_price_soles: float | None = None
 
 
 class LotUpdate(BaseModel):
@@ -128,6 +133,11 @@ class LotUpdate(BaseModel):
     width: float | None = None
     height: float | None = None
     notes: str | None = None
+    zone: str | None = None
+    location_bonus: str | None = None
+    location_bonus_amount: float | None = None
+    normal_price_usd: float | None = None
+    normal_price_soles: float | None = None
 
 
 class LotStatusUpdate(BaseModel):
@@ -150,6 +160,11 @@ class LotOut(BaseModel):
     width: float | None = None
     height: float | None = None
     notes: str | None = None
+    zone: str | None = None
+    location_bonus: str | None = None
+    location_bonus_amount: float | None = None
+    normal_price_usd: float | None = None
+    normal_price_soles: float | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

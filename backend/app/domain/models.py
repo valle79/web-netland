@@ -174,6 +174,12 @@ class Lot(Base):
     width = Column(Numeric(10, 2), nullable=True)
     height = Column(Numeric(10, 2), nullable=True)
     notes = Column(Text, default="")
+    # Campos adicionales del Excel
+    zone = Column(String(100), nullable=True)  # ZONA (COMERCIAL, RESIDENCIAL, etc.)
+    location_bonus = Column(String(255), nullable=True)  # PLUS POR UBICACIÓN
+    location_bonus_amount = Column(Numeric(12, 2), nullable=True)  # Precio extra por ubicación
+    normal_price_usd = Column(Numeric(12, 2), nullable=True)  # Precio normal US $
+    normal_price_soles = Column(Numeric(12, 2), nullable=True)  # Precio Normal S/
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

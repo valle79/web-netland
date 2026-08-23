@@ -63,6 +63,25 @@ export function LotModal({ lot, project, onClose }: LotModalProps) {
           </div>
         </div>
 
+        {lot.zone && (
+          <div className="mb-4 rounded-md bg-netland-primary/5 px-4 py-2">
+            <p className="text-xs uppercase tracking-wider text-netland-muted">Zona</p>
+            <p className="font-semibold text-netland-dark">{lot.zone}</p>
+          </div>
+        )}
+
+        {lot.location_bonus && (
+          <div className="mb-4 rounded-md border border-netland-accent/20 bg-netland-accent/5 px-4 py-2">
+            <p className="text-xs uppercase tracking-wider text-netland-muted">Plus por ubicación</p>
+            <p className="font-semibold text-netland-dark">{lot.location_bonus}</p>
+            {lot.location_bonus_amount && (
+              <p className="mt-1 text-sm text-netland-accent">
+                +{formatSoles(lot.location_bonus_amount)}
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="mb-6 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-netland-muted">Precio</span>
@@ -76,6 +95,18 @@ export function LotModal({ lot, project, onClose }: LotModalProps) {
               <span className="font-semibold text-netland-accent">
                 {formatSoles(lot.promo_price)}
               </span>
+            </div>
+          )}
+          {lot.normal_price_usd && (
+            <div className="flex justify-between text-xs text-netland-muted">
+              <span>Precio normal USD</span>
+              <span>${lot.normal_price_usd.toLocaleString()}</span>
+            </div>
+          )}
+          {lot.normal_price_soles && (
+            <div className="flex justify-between text-xs text-netland-muted">
+              <span>Precio normal S/</span>
+              <span>S/ {lot.normal_price_soles.toLocaleString()}</span>
             </div>
           )}
         </div>

@@ -57,6 +57,11 @@ export interface Lot {
   width: number | null;
   height: number | null;
   notes: string | null;
+  zone: string | null;
+  location_bonus: string | null;
+  location_bonus_amount: number | null;
+  normal_price_usd: number | null;
+  normal_price_soles: number | null;
 }
 
 export interface GalleryItem {

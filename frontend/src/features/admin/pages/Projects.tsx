@@ -203,25 +203,60 @@ function ExcelImportModal({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("project_id", projectId.toString());
+
+      const token = localStorage.getItem("netland_token");
+      if (!token) {
+        toast("Sesión expirada. Por favor inicia sesión nuevamente.", "error");
+        return;
+      }
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/projects/${projectId}/import-excel`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Error al importar Excel");
+        const errorData = await response.json().catch(() => ({ detail: "Error desconocido" }));
+        throw new Error(errorData.detail || "Error al importar Excel");
       }
 
       const data = await response.json();
-      toast(`${data.imported} lotes importados correctamente`, "success");
-      onSuccess();
-    } catch (error) {
-      toast("Error al importar archivo Excel", "error");
+      
+      // Mostrar resultados detallados
+      let message = "";
+      if (data.imported > 0) {
+        message = `✓ ${data.imported} lotes importados correctamente`;
+      }
+      
+      if (data.warnings && data.warnings.length > 0) {
+        console.warn("Advertencias de importación:", data.warnings);
+        if (message) {
+          message += ` (${data.warnings.length} advertencias en consola)`;
+        } else {
+          message = `⚠ ${data.warnings.length} advertencias encontradas. Ver consola para detalles.`;
+        }
+      }
+      
+      if (data.errors && data.errors.length > 0) {
+        console.error("Errores de importación:", data.errors);
+        if (data.imported === 0) {
+          toast(`✗ ${data.errors.length} errores encontrados. Ver consola para detalles.`, "error");
+        } else {
+          toast(message + ` (${data.errors.length} errores en consola)`, "success");
+        }
+      } else if (message) {
+        toast(message, "success");
+      }
+      
+      if (data.imported > 0) {
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Error al importar:", error);
+      toast(error.message || "Error al importar archivo Excel", "error");
     } finally {
       setImporting(false);
     }
@@ -248,10 +283,13 @@ function ExcelImportModal({
           <div className="rounded-lg border-2 border-dashed border-netland-light bg-netland-light/30 p-6">
             <h3 className="mb-3 font-semibold text-netland-dark">Formato del Excel:</h3>
             <ul className="space-y-2 text-sm text-netland-muted">
-              <li>• <strong>Columnas requeridas:</strong> codigo, manzana, area_m2, precio, estado</li>
-              <li>• <strong>Estados válidos:</strong> disponible, reservado, vendido, no_disponible</li>
-              <li>• <strong>Ejemplo código:</strong> MZ A-01, L-105, etc.</li>
-              <li>• <strong>Formato:</strong> .xlsx o .xls</li>
+              <li>• <strong>Columnas principales:</strong> MZ, N° DE LOTE, MzLt, AREA LOTE M2, Precio US $, ESTADO</li>
+              <li>• <strong>MzLt:</strong> Código completo del lote (ej: A-01, B-10) - REQUERIDO</li>
+              <li>• <strong>MZ:</strong> Manzana (ej: A, B, 1, 2)</li>
+              <li>• <strong>AREA LOTE M2:</strong> Área en metros cuadrados</li>
+              <li>• <strong>Precio US $:</strong> Precio en dólares</li>
+              <li>• <strong>Estados válidos:</strong> disponible, reservado, vendido, separado, no disponible</li>
+              <li>• <strong>Formato:</strong> .xlsx, .xls o .csv</li>
             </ul>
           </div>
 
@@ -261,7 +299,7 @@ function ExcelImportModal({
             </label>
             <input
               type="file"
-              accept=".xlsx,.xls"
+              accept=".xlsx,.xls,.csv"
               disabled={importing}
               onChange={(e) => {
                 const file = e.target.files?.[0];
