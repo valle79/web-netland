@@ -288,74 +288,41 @@ export default function ProjectDetail() {
         <section className="bg-gradient-to-br from-netland-primary/5 to-netland-accent/5 py-20 md:py-28">
           <div className="container-netland">
             <Reveal>
-              <div className="mb-10 max-w-2xl">
-                <p className="eyebrow">Documentación técnica</p>
+              <div className="mb-10 text-center">
+                <p className="eyebrow justify-center">Documentación técnica</p>
                 <h2 className="font-display text-4xl font-semibold text-netland-dark">
                   Plano del proyecto
                 </h2>
-                <p className="mt-3 text-netland-muted">
+                <p className="mx-auto mt-3 max-w-2xl text-netland-muted">
                   Descarga el plano técnico completo del proyecto para revisar
                   dimensiones, distribución y especificaciones.
                 </p>
               </div>
             </Reveal>
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="mx-auto max-w-2xl">
               <Reveal delay={100}>
-                <div className="overflow-hidden rounded-xl border border-netland-light bg-white shadow-soft">
-                  <div className="aspect-[4/3] overflow-hidden bg-netland-light/30">
-                    <iframe
-                      src={`${project.plan_pdf_url}#toolbar=0&navpanes=0&scrollbar=0`}
-                      title="Vista previa del plano"
-                      className="h-full w-full"
-                    />
+                <div className="rounded-xl border border-netland-light bg-white p-8 shadow-soft">
+                  <div className="flex items-center gap-6">
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-netland-primary/10">
+                      <FileText className="h-10 w-10 text-netland-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-display text-xl font-semibold text-netland-dark">
+                        Plano técnico del proyecto
+                      </h3>
+                      <p className="mt-1 text-sm text-netland-muted">
+                        Documento PDF con dimensiones, distribución y especificaciones completas
+                      </p>
+                    </div>
                   </div>
-                  <div className="p-6">
-                    <h3 className="font-display text-xl font-semibold text-netland-dark">
-                      Vista previa del plano
-                    </h3>
-                    <p className="mt-2 text-sm text-netland-muted">
-                      Visualización del documento técnico del proyecto
-                    </p>
-                  </div>
-                </div>
-              </Reveal>
 
-              <Reveal delay={200}>
-                <div className="flex flex-col justify-center space-y-6 rounded-xl border border-netland-light bg-white p-8 shadow-soft">
-                  <div>
-                    <h3 className="font-display text-2xl font-semibold text-netland-dark">
-                      Descarga el plano completo
-                    </h3>
-                    <p className="mt-3 text-netland-muted">
-                      El plano técnico incluye información detallada sobre:
-                    </p>
-                    <ul className="mt-4 space-y-2 text-sm text-netland-muted">
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-netland-primary" />
-                        Distribución y numeración de lotes
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-netland-primary" />
-                        Áreas y dimensiones exactas
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-netland-primary" />
-                        Áreas comunes y vías de acceso
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-netland-primary" />
-                        Especificaciones técnicas
-                      </li>
-                    </ul>
-                  </div>
-                  
-                  <div className="flex flex-col gap-3 sm:flex-row">
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
                     <a
                       href={project.plan_pdf_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-primary flex-1"
+                      className="btn-primary w-full justify-center"
                     >
                       <FileText className="h-4 w-4" />
                       Ver plano completo
@@ -363,7 +330,7 @@ export default function ProjectDetail() {
                     <a
                       href={project.plan_pdf_url}
                       download={`Plano-${project.slug}.pdf`}
-                      className="btn-secondary flex-1"
+                      className="btn-secondary w-full justify-center"
                     >
                       <svg
                         className="h-4 w-4"
@@ -382,10 +349,25 @@ export default function ProjectDetail() {
                     </a>
                   </div>
 
-                  <p className="text-xs text-netland-muted">
-                    Para consultas específicas sobre el plano, contacta a un asesor
-                    de Netland.
-                  </p>
+                  <div className="mt-6 rounded-lg bg-netland-light/50 p-4">
+                    <p className="text-sm font-medium text-netland-dark">
+                      El plano incluye:
+                    </p>
+                    <ul className="mt-2 space-y-1 text-sm text-netland-muted">
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-netland-primary" />
+                        Distribución y numeración de lotes
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-netland-primary" />
+                        Áreas y dimensiones exactas
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-netland-primary" />
+                        Áreas comunes y vías de acceso
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </Reveal>
             </div>

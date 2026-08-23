@@ -163,14 +163,22 @@ export interface Quote {
   project_id: number | null;
   lot_id: number | null;
   lot_price: number | null;
+  discount_type: string | null;
+  discount_value: number | null;
+  payment_type: string | null;
   initial_payment: number | null;
   installments: number | null;
   installment_value: number | null;
   total_amount: number | null;
+  client_name: string | null;
+  client_phone: string | null;
+  client_email: string | null;
+  notes: string | null;
   status: string;
   pdf_url: string;
   project_name: string | null;
   lot_code: string | null;
+  lot_area: number | null;
   advisor_name: string | null;
 }
 
@@ -207,8 +215,15 @@ export interface QuoteInput {
   project_id: number;
   lot_id: number;
   lot_price: number | null;
+  discount_type: string;
+  discount_value: number;
+  payment_type: string;
   initial_payment: number;
   installments: number;
+  client_name: string;
+  client_phone: string;
+  client_email: string;
+  notes: string;
 }
 
 export interface LeadInput {

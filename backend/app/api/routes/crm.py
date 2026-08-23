@@ -69,6 +69,7 @@ def _quote_out(quote: Quote) -> QuoteOut:
         out.project_name = quote.project.name
     if quote.lot:
         out.lot_code = quote.lot.code
+        out.lot_area = float(quote.lot.area_m2) if quote.lot.area_m2 else None
     if quote.advisor:
         out.advisor_name = quote.advisor.name
     return out
@@ -578,7 +579,6 @@ def create_quote(
 
     advisor_id = payload.advisor_id
     if not _is_admin_user(current_user):
-        # Un asesor siempre queda asignado a su propio perfil.
         advisor = current_user.advisor
         if advisor is None:
             advisor = Advisor(name=current_user.name, email=current_user.email)
@@ -593,12 +593,32 @@ def create_quote(
     if lot_price_value is None:
         raise HTTPException(status_code=400, detail="El lote no tiene precio definido.")
 
+    # Precio base del lote
     lot_price = float(payload.lot_price or lot_price_value)
+    
+    # Aplicar descuento si corresponde
+    discount_amount = 0
+    if payload.discount_type == "percentage":
+        discount_amount = lot_price * (float(payload.discount_value) / 100)
+    elif payload.discount_type == "fixed":
+        discount_amount = float(payload.discount_value)
+    
+    final_price = max(lot_price - discount_amount, 0)
+    
+    # Calcular pagos según tipo
     initial = float(payload.initial_payment or 0)
     installments = int(payload.installments or 12)
-    balance = max(lot_price - initial, 0)
-    installment_value = round(balance / installments, 2) if installments else 0
-    total = round(lot_price, 2)
+    
+    if payload.payment_type == "cash":
+        # Pago al contado: no hay cuotas
+        installments = 0
+        installment_value = 0
+        total = final_price
+    else:
+        # Pago a crédito
+        balance = max(final_price - initial, 0)
+        installment_value = round(balance / installments, 2) if installments > 0 else 0
+        total = final_price
 
     count = db.query(func.count(Quote.id)).scalar() + 1
     quote_number = f"COT-{datetime.now().strftime('%Y%m%d')}-{count:04d}"
@@ -610,18 +630,29 @@ def create_quote(
         project_id=payload.project_id,
         lot_id=lot.id,
         lot_price=lot_price,
+        discount_type=payload.discount_type,
+        discount_value=float(payload.discount_value),
+        payment_type=payload.payment_type,
         initial_payment=initial,
         installments=installments,
         installment_value=installment_value,
         total_amount=total,
+        client_name=payload.client_name,
+        client_phone=payload.client_phone,
+        client_email=payload.client_email,
+        notes=payload.notes,
         status="draft",
     )
     db.add(quote)
     db.flush()
 
+    # Agregar ítems para el PDF
     db.add(QuoteItem(quote_id=quote.id, description=f"Lote {lot.code}", amount=lot_price))
-    db.add(QuoteItem(quote_id=quote.id, description="Cuota inicial", amount=initial))
-    db.add(QuoteItem(quote_id=quote.id, description=f"Saldo en {installments} cuotas", amount=installment_value))
+    if discount_amount > 0:
+        db.add(QuoteItem(quote_id=quote.id, description=f"Descuento ({payload.discount_type})", amount=-discount_amount))
+    if payload.payment_type == "credit":
+        db.add(QuoteItem(quote_id=quote.id, description="Cuota inicial", amount=initial))
+        db.add(QuoteItem(quote_id=quote.id, description=f"Saldo en {installments} cuotas", amount=installment_value))
 
     db.commit()
     db.refresh(quote)
@@ -639,14 +670,23 @@ def generate_quote_pdf_endpoint(
         raise HTTPException(status_code=404, detail="Cotización no encontrada.")
     _ensure_quote_access(current_user, quote)
 
-    client_name = None
-    if quote.lead and quote.lead.client:
+    # Determinar nombre del cliente
+    client_name = quote.client_name or None
+    if not client_name and quote.lead and quote.lead.client:
         client_name = f"{quote.lead.client.name} {quote.lead.client.last_name}".strip()
+    
     advisor_name = quote.advisor.name if quote.advisor else None
     advisor_phone = quote.advisor.whatsapp if quote.advisor else None
 
     project_name = quote.project.name if quote.project else "Netland"
     lot_code = quote.lot.code if quote.lot else ""
+    
+    # Calcular descuento
+    discount_amount = 0
+    if quote.discount_type == "percentage":
+        discount_amount = float(quote.lot_price or 0) * (float(quote.discount_value or 0) / 100)
+    elif quote.discount_type == "fixed":
+        discount_amount = float(quote.discount_value or 0)
 
     from fastapi.responses import Response
 
@@ -657,14 +697,19 @@ def generate_quote_pdf_endpoint(
         lot_code=lot_code,
         area_m2=float(quote.lot.area_m2) if quote.lot and quote.lot.area_m2 else None,
         lot_price=float(quote.lot_price or 0),
+        discount_type=quote.discount_type or "none",
+        discount_value=float(quote.discount_value or 0),
+        discount_amount=discount_amount,
+        payment_type=quote.payment_type or "credit",
         initial_payment=float(quote.initial_payment or 0),
-        installments=quote.installments or 12,
+        installments=quote.installments or 0,
         installment_value=float(quote.installment_value or 0),
         total_amount=float(quote.total_amount or 0),
         client_name=client_name,
         advisor_name=advisor_name,
         advisor_phone=advisor_phone,
-        date_str=datetime.now().strftime("%d/%m/%Y"),
+        notes=quote.notes or "",
+        date_str=quote.created_at.strftime("%d/%m/%Y") if quote.created_at else datetime.now().strftime("%d/%m/%Y"),
     )
     quote.status = "sent"
     db.commit()

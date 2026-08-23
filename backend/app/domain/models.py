@@ -358,10 +358,21 @@ class Quote(Base):
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="SET NULL"))
     lot_id = Column(Integer, ForeignKey("lots.id", ondelete="SET NULL"), nullable=True)
     lot_price = Column(Numeric(12, 2), nullable=True)
+    # Campos de descuento
+    discount_type = Column(String(20), default="none")  # none, percentage, fixed
+    discount_value = Column(Numeric(12, 2), default=0)
+    # Campos de pago
+    payment_type = Column(String(20), default="credit")  # cash, credit
     initial_payment = Column(Numeric(12, 2), default=0)
     installments = Column(Integer, default=12)
     installment_value = Column(Numeric(12, 2), nullable=True)
     total_amount = Column(Numeric(12, 2), nullable=True)
+    # Datos del cliente (para cotizaciones sin lead)
+    client_name = Column(String(255), default="")
+    client_phone = Column(String(30), default="")
+    client_email = Column(String(255), default="")
+    # Otros
+    notes = Column(Text, default="")
     status = Column(String(20), default="draft")
     pdf_url = Column(String(500), default="")
     created_at = Column(DateTime(timezone=True), server_default=func.now())

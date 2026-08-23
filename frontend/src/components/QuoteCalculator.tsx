@@ -16,6 +16,13 @@ export function QuoteCalculator({ project, lots, initialLotId }: QuoteCalculator
   const [lotId, setLotId] = useState<number | "">(initialLotId ?? "");
   const [initial, setInitial] = useState(0);
   const [installments, setInstallments] = useState(24);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    last_name: "",
+    phone: "",
+    email: "",
+  });
   const { submit, submitting, submitted } = useLeadForm();
 
   const selectedLot = useMemo(
@@ -33,10 +40,18 @@ export function QuoteCalculator({ project, lots, initialLotId }: QuoteCalculator
 
   const handleRequest = async () => {
     if (!selectedLot) return;
+    
+    // Validar que los campos requeridos estén llenos
+    if (!formData.name.trim() || !formData.phone.trim()) {
+      alert("Por favor ingresa tu nombre y teléfono");
+      return;
+    }
+    
     await submit({
-      name: "",
-      last_name: "",
-      phone: "",
+      name: formData.name,
+      last_name: formData.last_name,
+      phone: formData.phone,
+      email: formData.email || null,
       message: `Solicito cotización del lote ${selectedLot.code} (inicial S/ ${initial}, ${installments} cuotas).`,
       project_id: project.id,
       lot_id: selectedLot.id,
@@ -125,18 +140,75 @@ export function QuoteCalculator({ project, lots, initialLotId }: QuoteCalculator
             </dl>
 
             {submitted ? (
-              <div className="mt-6 flex items-center gap-2 rounded-md bg-white/10 px-4 py-3 text-sm">
-                <CheckCircle2 className="h-5 w-5 text-netland-accent" />
-                Solicitud de cotización enviada. Un asesor te contactará.
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center gap-2 rounded-md bg-white/10 px-4 py-3 text-sm">
+                  <CheckCircle2 className="h-5 w-5 text-netland-accent" />
+                  Solicitud de cotización enviada.
+                </div>
+                <p className="text-xs text-white/70">
+                  Un asesor de Netland se contactará contigo muy pronto para enviarte la cotización detallada del lote {selectedLot.code}.
+                </p>
               </div>
-            ) : (
+            ) : !showForm ? (
               <button
-                onClick={handleRequest}
+                onClick={() => setShowForm(true)}
                 disabled={submitting}
-                className="btn-accent mt-6 w-full disabled:opacity-60"
+                className="btn-accent mt-6 w-full"
               >
-                {submitting ? "Enviando..." : "Quiero esta cotización"}
+                Quiero esta cotización
               </button>
+            ) : (
+              <div className="mt-6 space-y-3">
+                <p className="text-xs text-white/80">Ingresa tus datos para recibir la cotización:</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Nombre *"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Apellidos"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    className="rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
+                  />
+                </div>
+                <input
+                  type="tel"
+                  placeholder="Teléfono / WhatsApp *"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
+                  required
+                />
+                <input
+                  type="email"
+                  placeholder="Email (opcional)"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleRequest}
+                    disabled={submitting || !formData.name.trim() || !formData.phone.trim()}
+                    className="btn-accent flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? "Enviando..." : "Enviar solicitud"}
+                  </button>
+                  <button
+                    onClick={() => setShowForm(false)}
+                    className="rounded-sm border border-white/20 px-4 text-sm text-white/80 hover:bg-white/10"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+                <p className="text-xs text-white/50">* Campos requeridos</p>
+              </div>
             )}
           </>
         )}

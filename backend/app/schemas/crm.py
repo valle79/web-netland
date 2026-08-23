@@ -177,10 +177,15 @@ class QuoteCreate(BaseModel):
     project_id: int
     lot_id: int
     lot_price: float | None = None
+    discount_type: str = "none"  # none, percentage, fixed
+    discount_value: float = 0
+    payment_type: str = "credit"  # cash, credit
     initial_payment: float = 0
     installments: int = Field(default=12, ge=1, le=120)
-    installment_value: float | None = None
-    total_amount: float | None = None
+    client_name: str = ""
+    client_phone: str = ""
+    client_email: str = ""
+    notes: str = ""
 
 
 class QuoteOut(BaseModel):
@@ -191,14 +196,22 @@ class QuoteOut(BaseModel):
     project_id: int | None = None
     lot_id: int | None = None
     lot_price: float | None = None
+    discount_type: str | None = None
+    discount_value: float | None = None
+    payment_type: str | None = None
     initial_payment: float | None = None
     installments: int | None = None
     installment_value: float | None = None
     total_amount: float | None = None
+    client_name: str | None = None
+    client_phone: str | None = None
+    client_email: str | None = None
+    notes: str | None = None
     status: str
     pdf_url: str
     project_name: str | None = None
     lot_code: str | None = None
+    lot_area: float | None = None
     advisor_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
