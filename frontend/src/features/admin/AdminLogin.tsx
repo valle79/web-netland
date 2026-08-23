@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import {
-  Lock,
   LogIn,
   Eye,
   EyeOff,
