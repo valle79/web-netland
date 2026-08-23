@@ -176,11 +176,6 @@ export default function AdminLeads() {
                   <p className="font-semibold text-netland-dark">
                     {lead.client?.name} {lead.client?.last_name}
                   </p>
-                  {lead.source === "referido" && (
-                    <span className="mt-1 inline-flex items-center rounded-full bg-netland-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                      Referido
-                    </span>
-                  )}
                   <p className="flex items-center gap-1 text-xs text-netland-muted">
                     <Calendar className="h-3 w-3" />
                     {new Date(lead.created_at ?? "").toLocaleDateString("es-PE", {

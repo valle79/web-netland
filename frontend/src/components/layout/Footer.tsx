@@ -1,145 +1,292 @@
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, MapPin, MessageCircle, Phone } from "lucide-react";
+import {
+  Facebook,
+  Instagram,
+  MapPin,
+  MessageCircle,
+  Phone,
+  ArrowUpRight,
+} from "lucide-react";
 import { Logo } from "../Logo";
 import { whatsappLink } from "../../lib/constants";
 
 export function Footer() {
   return (
-    <footer className="relative overflow-hidden bg-gradient-to-br from-[#2a2520] via-[#3d3630] to-[#2a2520] text-white">
-      {/* Patrón de fondo */}
-      <div className="absolute inset-0 opacity-5">
-        <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="footer-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-              <path d="M 32 0 L 0 0 0 32" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#footer-grid)" />
-        </svg>
-      </div>
+    <footer
+      className="relative overflow-hidden text-white"
+      style={{ backgroundColor: "var(--netland-dark)" }}
+    >
+      {/* Línea superior de identidad */}
+      <div
+        className="h-1 w-full"
+        style={{ backgroundColor: "var(--netland-primary)" }}
+      />
 
-      {/* Formas decorativas */}
-      <div className="absolute -left-32 top-20 h-64 w-64 rounded-full bg-[#f5a623]/10 blur-3xl" />
-      <div className="absolute -right-32 bottom-20 h-80 w-80 rounded-full bg-netland-primary/10 blur-3xl" />
+      <div className="container-netland relative z-10 py-16">
 
-      <div className="container-netland relative z-10 grid gap-8 py-12 md:grid-cols-4">
-        <div className="md:col-span-1">
-          <Logo light />
-          <p className="mt-4 text-sm leading-relaxed text-slate-200">
-            El lugar donde mereces vivir. Proyectos inmobiliarios en Cañete con
-            respaldo, confianza y oportunidades de crecimiento.
-          </p>
-        </div>
+        {/* CONTENIDO */}
+        <div className="grid gap-12 lg:grid-cols-[1.5fr_0.8fr_0.9fr_1.2fr]">
 
-        <div>
-          <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-[#f5a623]">
-            Enlaces
-          </h4>
-          <ul className="space-y-2.5 text-sm text-slate-200">
-            <li>
-              <Link className="inline-flex items-center gap-2 transition-colors hover:text-[#f5a623]" to="/">
-                Inicio
-              </Link>
-            </li>
-            <li>
-              <Link className="inline-flex items-center gap-2 transition-colors hover:text-[#f5a623]" to="/proyectos">
-                Proyectos
-              </Link>
-            </li>
-            <li>
-              <Link className="inline-flex items-center gap-2 transition-colors hover:text-[#f5a623]" to="/asesores">
-                Asesores
-              </Link>
-            </li>
-            <li>
-              <Link className="inline-flex items-center gap-2 transition-colors hover:text-[#f5a623]" to="/nosotros">
-                Nosotros
-              </Link>
-            </li>
-            <li>
-              <Link className="inline-flex items-center gap-2 transition-colors hover:text-[#f5a623]" to="/contacto">
-                Contacto
-              </Link>
-            </li>
-          </ul>
-        </div>
+          {/* MARCA */}
+          <div>
+            <Logo light />
 
-        <div>
-          <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-[#f5a623]">
-            Legal
-          </h4>
-          <ul className="space-y-2.5 text-sm text-slate-200">
-            <li>
-              <Link className="inline-flex items-center gap-2 transition-colors hover:text-[#f5a623]" to="/contacto">
-                Política de privacidad
-              </Link>
-            </li>
-            <li>
-              <Link className="inline-flex items-center gap-2 transition-colors hover:text-[#f5a623]" to="/contacto">
-                Términos y condiciones
-              </Link>
-            </li>
-          </ul>
-        </div>
+            <p className="mt-5 max-w-sm text-sm leading-7 text-slate-400">
+              El lugar donde mereces vivir. Proyectos inmobiliarios
+              en Cañete con respaldo, confianza y oportunidades
+              para construir tu futuro.
+            </p>
 
-        <div>
-          <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-[#f5a623]">
-            Contacto
-          </h4>
-          <ul className="space-y-3 text-sm text-slate-200">
-            <li className="flex items-center gap-3 transition-colors hover:text-[#f5a623]">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
-                <MessageCircle className="h-4 w-4 text-green-400" />
-              </div>
+            {/* Detalle de marca */}
+            <div className="mt-6 flex items-center gap-2">
+              <span
+                className="h-1 w-8 rounded-full"
+                style={{
+                  backgroundColor: "var(--netland-primary)",
+                }}
+              />
+
+              <span
+                className="h-1 w-3 rounded-full"
+                style={{
+                  backgroundColor: "var(--netland-accent)",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* EXPLORA */}
+          <div>
+            <h4 className="mb-6 text-xs font-bold uppercase tracking-[0.18em] text-white">
+              Explora
+            </h4>
+
+            <ul className="space-y-3">
+
+              {[
+                ["Inicio", "/"],
+                ["Proyectos", "/proyectos"],
+                ["Asesores", "/asesores"],
+                ["Refiere y gana", "/refiere-y-gana"],
+                ["Nosotros", "/nosotros"],
+                ["Contacto", "/contacto"],
+              ].map(([label, path]) => (
+                <li key={path}>
+                  <Link
+                    to={path}
+                    className="group flex items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"
+                  >
+                    <span
+                      className="h-1 w-1 rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+                      style={{
+                        backgroundColor: "var(--netland-accent)",
+                      }}
+                    />
+
+                    <span className="transition-transform group-hover:translate-x-1">
+                      {label}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+
+            </ul>
+          </div>
+
+          {/* INFORMACIÓN */}
+          <div>
+            <h4 className="mb-6 text-xs font-bold uppercase tracking-[0.18em] text-white">
+              Información
+            </h4>
+
+            <ul className="space-y-3">
+
+              <li>
+                <Link
+                  to="/contacto"
+                  className="text-sm text-slate-400 transition-colors hover:text-white"
+                >
+                  Política de privacidad
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  to="/contacto"
+                  className="text-sm text-slate-400 transition-colors hover:text-white"
+                >
+                  Términos y condiciones
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  to="/contacto"
+                  className="text-sm text-slate-400 transition-colors hover:text-white"
+                >
+                  Libro de reclamaciones
+                </Link>
+              </li>
+
+            </ul>
+
+            <Link
+              to="/proyectos"
+              className="group mt-7 inline-flex items-center gap-2 text-sm font-semibold"
+              style={{
+                color: "var(--netland-accent)",
+              }}
+            >
+              Conoce nuestros proyectos
+
+              <ArrowUpRight
+                className="h-4 w-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1"
+              />
+            </Link>
+          </div>
+
+          {/* CONTACTO */}
+          <div>
+
+            <h4 className="mb-6 text-xs font-bold uppercase tracking-[0.18em] text-white">
+              Hablemos
+            </h4>
+
+            <div className="space-y-4">
+
+              {/* WhatsApp */}
               <a
                 href={whatsappLink()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-colors hover:text-[#f5a623]"
+                className="group flex items-center gap-3"
               >
-                985 928 062
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04]">
+                  <MessageCircle className="h-4 w-4 text-green-400" />
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500">
+                    WhatsApp
+                  </p>
+
+                  <p className="text-sm font-medium text-slate-200 group-hover:text-white">
+                    985 928 062
+                  </p>
+                </div>
               </a>
-            </li>
-            <li className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f5a623]/10">
-                <Phone className="h-4 w-4 text-[#f5a623]" />
+
+              {/* Teléfono */}
+              <a
+                href="tel:+51985928062"
+                className="group flex items-center gap-3"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04]">
+                  <Phone
+                    className="h-4 w-4"
+                    style={{
+                      color: "var(--netland-accent)",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Teléfono
+                  </p>
+
+                  <p className="text-sm font-medium text-slate-200 group-hover:text-white">
+                    985 928 062
+                  </p>
+                </div>
+              </a>
+
+              {/* Ubicación */}
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04]">
+                  <MapPin
+                    className="h-4 w-4"
+                    style={{
+                      color: "var(--netland-primary)",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Ubicación
+                  </p>
+
+                  <p className="text-sm font-medium text-slate-200">
+                    Cañete, Lima, Perú
+                  </p>
+                </div>
+
               </div>
-              <span>985 928 062</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-netland-primary/10">
-                <MapPin className="h-4 w-4 text-netland-primary" />
-              </div>
-              <span>Cañete, Lima, Perú</span>
-            </li>
-          </ul>
-          <div className="mt-5 flex gap-3">
-            <a 
-              href="#" 
-              aria-label="Facebook" 
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-700/50 transition-all hover:bg-[#f5a623] hover:scale-110"
-            >
-              <Facebook className="h-5 w-5" />
-            </a>
-            <a 
-              href="#" 
-              aria-label="Instagram" 
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-700/50 transition-all hover:bg-[#f5a623] hover:scale-110"
-            >
-              <Instagram className="h-5 w-5" />
-            </a>
+
+            </div>
+
+            {/* REDES */}
+            <div className="mt-7 flex gap-3">
+
+              <a
+                href="#"
+                aria-label="Facebook"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:-translate-y-1 hover:bg-white/10 hover:text-white"
+              >
+                <Facebook className="h-4 w-4" />
+              </a>
+
+              <a
+                href="#"
+                aria-label="Instagram"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:-translate-y-1 hover:bg-white/10 hover:text-white"
+              >
+                <Instagram className="h-4 w-4" />
+              </a>
+
+              <a
+                href={whatsappLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 transition-all hover:-translate-y-1 hover:bg-green-500/10 hover:text-green-400"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </a>
+
+            </div>
           </div>
         </div>
+
+        {/* CTA */}
+
       </div>
 
-      <div className="relative z-10 border-t border-[#4a4035]">
-        <div className="container-netland flex flex-col items-center justify-between gap-2 py-5 text-xs text-slate-300 sm:flex-row">
-          <span>© {new Date().getFullYear()} NETLAND CORPORACIÓN INMOBILIARIA. Todos los derechos reservados.</span>
+      {/* COPYRIGHT */}
+      <div className="border-t border-white/10">
+
+        <div className="container-netland flex flex-col items-center justify-between gap-3 py-5 text-xs text-slate-500 sm:flex-row">
+
+          <span>
+            © {new Date().getFullYear()} NETLAND CORPORACIÓN INMOBILIARIA.
+            Todos los derechos reservados.
+          </span>
+
           <span className="flex items-center gap-2">
-            <MapPin className="h-3 w-3 text-[#f5a623]" />
+            <MapPin
+              className="h-3.5 w-3.5"
+              style={{
+                color: "var(--netland-accent)",
+              }}
+            />
+
             Cañete, Perú
           </span>
+
         </div>
+
       </div>
     </footer>
   );

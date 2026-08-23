@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../lib/api";
 import type { DashboardStats } from "../../../types";
-import { LEAD_STATUS_LABELS, LOT_STATUS_LABELS, LOT_STATUS_COLORS } from "../../../lib/constants";
+import { LEAD_STATUS_LABELS, LOT_STATUS_LABELS, LOT_STATUS_COLORS, CAPTURED_SOURCES } from "../../../lib/constants";
 import { PageHeader, Card, StatCard, Table } from "../ui";
 import { useAuth } from "../AuthContext";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -49,7 +49,11 @@ export default function Dashboard() {
 
   const { data: recentLeads } = useQuery({
     queryKey: ["leads", "recent"],
-    queryFn: () => api.get<any[]>("/leads", true),
+    queryFn: () =>
+      api.get<any[]>(
+        `/leads?exclude_source=${CAPTURED_SOURCES.join(",")}`,
+        true
+      ),
   });
 
   if (isLoading || !stats) {

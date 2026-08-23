@@ -3,17 +3,31 @@
 @tailwind utilities;
 
 :root {
-  --netland-primary: #0d7a44;
-  --netland-primary-dark: #085a31;
-  --netland-secondary: #1e40af;
-  --netland-accent: #f5a623;
-  --netland-dark: #0b1624;
-  --netland-light: #eef2f7;
-  --netland-background: #f8fafc;
-  --netland-text: #131c2b;
-  --netland-muted: #64748b;
-  --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --netland-primary: #0B6B4A;
+  --netland-primary-dark: #064936;
+
+  --netland-secondary: #123B5D;
+
+  --netland-accent: #F4A62A;
+
+  --netland-dark: #071A18;
+
+  --netland-light: #F1F5F3;
+  --netland-background: #F8FAF9;
+
+  --netland-text: #12201C;
+  --netland-muted: #64736E;
+
+  --font-display: "Space Grotesk",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+
+  --font-sans: "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 }
 
 @layer base {

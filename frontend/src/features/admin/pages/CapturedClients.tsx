@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   CheckCircle2,
   ClipboardList,
+  Gift,
   MapPin,
   MessageCircle,
   PhoneCall,
@@ -333,6 +334,10 @@ export default function AdminCapturedClients() {
         (c) => c.source === "llamada"
       ).length,
 
+      referidos: list.filter(
+        (c) => c.source === "referido"
+      ).length,
+
       vendidos: list.filter(
         (c) => c.status === "sold"
       ).length,
@@ -476,7 +481,7 @@ export default function AdminCapturedClients() {
     <div>
       <PageHeader
         title="Clientes captados"
-        subtitle="Registra y gestiona los clientes que captaste en campo o por llamada."
+        subtitle="Registra y gestiona los clientes captados en campo, por llamada y los referidos del programa Refiere y Gana del sitio web."
         action={
           <Button
             onClick={() =>
@@ -493,7 +498,7 @@ export default function AdminCapturedClients() {
           ESTADÍSTICAS
       ========================= */}
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           label="Total captados"
           value={stats.total}
@@ -519,6 +524,15 @@ export default function AdminCapturedClients() {
             <PhoneCall className="h-4 w-4" />
           }
           accent="#db2777"
+        />
+
+        <StatCard
+          label="Referidos web"
+          value={stats.referidos}
+          icon={
+            <Gift className="h-4 w-4" />
+          }
+          accent={CAPTURED_SOURCE_COLORS.referido}
         />
 
         <StatCard

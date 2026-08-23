@@ -63,7 +63,7 @@ const whyItems = [
 ];
 
 const HERO_IMAGE =
-  "https://sanandres.hacienda.com.pe/images/san-andres6.jpg";
+  "https://i.pinimg.com/originals/3e/2e/a0/3e2ea0689178a4a37408fed2907b9bdb.jpg";
   
 
 const VIDEO_ID_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\ w-]{11})/;

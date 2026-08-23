@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Gift, Handshake, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Gift, Handshake, ShieldCheck } from "lucide-react";
 import { Reveal } from "../components/Reveal";
 import { useLeadForm } from "../features/leads/useLeadForm";
 
@@ -64,25 +64,55 @@ export default function ReferAndEarn() {
 
   return (
     <div>
-      <section className="relative overflow-hidden bg-netland-dark pb-20 pt-36 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_15%,rgba(245,166,35,0.22),transparent_32%),linear-gradient(120deg,#0b1624_0%,#0d7a44_100%)]" />
-        <div className="container-netland relative z-10 grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+      {/* Hero moderno y dinámico */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-netland-primary via-green-700 to-emerald-900 pb-20 pt-36 text-white">
+        {/* Imagen de fondo con overlay */}
+        <div className="absolute inset-0 opacity-15">
+          <img
+            src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1920&q=80"
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        </div>
+
+        {/* Patrón geométrico moderno */}
+        <div className="absolute inset-0">
+          <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid-refiere" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid-refiere)" />
+          </svg>
+        </div>
+
+        {/* Formas decorativas flotantes */}
+        <div className="absolute -right-20 top-20 h-72 w-72 rounded-full bg-netland-accent/20 blur-3xl animate-pulse" />
+        <div className="absolute -left-20 bottom-20 h-96 w-96 rounded-full bg-emerald-400/15 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute right-1/3 top-1/3 h-64 w-64 rounded-full bg-yellow-400/10 blur-2xl animate-pulse" style={{ animationDelay: '2s' }} />
+
+        {/* Contenido */}
+        <div className="container-netland relative z-10">
           <Reveal>
-            <p className="eyebrow !text-netland-accent">Una recomendación que sí importa</p>
-            <h1 className="max-w-3xl text-balance font-display text-5xl font-bold leading-[1.05] sm:text-6xl">
-              Comparte una buena oportunidad. <span className="text-netland-accent">Gana con ella.</span>
+            <p className="eyebrow justify-start !text-white/95 drop-shadow-lg">Netland</p>
+            <h1 className="max-w-3xl text-balance font-display text-5xl font-bold leading-tight drop-shadow-xl sm:text-6xl lg:text-7xl">
+              <span className="text-netland-accent">Refiere y gana</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/80">
-              Recomienda a alguien que busca invertir o encontrar un lugar para vivir en Cañete. Nosotros nos encargamos de acompañarlo con la atención que merece.
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/95 drop-shadow-md">
+              Comparte una buena oportunidad: recomienda a alguien que busca invertir o vivir en Cañete y nuestro equipo lo acompañará con la atención que merece.
             </p>
           </Reveal>
-          <Reveal delay={140}>
-            <div className="border-l border-white/25 pl-6 lg:mb-3">
-              <Sparkles className="mb-4 h-8 w-8 text-netland-accent" />
-              <p className="font-display text-2xl font-semibold">Tu confianza abre nuevas historias.</p>
-              <p className="mt-2 text-sm leading-relaxed text-white/65">Déjanos los datos y un asesor se pondrá en contacto con tu referido.</p>
-            </div>
-          </Reveal>
+        </div>
+
+        {/* Onda decorativa en la parte inferior */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="h-20 w-full">
+            <path
+              d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 80C1200 80 1320 70 1380 65L1440 60V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z"
+              fill="white"
+            />
+          </svg>
         </div>
       </section>
 

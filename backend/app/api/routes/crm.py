@@ -307,9 +307,12 @@ def list_leads(
         if excluded:
             q = q.filter(~Lead.source.in_(excluded))
     
-    # Filtro por asesor
-    if advisor_id:
-        q = q.filter(Lead.advisor_id == advisor_id)
+    # Filtro por asesor (advisor_id=0 significa "sin asignar")
+    if advisor_id is not None:
+        if advisor_id == 0:
+            q = q.filter(Lead.advisor_id.is_(None))
+        else:
+            q = q.filter(Lead.advisor_id == advisor_id)
     
     # Filtro por proyecto
     if project_id:
