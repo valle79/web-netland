@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app.api.router import api_router
+from app.api.routes import uploads as uploads_routes
 from app.core.config import settings
 from app.core.logging import LOGGING_CONFIG
 
@@ -56,6 +57,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 
 app.include_router(api_router)
+# Alias for clients that post to /uploads instead of /api/uploads
+app.include_router(uploads_routes.router)
 
 
 @app.get("/health")

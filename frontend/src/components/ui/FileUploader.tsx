@@ -10,6 +10,7 @@ import {
 
 import { useToast } from "./Toast";
 import { authStorage } from "../../lib/api";
+import { API_URL } from "../../lib/constants";
 
 interface FileUploaderProps {
   accept?: string;
@@ -124,7 +125,7 @@ export function FileUploader({
         formData.append("folder", folder);
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/uploads/multiple`,
+          `${API_URL}/uploads/multiple`,
           {
             method: "POST",
             headers: {
@@ -180,7 +181,7 @@ export function FileUploader({
         formData.append("folder", folder);
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/uploads`,
+          `${API_URL}/uploads`,
           {
             method: "POST",
             headers: {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../../lib/api';
+import { API_URL } from '../../../lib/constants';
 
 interface BoundingBox {
   x: number;
@@ -97,7 +98,7 @@ export default function PlanImport() {
       // Llamada directa con fetch porque necesitamos enviar FormData
       const token = localStorage.getItem('netland_token');
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/projects/${projectId}/lots/plan/analyze`,
+        `${API_URL}/projects/${projectId}/lots/plan/analyze`,
         {
           method: 'POST',
           headers: {

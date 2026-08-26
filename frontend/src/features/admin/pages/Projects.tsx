@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Pencil, Plus, Trash2, Image, FileText, FileSpreadsheet, FileDown, Upload } from "lucide-react";
 import { api } from "../../../lib/api";
+import { API_URL } from "../../../lib/constants";
 import type { Project } from "../../../types";
 import { PageHeader, Button, Card, Badge, Table } from "../ui";
 import { useToast } from "../../../components/ui/Toast";
@@ -210,7 +211,7 @@ function ExcelImportModal({
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/projects/${projectId}/import-excel`, {
+      const response = await fetch(`${API_URL}/projects/${projectId}/import-excel`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
