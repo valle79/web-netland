@@ -1,5 +1,5 @@
-﻿codigo,manzana,area_m2,precio,estado
-MZ A-01,A,120.50,50000,disponible
-MZ A-02,A,115.75,48000,disponible
-MZ B-01,B,135.00,55000,reservado
-MZ B-02,B,128.30,52000,vendido
+﻿MZ,N° DE LOTE,MzLt,AREA LOTE M2,Precio US $,ESTADO
+A,1,A-01,120.50,415,disponible
+A,2,A-02,115.75,415,disponible
+B,1,B-01,135.00,407,reservado
+B,2,B-02,128.30,405,vendido

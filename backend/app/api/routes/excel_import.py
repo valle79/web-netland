@@ -3,10 +3,13 @@ Rutas para importación de lotes desde Excel.
 """
 import logging
 import tempfile
+from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import Response
+from openpyxl import Workbook
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -47,6 +50,56 @@ COLUMN_MAPPING = {
     "Precio Normal S/": "precio_normal_soles",
     "ESTADO": "estado",
 }
+
+TEMPLATE_HEADERS = [
+    "MZ",
+    "N° DE LOTE",
+    "MzLt",
+    "AREA LOTE M2",
+    "Precio US $",
+    "ESTADO",
+]
+
+TEMPLATE_EXAMPLE_ROWS = [
+    ["A", 1, "A-01", 120.50, 415, "disponible"],
+    ["A", 2, "A-02", 115.75, 415, "disponible"],
+    ["B", 1, "B-01", 135.00, 407, "reservado"],
+    ["B", 2, "B-02", 128.30, 405, "vendido"],
+]
+
+
+def build_lots_excel_template() -> bytes:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Lotes"
+    sheet.append(TEMPLATE_HEADERS)
+    for row in TEMPLATE_EXAMPLE_ROWS:
+        sheet.append(row)
+
+    sheet.freeze_panes = "A2"
+    for index, header in enumerate(TEMPLATE_HEADERS, start=1):
+        sheet.column_dimensions[chr(64 + index)].width = max(16, len(header) + 4)
+
+    buffer = BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
+template_router = APIRouter(tags=["excel-import"])
+
+
+@template_router.get("/templates/lots.xlsx")
+def download_lots_excel_template():
+    """Descarga una plantilla .xlsx real para importar lotes."""
+    content = build_lots_excel_template()
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": 'attachment; filename="plantilla-lotes.xlsx"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.post("/{project_id}/import-excel", response_model=ExcelImportResult, dependencies=[Depends(require_admin)])

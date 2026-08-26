@@ -198,6 +198,31 @@ function ExcelImportModal({
 }) {
   const { toast } = useToast();
   const [importing, setImporting] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+
+  const handleDownloadTemplate = async () => {
+    setDownloadingTemplate(true);
+    try {
+      const response = await fetch(`${API_URL}/templates/lots.xlsx`);
+      if (!response.ok) {
+        throw new Error("No se pudo generar la plantilla");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "plantilla-lotes.xlsx";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast("No se pudo descargar la plantilla. Intenta de nuevo.", "error");
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
 
   const handleFileUpload = async (file: File) => {
     setImporting(true);
@@ -323,16 +348,16 @@ function ExcelImportModal({
             <Button variant="outline" onClick={onClose} className="flex-1">
               Cancelar
             </Button>
-            <a
-              href="/plantilla-lotes.xlsx"
-              download
+            <Button
+              variant="outline"
               className="flex-1"
+              type="button"
+              onClick={handleDownloadTemplate}
+              disabled={downloadingTemplate || importing}
             >
-              <Button variant="outline" className="w-full">
-                <FileDown className="h-4 w-4" />
-                Descargar Plantilla
-              </Button>
-            </a>
+              <FileDown className="h-4 w-4" />
+              {downloadingTemplate ? "Descargando..." : "Descargar Plantilla"}
+            </Button>
           </div>
         </div>
       </Card>
