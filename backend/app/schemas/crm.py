@@ -54,6 +54,8 @@ class LeadUpdate(BaseModel):
     budget: float | None = None
     source: str | None = None
     follow_up: str | None = None
+    name: str | None = None
+    last_name: str | None = None
     phone: str | None = None
     whatsapp: str | None = None
     email: EmailStr | None = None

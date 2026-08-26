@@ -212,6 +212,7 @@ export interface DashboardStats {
 }
 
 export interface QuoteInput {
+  lead_id?: number | null;
   project_id: number;
   lot_id: number;
   lot_price: number | null;

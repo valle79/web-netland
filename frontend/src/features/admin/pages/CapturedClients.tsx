@@ -7,8 +7,10 @@ import {
   Gift,
   MapPin,
   MessageCircle,
+  Pencil,
   PhoneCall,
   Plus,
+  Trash2,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -111,6 +113,8 @@ export default function AdminCapturedClients() {
     useState<LeadFiltersState>(emptyFilters);
 
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [deletingLead, setDeletingLead] = useState<Lead | null>(null);
 
   const [form, setForm] = useState(emptyForm);
 
@@ -160,8 +164,31 @@ export default function AdminCapturedClients() {
   };
 
   // =========================
-  // CREAR CLIENTE
+  // CREAR / EDITAR CLIENTE
   // =========================
+
+  const openCreateModal = () => {
+    setEditingLead(null);
+    setForm({ ...emptyForm });
+    setRegisterOpen(true);
+  };
+
+  const openEditModal = (lead: Lead) => {
+    setEditingLead(lead);
+    setForm({
+      name: lead.client?.name ?? "",
+      last_name: lead.client?.last_name ?? "",
+      phone: lead.client?.phone ?? "",
+      whatsapp: lead.client?.whatsapp ?? "",
+      email: lead.client?.email ?? "",
+      project_id: lead.project_id ? String(lead.project_id) : "",
+      budget: lead.budget ? String(lead.budget) : "",
+      source: lead.source ?? "campo",
+      message: lead.message ?? "",
+      advisor_id: lead.advisor_id ? String(lead.advisor_id) : "",
+    });
+    setRegisterOpen(true);
+  };
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -203,10 +230,69 @@ export default function AdminCapturedClients() {
         queryKey: ["dashboard"],
       });
 
-      toast("Cliente registrado correctamente.");
+      toast(editingLead ? "Cliente actualizado correctamente." : "Cliente registrado correctamente.");
 
       setRegisterOpen(false);
+      setEditingLead(null);
       setForm({ ...emptyForm });
+    },
+
+    onError: (e) => toast(e.message, "error"),
+  });
+
+  // =========================
+  // EDITAR CLIENTE
+  // =========================
+
+  const editMutation = useMutation({
+    mutationFn: () => {
+      if (!editingLead) throw new Error("No hay cliente seleccionado.");
+      return api.patch(
+        `/leads/${editingLead.id}`,
+        {
+          name: form.name.trim(),
+          last_name: form.last_name.trim(),
+          phone: form.phone.trim(),
+          whatsapp: form.phone.trim(),
+          email: form.email.trim() || null,
+          project_id: form.project_id ? Number(form.project_id) : null,
+          budget: form.budget ? Number(form.budget) : null,
+          source: form.source,
+          message: form.message.trim(),
+          ...(isAdmin && form.advisor_id
+            ? { advisor_id: Number(form.advisor_id) }
+            : {}),
+        },
+        true
+      );
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["captured-clients"] });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      toast("Cliente actualizado correctamente.");
+      setRegisterOpen(false);
+      setEditingLead(null);
+      setForm({ ...emptyForm });
+    },
+
+    onError: (e) => toast(e.message, "error"),
+  });
+
+  // =========================
+  // ELIMINAR CLIENTE
+  // =========================
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.del(`/leads/${id}`, true),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["captured-clients"] });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      toast("Cliente eliminado correctamente.");
+      setDeletingLead(null);
     },
 
     onError: (e) => toast(e.message, "error"),
@@ -470,6 +556,7 @@ export default function AdminCapturedClients() {
 
   const submitDisabled =
     createMutation.isPending ||
+    editMutation.isPending ||
     form.name.trim().length < 2 ||
     form.phone.trim().length < 6;
 
@@ -484,9 +571,7 @@ export default function AdminCapturedClients() {
         subtitle="Registra y gestiona los clientes captados en campo, por llamada y los referidos del programa Refiere y Gana del sitio web."
         action={
           <Button
-            onClick={() =>
-              setRegisterOpen(true)
-            }
+            onClick={openCreateModal}
           >
             <Plus className="h-4 w-4" />
             Registrar cliente
@@ -586,9 +671,7 @@ export default function AdminCapturedClients() {
 
           <div className="flex justify-center">
             <Button
-              onClick={() =>
-                setRegisterOpen(true)
-              }
+              onClick={openCreateModal}
             >
               <Plus className="h-4 w-4" />
               Registrar tu primer cliente
@@ -723,18 +806,40 @@ export default function AdminCapturedClients() {
 
                 {/* ACCIONES */}
                 <td className="px-5 py-3">
-                  <Button
-                    variant="outline"
-                    className="!px-3 !py-1.5 text-xs"
-                    onClick={() => {
-                      setSelected(lead);
-                      setFollowUp(
-                        lead.follow_up ?? ""
-                      );
-                    }}
-                  >
-                    Gestionar
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      className="!px-3 !py-1.5 text-xs"
+                      onClick={() => {
+                        setSelected(lead);
+                        setFollowUp(
+                          lead.follow_up ?? ""
+                        );
+                      }}
+                    >
+                      Gestionar
+                    </Button>
+
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(lead)}
+                      className="inline-flex items-center justify-center rounded-md border border-netland-light bg-white p-1.5 text-netland-muted transition-colors hover:bg-netland-light hover:text-netland-dark"
+                      title="Editar cliente"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => setDeletingLead(lead)}
+                        className="inline-flex items-center justify-center rounded-md border border-netland-light bg-white p-1.5 text-netland-muted transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+                        title="Eliminar cliente"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );
@@ -748,10 +853,11 @@ export default function AdminCapturedClients() {
 
       <Modal
         open={registerOpen}
-        onClose={() =>
-          setRegisterOpen(false)
-        }
-        title="Registrar cliente captado"
+        onClose={() => {
+          setRegisterOpen(false);
+          setEditingLead(null);
+        }}
+        title={editingLead ? "Editar cliente captado" : "Registrar cliente captado"}
         wide
       >
         <div className="space-y-5 p-6">
@@ -864,8 +970,8 @@ export default function AdminCapturedClients() {
             </Field>
 
             <Field
-              label="Teléfono *"
-              hint="Con o sin código de país."
+              label="Celular *"
+              hint="Se usará para WhatsApp también."
             >
               <Input
                 value={form.phone}
@@ -876,21 +982,6 @@ export default function AdminCapturedClients() {
                   })
                 }
                 placeholder="999 999 999"
-                inputMode="tel"
-              />
-            </Field>
-
-            <Field label="WhatsApp">
-              <Input
-                value={form.whatsapp}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    whatsapp:
-                      e.target.value,
-                  })
-                }
-                placeholder="Igual al teléfono si se deja vacío"
                 inputMode="tel"
               />
             </Field>
@@ -1006,21 +1097,24 @@ export default function AdminCapturedClients() {
           <div className="flex justify-end gap-3 border-t border-netland-light pt-4">
             <Button
               variant="outline"
-              onClick={() =>
-                setRegisterOpen(false)
-              }
+              onClick={() => {
+                setRegisterOpen(false);
+                setEditingLead(null);
+              }}
             >
               Cancelar
             </Button>
 
             <Button
               onClick={() =>
-                createMutation.mutate()
+                editingLead
+                  ? editMutation.mutate()
+                  : createMutation.mutate()
               }
-              disabled={submitDisabled}
+              disabled={submitDisabled || (editingLead ? editMutation.isPending : createMutation.isPending)}
             >
               <ClipboardList className="h-4 w-4" />
-              Guardar cliente
+              {editingLead ? "Guardar cambios" : "Guardar cliente"}
             </Button>
           </div>
         </div>
@@ -1317,6 +1411,48 @@ export default function AdminCapturedClients() {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* =========================
+          MODAL CONFIRMAR ELIMINACIÓN
+      ========================= */}
+
+      <Modal
+        open={!!deletingLead}
+        onClose={() => setDeletingLead(null)}
+        title="Eliminar cliente"
+      >
+        <div className="p-6">
+          <p className="text-sm text-netland-muted">
+            ¿Estás seguro de que deseas eliminar al cliente{" "}
+            <span className="font-semibold text-netland-dark">
+              {deletingLead?.client?.name} {deletingLead?.client?.last_name}
+            </span>
+            ? Esta acción no se puede deshacer.
+          </p>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setDeletingLead(null)}
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (deletingLead) {
+                  deleteMutation.mutate(deletingLead.id);
+                }
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

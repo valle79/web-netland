@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, FileText, Plus, Send, X } from "lucide-react";
+import { Download, Eye, FileText, Plus, Search, Send, User, X } from "lucide-react";
 import { api } from "../../../lib/api";
-import type { Quote, QuoteInput, Project, Lot } from "../../../types";
+import type { Quote, QuoteInput, Project, Lot, Lead } from "../../../types";
 import { formatSoles, API_URL } from "../../../lib/constants";
 import { PageHeader, Card, Table, Button, Badge } from "../ui";
 import { EmptyState } from "../../../components/ui/EmptyState";
@@ -24,6 +24,7 @@ const statusLabels: Record<string, string> = {
 
 export default function AdminQuotes() {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [detailQuote, setDetailQuote] = useState<Quote | null>(null);
   const queryClient = useQueryClient();
 
   const { data: quotes } = useQuery({
@@ -137,6 +138,14 @@ export default function AdminQuotes() {
                     <Button
                       variant="outline"
                       className="!px-3 !py-1.5"
+                      onClick={() => setDetailQuote(quote)}
+                      title="Ver detalles"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="!px-3 !py-1.5"
                       onClick={() => downloadPdf(quote.id)}
                       title="Descargar PDF"
                     >
@@ -169,6 +178,16 @@ export default function AdminQuotes() {
           }}
         />
       )}
+
+      {/* MODAL DETALLES COTIZACIÓN */}
+      {detailQuote && (
+        <QuoteDetailModal
+          quote={detailQuote}
+          onClose={() => setDetailQuote(null)}
+          onDownloadPdf={downloadPdf}
+          onSendWhatsApp={sendWhatsApp}
+        />
+      )}
     </div>
   );
 }
@@ -187,9 +206,8 @@ function CreateQuoteModal({
   const [paymentType, setPaymentType] = useState<"cash" | "credit">("credit");
   const [initialPayment, setInitialPayment] = useState(0);
   const [installments, setInstallments] = useState(12);
-  const [clientName, setClientName] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
+  const [clientSearch, setClientSearch] = useState("");
   const [notes, setNotes] = useState("");
 
   const { data: projects } = useQuery({
@@ -203,10 +221,40 @@ function CreateQuoteModal({
     enabled: !!selectedProjectId,
   });
 
+  const { data: leads } = useQuery({
+    queryKey: ["leads-for-quote"],
+    queryFn: () => api.get<Lead[]>("/leads", true),
+  });
+
+  const filteredLeads = useMemo(() => {
+    if (!leads) return [];
+    const term = clientSearch.trim().toLowerCase();
+    if (!term) return leads;
+    return leads.filter((lead) => {
+      const haystack = [
+        lead.client?.name,
+        lead.client?.last_name,
+        lead.client?.phone,
+        lead.client?.email,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [leads, clientSearch]);
+
+  const selectedLead = leads?.find((l) => l.id === selectedLeadId);
+
+  const clientName = selectedLead
+    ? `${selectedLead.client?.name ?? ""} ${selectedLead.client?.last_name ?? ""}`.trim()
+    : "";
+  const clientPhone = selectedLead?.client?.phone ?? "";
+  const clientEmail = selectedLead?.client?.email ?? "";
+
   const selectedLot = lots?.find((l) => l.id === selectedLotId);
   const lotPrice = selectedLot ? (selectedLot.promo_price || selectedLot.price || 0) : 0;
 
-  // Calcular descuento
   const discountAmount =
     discountType === "percentage"
       ? lotPrice * (discountValue / 100)
@@ -215,7 +263,6 @@ function CreateQuoteModal({
         : 0;
   const finalPrice = Math.max(lotPrice - discountAmount, 0);
 
-  // Calcular cuota
   const balance = paymentType === "credit" ? Math.max(finalPrice - initialPayment, 0) : 0;
   const monthlyPayment = paymentType === "credit" && installments > 0 ? balance / installments : 0;
 
@@ -229,6 +276,7 @@ function CreateQuoteModal({
     if (!selectedProjectId || !selectedLotId) return;
 
     createMutation.mutate({
+      lead_id: selectedLeadId,
       project_id: selectedProjectId,
       lot_id: selectedLotId,
       lot_price: lotPrice,
@@ -453,34 +501,83 @@ function CreateQuoteModal({
           </div>
         )}
 
-        {/* Datos del cliente */}
+        {/* Selector de cliente captado */}
         <div>
-          <label className="block text-sm font-semibold text-netland-dark mb-3">
-            Datos del Cliente
+          <label className="block text-sm font-semibold text-netland-dark mb-2">
+            Cliente captado
           </label>
-          <div className="grid grid-cols-3 gap-4">
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-netland-muted" />
             <input
               type="text"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="Nombre completo"
-              className="px-4 py-2.5 rounded-lg border border-netland-muted/30 focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20 outline-none"
-            />
-            <input
-              type="tel"
-              value={clientPhone}
-              onChange={(e) => setClientPhone(e.target.value)}
-              placeholder="Teléfono / WhatsApp"
-              className="px-4 py-2.5 rounded-lg border border-netland-muted/30 focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20 outline-none"
-            />
-            <input
-              type="email"
-              value={clientEmail}
-              onChange={(e) => setClientEmail(e.target.value)}
-              placeholder="Email (opcional)"
-              className="px-4 py-2.5 rounded-lg border border-netland-muted/30 focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20 outline-none"
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+              placeholder="Buscar por nombre, teléfono o email..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-netland-muted/30 focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20 outline-none"
             />
           </div>
+
+          <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-netland-muted/20">
+            {filteredLeads.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-netland-muted">
+                {leads?.length === 0
+                  ? "No hay clientes captados registrados."
+                  : "No se encontraron resultados."}
+              </div>
+            ) : (
+              filteredLeads.map((lead) => {
+                const name = `${lead.client?.name ?? ""} ${lead.client?.last_name ?? ""}`.trim();
+                const isSelected = lead.id === selectedLeadId;
+                return (
+                  <button
+                    key={lead.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedLeadId(isSelected ? null : lead.id);
+                      setClientSearch("");
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-netland-muted/10 last:border-0 ${
+                      isSelected
+                        ? "bg-netland-primary/10"
+                        : "hover:bg-netland-light/50"
+                    }`}
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-netland-primary/10 text-netland-primary shrink-0">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-netland-dark truncate">{name || "Sin nombre"}</p>
+                      <p className="text-xs text-netland-muted truncate">
+                        {lead.client?.phone}
+                        {lead.client?.email ? ` · ${lead.client.email}` : ""}
+                      </p>
+                    </div>
+                    {isSelected && (
+                      <Badge color="#16a34a">Seleccionado</Badge>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {selectedLead && (
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <Badge color="#16a34a">
+                {`${selectedLead.client?.name ?? ""} ${selectedLead.client?.last_name ?? ""}`.trim()}
+              </Badge>
+              <span className="text-netland-muted">·</span>
+              <span className="text-netland-muted">{selectedLead.client?.phone}</span>
+              <button
+                type="button"
+                onClick={() => setSelectedLeadId(null)}
+                className="ml-auto text-xs text-red-500 hover:text-red-700"
+              >
+                Quitar selección
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Notas */}
@@ -511,6 +608,192 @@ function CreateQuoteModal({
           </Button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function QuoteDetailModal({
+  quote,
+  onClose,
+  onDownloadPdf,
+  onSendWhatsApp,
+}: {
+  quote: Quote;
+  onClose: () => void;
+  onDownloadPdf: (id: number) => void;
+  onSendWhatsApp: (quote: Quote) => void;
+}) {
+  const hasDiscount = quote.discount_type !== "none" && (quote.discount_value || 0) > 0;
+  const isCredit = quote.payment_type === "credit";
+
+  const discountAmount = hasDiscount
+    ? quote.discount_type === "percentage"
+      ? (quote.lot_price || 0) * ((quote.discount_value || 0) / 100)
+      : quote.discount_value || 0
+    : 0;
+
+  return (
+    <Modal open={true} onClose={onClose} wide>
+      <div className="px-6 pt-6 pb-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo-netland.png"
+              alt="Netland"
+              className="h-10 w-10 rounded-lg object-contain"
+            />
+            <div>
+              <h3 className="text-xl font-bold text-netland-dark">{quote.quote_number}</h3>
+              <p className="text-sm text-netland-muted">
+                {new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}
+              </p>
+            </div>
+          </div>
+          <Badge color={statusColors[quote.status] ?? "#6b7280"}>
+            {statusLabels[quote.status] || quote.status}
+          </Badge>
+        </div>
+
+        {/* Info grid */}
+        <div className="grid gap-4 sm:grid-cols-3 mb-6">
+          {/* Cliente */}
+          <div className="rounded-xl bg-netland-light/50 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-netland-muted mb-2">
+              Cliente
+            </p>
+            <p className="font-semibold text-netland-dark">{quote.client_name || "Sin cliente"}</p>
+            {quote.client_phone && (
+              <p className="text-sm text-netland-muted mt-0.5">{quote.client_phone}</p>
+            )}
+            {quote.client_email && (
+              <p className="text-sm text-netland-muted">{quote.client_email}</p>
+            )}
+          </div>
+
+          {/* Proyecto / Lote */}
+          <div className="rounded-xl bg-netland-light/50 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-netland-muted mb-2">
+              Proyecto / Lote
+            </p>
+            <p className="font-semibold text-netland-dark">{quote.project_name || "—"}</p>
+            <p className="text-sm text-netland-muted mt-0.5">
+              Lote {quote.lot_code}
+              {quote.lot_area ? ` · ${quote.lot_area} m²` : ""}
+            </p>
+            {quote.advisor_name && (
+              <p className="text-sm text-netland-muted mt-0.5">Asesor: {quote.advisor_name}</p>
+            )}
+          </div>
+
+          {/* Tipo de pago */}
+          <div className="rounded-xl bg-netland-light/50 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-netland-muted mb-2">
+              Tipo de pago
+            </p>
+            <Badge color={isCredit ? "#0891b2" : "#059669"}>
+              {isCredit ? "A Crédito" : "Al Contado"}
+            </Badge>
+            {isCredit && (
+              <p className="text-sm text-netland-muted mt-2">
+                {quote.installments} cuotas de {formatSoles(quote.installment_value)}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Desglose financiero */}
+        <div className="rounded-xl border border-netland-muted/20 overflow-hidden mb-6">
+          <div className="bg-netland-light/30 px-5 py-3 border-b border-netland-muted/20">
+            <p className="text-xs font-semibold uppercase tracking-wider text-netland-muted">
+              Desglose financiero
+            </p>
+          </div>
+
+          <div className="divide-y divide-netland-muted/10">
+            {/* Precio lote */}
+            <div className="flex items-center justify-between px-5 py-3">
+              <span className="text-sm text-netland-muted">Precio del lote</span>
+              <span className="font-medium text-netland-dark">{formatSoles(quote.lot_price)}</span>
+            </div>
+
+            {/* Descuento */}
+            {hasDiscount && (
+              <div className="flex items-center justify-between px-5 py-3">
+                <span className="text-sm text-netland-muted">
+                  Descuento
+                  {quote.discount_type === "percentage"
+                    ? ` (${quote.discount_value}%)`
+                    : ""}
+                </span>
+                <span className="font-medium text-orange-600">-{formatSoles(discountAmount)}</span>
+              </div>
+            )}
+
+            {/* Inicial */}
+            {isCredit && (
+              <div className="flex items-center justify-between px-5 py-3">
+                <span className="text-sm text-netland-muted">Cuota inicial</span>
+                <span className="font-medium text-netland-dark">{formatSoles(quote.initial_payment)}</span>
+              </div>
+            )}
+
+            {/* Cuotas */}
+            {isCredit && (
+              <div className="flex items-center justify-between px-5 py-3">
+                <span className="text-sm text-netland-muted">
+                  {quote.installments} cuotas mensuales
+                </span>
+                <span className="font-medium text-netland-dark">{formatSoles(quote.installment_value)}</span>
+              </div>
+            )}
+
+            {/* Total */}
+            <div className="flex items-center justify-between px-5 py-3.5 bg-netland-primary/5">
+              <span className="text-sm font-bold text-netland-dark uppercase tracking-wider">Total</span>
+              <span className="text-xl font-bold text-netland-primary">{formatSoles(quote.total_amount)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Notas */}
+        {quote.notes && (
+          <div className="rounded-xl border border-netland-muted/20 p-4 mb-6">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-netland-muted mb-1.5">
+              Observaciones
+            </p>
+            <p className="text-sm text-netland-dark whitespace-pre-wrap">{quote.notes}</p>
+          </div>
+        )}
+
+        {/* Acciones */}
+        <div className="flex flex-wrap gap-3 pt-4 border-t border-netland-muted/20">
+          <Button
+            variant="outline"
+            onClick={() => onDownloadPdf(quote.id)}
+          >
+            <Download className="h-4 w-4" />
+            Descargar PDF
+          </Button>
+
+          {quote.client_phone && (
+            <Button
+              variant="outline"
+              className="!border-green-600 !text-green-600 hover:!bg-green-50"
+              onClick={() => onSendWhatsApp(quote)}
+            >
+              <Send className="h-4 w-4" />
+              Enviar por WhatsApp
+            </Button>
+          )}
+
+          <div className="ml-auto">
+            <Button variant="outline" onClick={onClose}>
+              Cerrar
+            </Button>
+          </div>
+        </div>
+      </div>
     </Modal>
   );
 }

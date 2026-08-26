@@ -384,6 +384,10 @@ def update_lead(
         lead.client.whatsapp = data["whatsapp"]
     if "email" in data and lead.client:
         lead.client.email = data["email"]
+    if "name" in data and lead.client:
+        lead.client.name = data["name"]
+    if "last_name" in data and lead.client:
+        lead.client.last_name = data["last_name"]
 
     for key in ("status", "project_id", "lot_id", "advisor_id", "budget", "follow_up", "source"):
         if key in data:
