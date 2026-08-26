@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
@@ -19,12 +18,11 @@ from reportlab.lib.utils import ImageReader
 def format_soles(value: float | None) -> str:
     if value is None:
         return "S/ ---"
-
     return f"S/ {value:,.2f}"
 
 
 # ============================================================================
-# GENERADOR DE COTIZACIÓN NETLAND
+# GENERADOR DE COTIZACIÓN INMOBILIARIA
 # ============================================================================
 
 def generate_quote_pdf(
@@ -49,17 +47,17 @@ def generate_quote_pdf(
     date_str: str | None = None,
 ) -> bytes:
     """
-    Genera una cotización profesional para NETLAND
-    CORPORACIÓN INMOBILIARIA.
+    Genera una cotización inmobiliaria profesional para la venta
+    de lotes de terreno.
 
     Diseño:
-    - Formato A4.
-    - Fondo blanco.
-    - Bajo consumo de tinta.
-    - Líneas finas.
-    - Tipografía limpia.
-    - Sin bloques de color.
-    - Diseño corporativo y elegante.
+    - A4
+    - Estilo corporativo sobrio
+    - Azul noche + marrón mostaza
+    - Logo corporativo en encabezado
+    - Cards ligeros
+    - Sin firma del asesor
+    - Pie de página compacto
     """
 
     buffer = io.BytesIO()
@@ -72,36 +70,78 @@ def generate_quote_pdf(
     width, height = A4
 
     # =========================================================================
-    # COLORES
+    # PALETA CORPORATIVA
     # =========================================================================
 
-    BLACK = colors.HexColor("#202020")
-    DARK = colors.HexColor("#333333")
-    GREY = colors.HexColor("#666666")
-    LIGHT_GREY = colors.HexColor("#B8B8B8")
-    VERY_LIGHT_GREY = colors.HexColor("#E5E5E5")
+    # Azul noche principal
+    NAVY = colors.HexColor("#17324D")
+
+    # Azul secundario
+    BLUE = colors.HexColor("#2F668F")
+
+    # Azul muy suave para cards/títulos
+    BLUE_LIGHT = colors.HexColor("#EAF2F7")
+
+    # Fondo azul muy suave
+    BLUE_PALE = colors.HexColor("#F5F8FA")
+
+    # Marrón mostaza corporativo
+    MUSTARD = colors.HexColor("#B58A3A")
+
+    # Mostaza suave para fondos
+    MUSTARD_LIGHT = colors.HexColor("#F5EEDC")
+
+    # Textos
+    DARK = colors.HexColor("#263238")
+    TEXT = colors.HexColor("#37474F")
+    GREY = colors.HexColor("#6B7780")
+    LIGHT_GREY = colors.HexColor("#B8C1C7")
+
+    # Bordes
+    BORDER = colors.HexColor("#DCE3E7")
+
+    # Fondo general
+    BACKGROUND = colors.HexColor("#FAFBFC")
+
+    WHITE = colors.white
 
     # =========================================================================
     # MEDIDAS
     # =========================================================================
 
-    margin_left = 20 * mm
-    margin_right = 20 * mm
+    margin_left = 18 * mm
+    margin_right = 18 * mm
 
     content_width = width - margin_left - margin_right
+    right_x = width - margin_right
 
     # =========================================================================
-    # FECHA Y HORA
+    # FECHA
     # =========================================================================
 
     now = datetime.now()
 
-    if date_str:
-        generation_date = date_str
-    else:
-        generation_date = now.strftime("%d/%m/%Y")
+    generation_date = (
+        date_str
+        if date_str
+        else now.strftime("%d/%m/%Y")
+    )
 
     generation_time = now.strftime("%H:%M")
+
+    # =========================================================================
+    # DATOS
+    # =========================================================================
+
+    client = client_name or "Cliente por confirmar"
+    advisor = advisor_name or "Área de Ventas"
+    phone = advisor_phone or "985 928 062"
+
+    area_text = (
+        f"{area_m2:,.2f} m²"
+        if area_m2 is not None
+        else "Por definir"
+    )
 
     # =========================================================================
     # PRECIO FINAL
@@ -113,12 +153,26 @@ def generate_quote_pdf(
         else lot_price
     )
 
+    display_total = (
+        total_amount
+        if total_amount > 0
+        else final_price
+    )
+
     # =========================================================================
-    # IGV
+    # FONDO
     # =========================================================================
 
-    # Se mantiene la misma lógica que utilizaba tu PDF actual.
-    igv = final_price * 0.18
+    c.setFillColor(BACKGROUND)
+
+    c.rect(
+        0,
+        0,
+        width,
+        height,
+        stroke=0,
+        fill=1,
+    )
 
     # =========================================================================
     # HEADER
@@ -127,7 +181,7 @@ def generate_quote_pdf(
     y = height - 18 * mm
 
     # -------------------------------------------------------------------------
-    # Logo
+    # LOGO
     # -------------------------------------------------------------------------
 
     logo_path = os.path.join(
@@ -136,350 +190,459 @@ def generate_quote_pdf(
         "logo-netland.png",
     )
 
-    logo_height = 14 * mm
-    logo_width = logo_height
+    # Logo aumentado
+    logo_width = 22 * mm
+    logo_height = 22 * mm
+
+    logo_x = margin_left
+    logo_y = y - 16 * mm
+
+    logo_exists = False
 
     if os.path.exists(logo_path):
         try:
             logo_img = ImageReader(logo_path)
+
             c.drawImage(
                 logo_img,
-                margin_left,
-                y - logo_height + 4 * mm,
+                logo_x,
+                logo_y,
                 width=logo_width,
                 height=logo_height,
+                preserveAspectRatio=True,
                 mask="auto",
             )
+
+            logo_exists = True
+
         except Exception:
-            pass
-
-    logo_text_x = margin_left + (logo_width + 3 * mm if os.path.exists(logo_path) else 0)
+            logo_exists = False
 
     # -------------------------------------------------------------------------
-    # Marca
+    # INFORMACIÓN DE LA EMPRESA
     # -------------------------------------------------------------------------
 
-    c.setFillColor(BLACK)
-    c.setFont("Helvetica-Bold", 22)
+    if logo_exists:
+        company_x = margin_left + logo_width + 5 * mm
+    else:
+        company_x = margin_left
+
+    # Título principal: SOLO NETLAND
+    c.setFillColor(NAVY)
+    c.setFont("Helvetica-Bold", 16)
 
     c.drawString(
-        logo_text_x,
+        company_x,
         y,
         "NETLAND",
     )
 
-    c.setFont("Helvetica", 8.5)
-    c.setFillColor(DARK)
+    # Subtítulo
+    c.setFillColor(MUSTARD)
+    c.setFont("Helvetica-Bold", 7.2)
 
     c.drawString(
-        logo_text_x,
-        y - 5 * mm,
+        company_x,
+        y - 4.8 * mm,
         "CORPORACIÓN INMOBILIARIA",
     )
 
-    # -------------------------------------------------------------------------
-    # Información derecha
-    # -------------------------------------------------------------------------
+    # Ubicación
+    c.setFillColor(GREY)
+    c.setFont("Helvetica", 6.8)
 
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(BLACK)
-
-    c.drawRightString(
-        width - margin_right,
-        y,
-        "COTIZACIÓN",
+    c.drawString(
+        company_x,
+        y - 9 * mm,
+        "Cañete · Lima · Perú",
     )
 
-    c.setFont("Helvetica-Bold", 11)
+    # -------------------------------------------------------------------------
+    # INFORMACIÓN DE LA COTIZACIÓN
+    # -------------------------------------------------------------------------
+
+    c.setFillColor(NAVY)
+    c.setFont("Helvetica-Bold", 8.5)
+
     c.drawRightString(
-        width - margin_right,
-        y - 5 * mm,
+        right_x,
+        y,
+        "COTIZACIÓN INMOBILIARIA",
+    )
+
+    c.setFillColor(MUSTARD)
+    c.setFont("Helvetica-Bold", 9.2)
+
+    c.drawRightString(
+        right_x,
+        y - 4.8 * mm,
         f"N.º {quote_number}",
     )
 
-    c.setFont("Helvetica", 7.5)
     c.setFillColor(GREY)
+    c.setFont("Helvetica", 6.8)
 
     c.drawRightString(
-        width - margin_right,
-        y - 9.5 * mm,
+        right_x,
+        y - 9 * mm,
         f"{generation_date} · {generation_time}",
     )
 
     # -------------------------------------------------------------------------
-    # Línea principal
+    # DETALLE DECORATIVO DEL HEADER
     # -------------------------------------------------------------------------
 
-    y -= 15 * mm
+    y -= 16 * mm
 
-    c.setStrokeColor(BLACK)
-    c.setLineWidth(0.7)
+    # Línea azul noche
+    c.setStrokeColor(NAVY)
+    c.setLineWidth(0.8)
+
+
+
+    # Pequeño detalle mostaza
+    c.setStrokeColor(MUSTARD)
+    c.setLineWidth(1.8)
 
     c.line(
         margin_left,
         y,
-        width - margin_right,
+        margin_left + 28 * mm,
         y,
     )
 
     # =========================================================================
-    # INFORMACIÓN DEL CLIENTE
+    # DATOS DEL CLIENTE
     # =========================================================================
-
-    y -= 9 * mm
-
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(BLACK)
-
-    c.drawString(
-        margin_left,
-        y,
-        "DATOS DEL CLIENTE",
-    )
-
-    # Línea fina debajo del título
-
-    c.setStrokeColor(VERY_LIGHT_GREY)
-    c.setLineWidth(0.5)
-
-    c.line(
-        margin_left,
-        y - 2.5 * mm,
-        width - margin_right,
-        y - 2.5 * mm,
-    )
-
-    y -= 9 * mm
-
-    # -------------------------------------------------------------------------
-    # Cliente
-    # -------------------------------------------------------------------------
-
-    c.setFont("Helvetica-Bold", 7.5)
-    c.setFillColor(DARK)
-
-    c.drawString(
-        margin_left,
-        y,
-        "SEÑOR(ES):",
-    )
-
-    c.setFont("Helvetica", 8.5)
-    c.setFillColor(DARK)
-
-    c.drawString(
-        margin_left + 25 * mm,
-        y,
-        client_name or "Por confirmar",
-    )
-
-    # -------------------------------------------------------------------------
-    # Asesor
-    # -------------------------------------------------------------------------
-
-    c.setFont("Helvetica-Bold", 7.5)
-
-    c.drawString(
-        width / 2,
-        y,
-        "ASESOR:",
-    )
-
-    c.setFont("Helvetica", 8.5)
-
-    c.drawString(
-        width / 2 + 20 * mm,
-        y,
-        advisor_name or "Netland",
-    )
-
-    # -------------------------------------------------------------------------
-    # Teléfono
-    # -------------------------------------------------------------------------
-
-    y -= 6 * mm
-
-    if advisor_phone:
-
-        c.setFont("Helvetica-Bold", 7.5)
-
-        c.drawString(
-            margin_left,
-            y,
-            "CONTACTO:",
-        )
-
-        c.setFont("Helvetica", 8.5)
-
-        c.drawString(
-            margin_left + 25 * mm,
-            y,
-            advisor_phone,
-        )
-
-    # -------------------------------------------------------------------------
-    # Proyecto
-    # -------------------------------------------------------------------------
-
-    c.setFont("Helvetica-Bold", 7.5)
-
-    c.drawString(
-        width / 2,
-        y,
-        "PROYECTO:",
-    )
-
-    c.setFont("Helvetica", 8.5)
-
-    c.drawString(
-        width / 2 + 20 * mm,
-        y,
-        project_name,
-    )
-
-    # =========================================================================
-    # DETALLE DEL LOTE
-    # =========================================================================
-
-    y -= 11 * mm
-
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(BLACK)
-
-    c.drawString(
-        margin_left,
-        y,
-        "DETALLE DE LA INVERSIÓN",
-    )
-
-    c.setStrokeColor(VERY_LIGHT_GREY)
-
-    c.line(
-        margin_left,
-        y - 2.5 * mm,
-        width - margin_right,
-        y - 2.5 * mm,
-    )
 
     y -= 8 * mm
 
-    # =========================================================================
-    # CABECERA DE TABLA
-    # =========================================================================
+    # Título de sección
+    c.setFillColor(BLUE_LIGHT)
 
-    table_x = margin_left
-    table_right = width - margin_right
+    c.roundRect(
+        margin_left,
+        y - 5.5 * mm,
+        43 * mm,
+        6 * mm,
+        1.5 * mm,
+        stroke=0,
+        fill=1,
+    )
 
-    description_width = content_width - 70 * mm
-    unit_x = table_x + description_width + 35 * mm
-    total_x = table_right
-
+    c.setFillColor(NAVY)
     c.setFont("Helvetica-Bold", 7.5)
-    c.setFillColor(DARK)
 
     c.drawString(
-        table_x,
-        y,
-        "DESCRIPCIÓN",
+        margin_left + 3 * mm,
+        y - 3.7 * mm,
+        "DATOS DEL CLIENTE",
     )
 
-    c.drawRightString(
-        unit_x,
-        y,
-        "P. UNITARIO",
-    )
+    y -= 10 * mm
 
-    c.drawRightString(
-        total_x,
-        y,
-        "TOTAL",
-    )
+    # -------------------------------------------------------------------------
+    # CARD CLIENTE
+    # -------------------------------------------------------------------------
 
-    # Línea inferior
+    card_height = 27 * mm
 
-    y -= 3 * mm
-
-    c.setStrokeColor(LIGHT_GREY)
+    c.setFillColor(WHITE)
+    c.setStrokeColor(BORDER)
     c.setLineWidth(0.5)
 
-    c.line(
-        table_x,
-        y,
-        table_right,
-        y,
+    c.roundRect(
+        margin_left,
+        y - card_height,
+        content_width,
+        card_height,
+        2 * mm,
+        stroke=1,
+        fill=1,
     )
 
-    # =========================================================================
-    # LOTE
-    # =========================================================================
+    # Barra lateral azul
+    c.setFillColor(BLUE)
 
-    y -= 7 * mm
+    c.roundRect(
+        margin_left,
+        y - card_height,
+        1.3 * mm,
+        card_height,
+        0.7 * mm,
+        stroke=0,
+        fill=1,
+    )
 
-    c.setFont("Helvetica-Bold", 9)
-    c.setFillColor(BLACK)
+    # Fila 1
+    row_y = y - 7 * mm
+
+    c.setFillColor(GREY)
+    c.setFont("Helvetica-Bold", 7)
 
     c.drawString(
-        table_x,
-        y,
+        margin_left + 5 * mm,
+        row_y,
+        "CLIENTE",
+    )
+
+    c.setFillColor(DARK)
+    c.setFont("Helvetica-Bold", 8.5)
+
+    c.drawString(
+        margin_left + 29 * mm,
+        row_y,
+        client,
+    )
+
+    # Proyecto
+    c.setFillColor(GREY)
+    c.setFont("Helvetica-Bold", 7)
+
+    c.drawString(
+        width / 2,
+        row_y,
+        "PROYECTO",
+    )
+
+    c.setFillColor(DARK)
+    c.setFont("Helvetica", 8.3)
+
+    c.drawString(
+        width / 2 + 25 * mm,
+        row_y,
+        project_name,
+    )
+
+    # Fila 2
+    row_y -= 8 * mm
+
+    c.setFillColor(GREY)
+    c.setFont("Helvetica-Bold", 7)
+
+    c.drawString(
+        margin_left + 5 * mm,
+        row_y,
+        "LOTE",
+    )
+
+    c.setFillColor(MUSTARD)
+    c.setFont("Helvetica-Bold", 8.5)
+
+    c.drawString(
+        margin_left + 29 * mm,
+        row_y,
         f"Lote {lot_code}",
     )
 
-    y -= 4.5 * mm
-
-    c.setFont("Helvetica", 7.8)
     c.setFillColor(GREY)
+    c.setFont("Helvetica-Bold", 7)
 
     c.drawString(
-        table_x,
-        y,
-        f"Proyecto: {project_name}",
+        width / 2,
+        row_y,
+        "ÁREA",
     )
 
-    if area_m2:
-
-        y -= 4 * mm
-
-        c.drawString(
-            table_x,
-            y,
-            f"Área: {area_m2:.2f} m²",
-        )
-
-    # Precio unitario
-
-    c.setFont("Helvetica", 8.5)
     c.setFillColor(DARK)
+    c.setFont("Helvetica", 8.3)
 
-    price_y = y + (
-        4.5 * mm
-        if area_m2
-        else 0
+    c.drawString(
+        width / 2 + 25 * mm,
+        row_y,
+        area_text,
     )
 
-    c.drawRightString(
-        unit_x,
-        price_y,
-        format_soles(lot_price),
+    # Fila 3
+    row_y -= 7 * mm
+
+    c.setFillColor(GREY)
+    c.setFont("Helvetica-Bold", 7)
+
+    c.drawString(
+        margin_left + 5 * mm,
+        row_y,
+        "ASESOR",
     )
 
-    c.drawRightString(
-        total_x,
-        price_y,
-        format_soles(lot_price),
+    c.setFillColor(TEXT)
+    c.setFont("Helvetica", 8)
+
+    c.drawString(
+        margin_left + 29 * mm,
+        row_y,
+        advisor,
     )
 
-    # Línea
+    c.setFillColor(GREY)
+    c.setFont("Helvetica-Bold", 7)
 
-    y -= 6 * mm
+    c.drawString(
+        width / 2,
+        row_y,
+        "CONTACTO",
+    )
 
-    c.setStrokeColor(VERY_LIGHT_GREY)
+    c.setFillColor(TEXT)
+    c.setFont("Helvetica", 8)
 
-    c.line(
+    c.drawString(
+        width / 2 + 25 * mm,
+        row_y,
+        phone,
+    )
+
+    y -= card_height + 10 * mm
+
+    # =========================================================================
+    # DETALLE DEL INMUEBLE
+    # =========================================================================
+
+    c.setFillColor(BLUE_LIGHT)
+
+    c.roundRect(
+        margin_left,
+        y - 5.5 * mm,
+        52 * mm,
+        6 * mm,
+        1.5 * mm,
+        stroke=0,
+        fill=1,
+    )
+
+    c.setFillColor(NAVY)
+    c.setFont("Helvetica-Bold", 7.5)
+
+    c.drawString(
+        margin_left + 3 * mm,
+        y - 3.7 * mm,
+        "DETALLE DEL INMUEBLE",
+    )
+
+    y -= 10 * mm
+
+    # =========================================================================
+    # TABLA PRINCIPAL
+    # =========================================================================
+
+    table_x = margin_left
+    table_right = right_x
+
+    header_height = 8 * mm
+
+    # Cabecera
+    c.setFillColor(NAVY)
+
+    c.roundRect(
         table_x,
-        y,
-        table_right,
-        y,
+        y - header_height,
+        content_width,
+        header_height,
+        1.5 * mm,
+        stroke=0,
+        fill=1,
     )
+
+    c.setFillColor(WHITE)
+    c.setFont("Helvetica-Bold", 7)
+
+    c.drawString(
+        table_x + 4 * mm,
+        y - 5 * mm,
+        "INMUEBLE",
+    )
+
+    c.drawCentredString(
+        table_x + content_width * 0.57,
+        y - 5 * mm,
+        "ÁREA",
+    )
+
+    c.drawRightString(
+        table_right - 38 * mm,
+        y - 5 * mm,
+        "VALOR",
+    )
+
+    c.drawRightString(
+        table_right - 4 * mm,
+        y - 5 * mm,
+        "TOTAL",
+    )
+
+    y -= header_height
+
+    # -------------------------------------------------------------------------
+    # FILA LOTE
+    # -------------------------------------------------------------------------
+
+    row_height = 19 * mm
+
+    c.setFillColor(WHITE)
+    c.setStrokeColor(BORDER)
+
+    c.rect(
+        table_x,
+        y - row_height,
+        content_width,
+        row_height,
+        stroke=1,
+        fill=1,
+    )
+
+    # Descripción
+    c.setFillColor(DARK)
+    c.setFont("Helvetica-Bold", 8.5)
+
+    c.drawString(
+        table_x + 4 * mm,
+        y - 7 * mm,
+        f"Lote {lot_code}",
+    )
+
+    c.setFillColor(GREY)
+    c.setFont("Helvetica", 7.2)
+
+    c.drawString(
+        table_x + 4 * mm,
+        y - 12 * mm,
+        "Terreno dentro del proyecto inmobiliario",
+    )
+
+    c.setFont("Helvetica", 7)
+
+    c.drawString(
+        table_x + 4 * mm,
+        y - 16 * mm,
+        project_name,
+    )
+
+    # Área
+    c.setFillColor(TEXT)
+    c.setFont("Helvetica", 8)
+
+    c.drawCentredString(
+        table_x + content_width * 0.57,
+        y - 10 * mm,
+        area_text,
+    )
+
+    # Precio
+    c.drawRightString(
+        table_right - 38 * mm,
+        y - 10 * mm,
+        format_soles(lot_price),
+    )
+
+    c.setFont("Helvetica-Bold", 8)
+
+    c.drawRightString(
+        table_right - 4 * mm,
+        y - 10 * mm,
+        format_soles(lot_price),
+    )
+
+    y -= row_height
 
     # =========================================================================
     # DESCUENTO
@@ -487,233 +650,306 @@ def generate_quote_pdf(
 
     if discount_type != "none" and discount_amount > 0:
 
-        y -= 7 * mm
+        discount_height = 9 * mm
+
+        c.setFillColor(MUSTARD_LIGHT)
+
+        c.rect(
+            table_x,
+            y - discount_height,
+            content_width,
+            discount_height,
+            stroke=0,
+            fill=1,
+        )
 
         if discount_type == "percentage":
             discount_label = (
-                f"Descuento aplicado ({discount_value}%)"
+                f"Beneficio comercial ({discount_value}%)"
             )
         else:
-            discount_label = "Descuento aplicado"
+            discount_label = "Beneficio comercial"
 
-        c.setFont("Helvetica", 8)
-        c.setFillColor(DARK)
+        c.setFillColor(TEXT)
+        c.setFont("Helvetica", 7.5)
 
         c.drawString(
-            table_x,
-            y,
+            table_x + 4 * mm,
+            y - 5.5 * mm,
             discount_label,
         )
 
-        discount_text = f"-{format_soles(discount_amount)}"
+        c.setFillColor(MUSTARD)
+        c.setFont("Helvetica-Bold", 8)
 
         c.drawRightString(
-            unit_x,
-            y,
-            discount_text,
+            table_right - 4 * mm,
+            y - 5.5 * mm,
+            f"- {format_soles(discount_amount)}",
         )
 
-        c.drawRightString(
-            total_x,
-            y,
-            discount_text,
-        )
-
-        y -= 5 * mm
-
-        c.setStrokeColor(VERY_LIGHT_GREY)
-
-        c.line(
-            table_x,
-            y,
-            table_right,
-            y,
-        )
+        y -= discount_height
 
     # =========================================================================
-    # MODALIDAD DE PAGO
+    # CONDICIONES DE PAGO
     # =========================================================================
 
-    y -= 8 * mm
+    y -= 10 * mm
 
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(BLACK)
+    c.setFillColor(BLUE_LIGHT)
+
+    c.roundRect(
+        margin_left,
+        y - 5.5 * mm,
+        52 * mm,
+        6 * mm,
+        1.5 * mm,
+        stroke=0,
+        fill=1,
+    )
+
+    c.setFillColor(NAVY)
+    c.setFont("Helvetica-Bold", 7.5)
 
     c.drawString(
-        table_x,
-        y,
+        margin_left + 3 * mm,
+        y - 3.7 * mm,
         "CONDICIONES DE PAGO",
     )
 
-    y -= 7 * mm
+    y -= 10 * mm
+
+    # -------------------------------------------------------------------------
+    # CARD DE PAGO
+    # -------------------------------------------------------------------------
+
+    payment_height = 27 * mm
+
+    c.setFillColor(WHITE)
+    c.setStrokeColor(BORDER)
+
+    c.roundRect(
+        margin_left,
+        y - payment_height,
+        content_width,
+        payment_height,
+        2 * mm,
+        stroke=1,
+        fill=1,
+    )
+
+    # Barra lateral mostaza
+    c.setFillColor(MUSTARD)
+
+    c.roundRect(
+        margin_left,
+        y - payment_height,
+        1.3 * mm,
+        payment_height,
+        0.7 * mm,
+        stroke=0,
+        fill=1,
+    )
+
+    row_y = y - 7 * mm
+
+    # Modalidad
+    c.setFillColor(GREY)
+    c.setFont("Helvetica-Bold", 7)
+
+    c.drawString(
+        margin_left + 5 * mm,
+        row_y,
+        "MODALIDAD",
+    )
+
+    c.setFillColor(DARK)
+    c.setFont("Helvetica-Bold", 8)
+
+    if payment_type == "credit":
+        payment_label = "Financiamiento directo"
+    else:
+        payment_label = "Pago al contado"
+
+    c.drawString(
+        margin_left + 29 * mm,
+        row_y,
+        payment_label,
+    )
+
+    # Inicial
+    c.setFillColor(GREY)
+    c.setFont("Helvetica-Bold", 7)
+
+    c.drawString(
+        width / 2,
+        row_y,
+        "CUOTA INICIAL",
+    )
+
+    c.setFillColor(MUSTARD)
+    c.setFont("Helvetica-Bold", 8.5)
+
+    c.drawString(
+        width / 2 + 31 * mm,
+        row_y,
+        format_soles(initial_payment),
+    )
 
     if payment_type == "credit":
 
-        # Modalidad
+        row_y -= 9 * mm
 
-        c.setFont("Helvetica-Bold", 7.5)
-        c.setFillColor(DARK)
-
-        c.drawString(
-            table_x,
-            y,
-            "MODALIDAD:",
+        # Saldo
+        saldo = max(
+            display_total - initial_payment,
+            0,
         )
 
-        c.setFont("Helvetica", 8.5)
+        c.setFillColor(GREY)
+        c.setFont("Helvetica-Bold", 7)
 
         c.drawString(
-            table_x + 25 * mm,
-            y,
-            "A crédito",
+            margin_left + 5 * mm,
+            row_y,
+            "SALDO",
         )
 
-        # Inicial
-
-        c.setFont("Helvetica-Bold", 7.5)
-
-        c.drawString(
-            width / 2,
-            y,
-            "INICIAL:",
-        )
-
-        c.setFont("Helvetica", 8.5)
+        c.setFillColor(TEXT)
+        c.setFont("Helvetica", 8)
 
         c.drawString(
-            width / 2 + 20 * mm,
-            y,
-            format_soles(initial_payment),
+            margin_left + 29 * mm,
+            row_y,
+            format_soles(saldo),
         )
 
         # Cuotas
-
-        y -= 6 * mm
-
-        c.setFont("Helvetica-Bold", 7.5)
+        c.setFillColor(GREY)
+        c.setFont("Helvetica-Bold", 7)
 
         c.drawString(
-            table_x,
-            y,
-            "SALDO:",
+            width / 2,
+            row_y,
+            "PLAN DE CUOTAS",
         )
 
-        c.setFont("Helvetica", 8.5)
+        c.setFillColor(TEXT)
+        c.setFont("Helvetica", 8)
+
+        cuotas_text = (
+            f"{installments} cuotas mensuales de "
+            f"{format_soles(installment_value)}"
+        )
 
         c.drawString(
-            table_x + 25 * mm,
-            y,
-            (
-                f"{installments} cuota(s) "
-                f"de {format_soles(installment_value)}"
-            ),
+            width / 2 + 31 * mm,
+            row_y,
+            cuotas_text,
         )
 
-    else:
-
-        c.setFont("Helvetica-Bold", 7.5)
-
-        c.drawString(
-            table_x,
-            y,
-            "MODALIDAD:",
-        )
-
-        c.setFont("Helvetica", 8.5)
-
-        c.drawString(
-            table_x + 25 * mm,
-            y,
-            "Al contado",
-        )
+    y -= payment_height + 10 * mm
 
     # =========================================================================
     # RESUMEN ECONÓMICO
     # =========================================================================
 
-    y -= 13 * mm
+    summary_width = 76 * mm
+    summary_x = width - margin_right - summary_width
 
-    summary_x = width - margin_right - 75 * mm
-    summary_width = 75 * mm
+    c.setFillColor(GREY)
+    c.setFont("Helvetica-Bold", 7)
 
-    c.setStrokeColor(LIGHT_GREY)
+    c.drawString(
+        summary_x,
+        y,
+        "RESUMEN ECONÓMICO",
+    )
+
+    y -= 5 * mm
+
+    # Línea azul
+    c.setStrokeColor(BORDER)
     c.setLineWidth(0.5)
 
     c.line(
         summary_x,
         y,
-        width - margin_right,
+        table_right,
         y,
     )
 
     y -= 6 * mm
 
-    # Valor de venta
-
-    c.setFont("Helvetica", 8)
-    c.setFillColor(DARK)
-
-    c.drawString(
-        summary_x,
-        y,
-        "Valor de venta",
-    )
-
-    c.drawRightString(
-        width - margin_right,
-        y,
-        format_soles(final_price),
-    )
-
-    y -= 5.5 * mm
-
-    # IGV
-
+    # Valor lote
+    c.setFillColor(TEXT)
     c.setFont("Helvetica", 8)
 
     c.drawString(
         summary_x,
         y,
-        "IGV (18%)",
+        "Valor del lote",
     )
 
     c.drawRightString(
-        width - margin_right,
+        table_right,
         y,
-        format_soles(igv),
+        format_soles(lot_price),
     )
 
+    # Descuento
+    if discount_amount > 0:
+
+        y -= 5.5 * mm
+
+        c.setFillColor(GREY)
+
+        c.drawString(
+            summary_x,
+            y,
+            "Beneficio comercial",
+        )
+
+        c.setFillColor(MUSTARD)
+
+        c.drawRightString(
+            table_right,
+            y,
+            f"- {format_soles(discount_amount)}",
+        )
+
+    # Línea destacada
     y -= 6 * mm
 
-    # Línea antes del total
-
-    c.setStrokeColor(BLACK)
-    c.setLineWidth(0.7)
+    c.setStrokeColor(MUSTARD)
+    c.setLineWidth(0.8)
 
     c.line(
         summary_x,
         y,
-        width - margin_right,
+        table_right,
         y,
     )
 
-    y -= 6 * mm
+    y -= 7 * mm
 
     # Total
-
-    c.setFont("Helvetica-Bold", 10.5)
-    c.setFillColor(BLACK)
+    c.setFillColor(NAVY)
+    c.setFont("Helvetica-Bold", 9)
 
     c.drawString(
         summary_x,
         y,
-        "PRECIO DE VENTA",
+        "PRECIO TOTAL",
     )
 
+    c.setFillColor(MUSTARD)
+    c.setFont("Helvetica-Bold", 11)
+
     c.drawRightString(
-        width - margin_right,
+        table_right,
         y,
-        format_soles(total_amount),
+        format_soles(display_total),
     )
 
     # =========================================================================
@@ -724,156 +960,149 @@ def generate_quote_pdf(
 
         y -= 13 * mm
 
-        c.setFont("Helvetica-Bold", 8)
-        c.setFillColor(BLACK)
+        c.setFillColor(MUSTARD_LIGHT)
+
+        c.roundRect(
+            margin_left,
+            y - 5.5 * mm,
+            48 * mm,
+            6 * mm,
+            1.5 * mm,
+            stroke=0,
+            fill=1,
+        )
+
+        c.setFillColor(NAVY)
+        c.setFont("Helvetica-Bold", 7.5)
 
         c.drawString(
-            margin_left,
-            y,
+            margin_left + 3 * mm,
+            y - 3.7 * mm,
             "OBSERVACIONES",
         )
 
-        c.setStrokeColor(VERY_LIGHT_GREY)
-
-        c.line(
-            margin_left,
-            y - 2.5 * mm,
-            width - margin_right,
-            y - 2.5 * mm,
-        )
-
-        y -= 8 * mm
+        y -= 9 * mm
 
         note_style = ParagraphStyle(
             "netland_notes",
             fontName="Helvetica",
-            fontSize=7.8,
+            fontSize=7.5,
             leading=10,
-            textColor=DARK,
-            alignment=TA_LEFT,
+            textColor=TEXT,
         )
 
         note_para = Paragraph(
-            notes,
+            notes.replace("\n", "<br/>"),
             note_style,
         )
 
-        note_width = content_width
+        note_width = content_width - 8 * mm
 
         _, note_height = note_para.wrap(
             note_width,
-            30 * mm,
+            25 * mm,
+        )
+
+        note_box_height = max(
+            note_height + 8 * mm,
+            16 * mm,
+        )
+
+        c.setFillColor(WHITE)
+        c.setStrokeColor(BORDER)
+
+        c.roundRect(
+            margin_left,
+            y - note_box_height,
+            content_width,
+            note_box_height,
+            2 * mm,
+            stroke=1,
+            fill=1,
+        )
+
+        # Barra mostaza
+        c.setFillColor(MUSTARD)
+
+        c.roundRect(
+            margin_left,
+            y - note_box_height,
+            1.3 * mm,
+            note_box_height,
+            0.7 * mm,
+            stroke=0,
+            fill=1,
         )
 
         note_para.drawOn(
             c,
-            margin_left,
-            y - note_height,
+            margin_left + 5 * mm,
+            y - note_height - 4 * mm,
         )
 
     # =========================================================================
-    # MENSAJE COMERCIAL
+    # PIE DE PÁGINA
     # =========================================================================
 
-    footer_top = 43 * mm
+    # Pie compacto
+    footer_y = 14 * mm
 
-    c.setStrokeColor(VERY_LIGHT_GREY)
-    c.setLineWidth(0.5)
-
-    c.line(
-        margin_left,
-        footer_top + 6 * mm,
-        width - margin_right,
-        footer_top + 6 * mm,
-    )
-
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(DARK)
-
-    c.drawCentredString(
-        width / 2,
-        footer_top,
-        "Gracias por su preferencia.",
-    )
-
-    c.setFont("Helvetica", 7.5)
-    c.setFillColor(GREY)
-
-    c.drawCentredString(
-        width / 2,
-        footer_top - 4.5 * mm,
-        "El lugar donde mereces vivir.",
-    )
-
-    # =========================================================================
-    # INFORMACIÓN CORPORATIVA
-    # =========================================================================
-
-    footer_y = 25 * mm
-
-    c.setStrokeColor(LIGHT_GREY)
+    c.setStrokeColor(BORDER)
     c.setLineWidth(0.4)
 
+
+
+    # Pequeño detalle mostaza
+    c.setStrokeColor(MUSTARD)
+    c.setLineWidth(1)
+
     c.line(
         margin_left,
-        footer_y + 5 * mm,
-        width - margin_right,
-        footer_y + 5 * mm,
+        footer_y + 6 * mm,
+        margin_left + 173 * mm,
+        footer_y + 6 * mm,
     )
 
-    c.setFont("Helvetica-Bold", 7.5)
-    c.setFillColor(DARK)
+    # Empresa
+    c.setFillColor(NAVY)
+    c.setFont("Helvetica-Bold", 6.8)
 
-    c.drawCentredString(
-        width / 2,
+    c.drawString(
+        margin_left,
         footer_y,
-        "NETLAND CORPORACIÓN INMOBILIARIA",
+        "NETLAND",
     )
 
-    c.setFont("Helvetica", 7)
+    # Ubicación
     c.setFillColor(GREY)
+    c.setFont("Helvetica", 6.5)
 
-    c.drawCentredString(
-        width / 2,
-        footer_y - 4 * mm,
+    c.drawString(
+        margin_left,
+        footer_y - 3.5 * mm,
         "Cañete, Lima - Perú",
     )
 
-    # -------------------------------------------------------------------------
-    # Contacto
-    # -------------------------------------------------------------------------
-
-    contact_parts = []
-
-    if advisor_phone:
-        contact_parts.append(
-            f"WhatsApp: {advisor_phone}"
-        )
-    else:
-        contact_parts.append(
-            "WhatsApp: 985 928 062"
-        )
-
-    contact_parts.append(
-        "ventas@netland.pe"
+    # Contacto derecha
+    c.drawRightString(
+        table_right,
+        footer_y,
+        "ventas@netland.pe",
     )
+
+    c.drawRightString(
+        table_right,
+        footer_y - 3.5 * mm,
+        f"WhatsApp: {phone}",
+    )
+
+    # Identificación
+    c.setFont("Helvetica", 5.8)
+    c.setFillColor(LIGHT_GREY)
 
     c.drawCentredString(
         width / 2,
-        footer_y - 8 * mm,
-        " | ".join(contact_parts),
-    )
-
-    # =========================================================================
-    # IDENTIFICACIÓN DE LA COTIZACIÓN
-    # =========================================================================
-
-    c.setFont("Helvetica", 6)
-    c.setFillColor(GREY)
-
-    c.drawCentredString(
-        width / 2,
-        11 * mm,
+        6 * mm,
         (
             f"Cotización N.º {quote_number} · "
             f"Generada el {generation_date} a las {generation_time}"
@@ -881,7 +1110,7 @@ def generate_quote_pdf(
     )
 
     # =========================================================================
-    # GUARDAR PDF
+    # GUARDAR
     # =========================================================================
 
     c.save()
