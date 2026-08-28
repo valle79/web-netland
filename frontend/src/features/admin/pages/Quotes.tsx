@@ -49,7 +49,10 @@ export default function AdminQuotes() {
 
   const sendWhatsApp = (quote: Quote) => {
     const phone = quote.client_phone || "";
-    const message = `¡Hola! 👋 Te envío la cotización ${quote.quote_number} del lote ${quote.lot_code} en ${quote.project_name}. Total: ${formatSoles(quote.total_amount)}. Para ver el PDF completo: ${API_URL}/quotes/${quote.id}/pdf`;
+    const greeting = quote.client_name
+      ? `¡Hola ${quote.client_name}!`
+      : "¡Hola!";
+    const message = `${greeting} 👋 Te envío la cotización ${quote.quote_number} del lote ${quote.lot_code} en ${quote.project_name}. Total: ${formatSoles(quote.total_amount)}. Para ver el PDF completo: ${API_URL}/quotes/${quote.id}/pdf`;
     const url = `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   };
