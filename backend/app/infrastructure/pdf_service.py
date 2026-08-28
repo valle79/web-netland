@@ -91,6 +91,9 @@ def generate_quote_pdf(
     # Mostaza suave para fondos
     MUSTARD_LIGHT = colors.HexColor("#F5EEDC")
 
+    # Amarillo de resaltado
+    HIGHLIGHT_YELLOW = colors.HexColor("#FFF176")
+
     # Textos
     DARK = colors.HexColor("#263238")
     TEXT = colors.HexColor("#37474F")
@@ -331,7 +334,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(NAVY)
-    c.setFont("Helvetica-Bold", 7.5)
+    c.setFont("Helvetica-Bold", 8.6)
 
     c.drawString(
         margin_left + 3 * mm,
@@ -339,7 +342,7 @@ def generate_quote_pdf(
         "DATOS DEL CLIENTE",
     )
 
-    y -= 10 * mm
+    y -= 7 * mm
 
     # -------------------------------------------------------------------------
     # CARD CLIENTE
@@ -387,7 +390,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(DARK)
-    c.setFont("Helvetica-Bold", 8.5)
+    c.setFont("Helvetica-Bold", 9.5)
 
     c.drawString(
         margin_left + 29 * mm,
@@ -406,7 +409,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(DARK)
-    c.setFont("Helvetica", 8.3)
+    c.setFont("Helvetica", 9.2)
 
     c.drawString(
         width / 2 + 25 * mm,
@@ -427,7 +430,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(MUSTARD)
-    c.setFont("Helvetica-Bold", 8.5)
+    c.setFont("Helvetica-Bold", 9.5)
 
     c.drawString(
         margin_left + 29 * mm,
@@ -445,7 +448,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(DARK)
-    c.setFont("Helvetica", 8.3)
+    c.setFont("Helvetica", 9.2)
 
     c.drawString(
         width / 2 + 25 * mm,
@@ -466,7 +469,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(TEXT)
-    c.setFont("Helvetica", 8)
+    c.setFont("Helvetica", 9)
 
     c.drawString(
         margin_left + 29 * mm,
@@ -484,7 +487,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(TEXT)
-    c.setFont("Helvetica", 8)
+    c.setFont("Helvetica", 9)
 
     c.drawString(
         width / 2 + 25 * mm,
@@ -492,7 +495,7 @@ def generate_quote_pdf(
         phone,
     )
 
-    y -= card_height + 10 * mm
+    y -= card_height + 6 * mm
 
     # =========================================================================
     # DETALLE DEL INMUEBLE
@@ -511,7 +514,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(NAVY)
-    c.setFont("Helvetica-Bold", 7.5)
+    c.setFont("Helvetica-Bold", 8.6)
 
     c.drawString(
         margin_left + 3 * mm,
@@ -519,7 +522,7 @@ def generate_quote_pdf(
         "DETALLE DEL INMUEBLE",
     )
 
-    y -= 10 * mm
+    y -= 7 * mm
 
     # =========================================================================
     # TABLA PRINCIPAL
@@ -592,7 +595,7 @@ def generate_quote_pdf(
 
     # Descripción
     c.setFillColor(DARK)
-    c.setFont("Helvetica-Bold", 8.5)
+    c.setFont("Helvetica-Bold", 9.5)
 
     c.drawString(
         table_x + 4 * mm,
@@ -601,7 +604,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(GREY)
-    c.setFont("Helvetica", 7.2)
+    c.setFont("Helvetica", 7.8)
 
     c.drawString(
         table_x + 4 * mm,
@@ -609,7 +612,7 @@ def generate_quote_pdf(
         "Terreno dentro del proyecto inmobiliario",
     )
 
-    c.setFont("Helvetica", 7)
+    c.setFont("Helvetica", 7.6)
 
     c.drawString(
         table_x + 4 * mm,
@@ -619,7 +622,7 @@ def generate_quote_pdf(
 
     # Área
     c.setFillColor(TEXT)
-    c.setFont("Helvetica", 8)
+    c.setFont("Helvetica", 9)
 
     c.drawCentredString(
         table_x + content_width * 0.57,
@@ -634,7 +637,7 @@ def generate_quote_pdf(
         format_soles(lot_price),
     )
 
-    c.setFont("Helvetica-Bold", 8)
+    c.setFont("Helvetica-Bold", 9)
 
     c.drawRightString(
         table_right - 4 * mm,
@@ -671,7 +674,7 @@ def generate_quote_pdf(
             discount_label = "Beneficio comercial"
 
         c.setFillColor(TEXT)
-        c.setFont("Helvetica", 7.5)
+        c.setFont("Helvetica", 8.2)
 
         c.drawString(
             table_x + 4 * mm,
@@ -680,7 +683,7 @@ def generate_quote_pdf(
         )
 
         c.setFillColor(MUSTARD)
-        c.setFont("Helvetica-Bold", 8)
+        c.setFont("Helvetica-Bold", 9)
 
         c.drawRightString(
             table_right - 4 * mm,
@@ -694,7 +697,7 @@ def generate_quote_pdf(
     # CONDICIONES DE PAGO
     # =========================================================================
 
-    y -= 10 * mm
+    y -= 7 * mm
 
     c.setFillColor(BLUE_LIGHT)
 
@@ -709,7 +712,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(NAVY)
-    c.setFont("Helvetica-Bold", 7.5)
+    c.setFont("Helvetica-Bold", 8.6)
 
     c.drawString(
         margin_left + 3 * mm,
@@ -717,7 +720,7 @@ def generate_quote_pdf(
         "CONDICIONES DE PAGO",
     )
 
-    y -= 10 * mm
+    y -= 7 * mm
 
     # -------------------------------------------------------------------------
     # CARD DE PAGO
@@ -764,7 +767,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(DARK)
-    c.setFont("Helvetica-Bold", 8)
+    c.setFont("Helvetica-Bold", 9)
 
     if payment_type == "credit":
         payment_label = "Financiamiento directo"
@@ -788,7 +791,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(MUSTARD)
-    c.setFont("Helvetica-Bold", 8.5)
+    c.setFont("Helvetica-Bold", 9.5)
 
     c.drawString(
         width / 2 + 31 * mm,
@@ -816,7 +819,7 @@ def generate_quote_pdf(
         )
 
         c.setFillColor(TEXT)
-        c.setFont("Helvetica", 8)
+        c.setFont("Helvetica", 9)
 
         c.drawString(
             margin_left + 29 * mm,
@@ -826,7 +829,7 @@ def generate_quote_pdf(
 
         # Cuotas
         c.setFillColor(GREY)
-        c.setFont("Helvetica-Bold", 7)
+        c.setFont("Helvetica-Bold", 7.5)
 
         c.drawString(
             width / 2,
@@ -834,21 +837,49 @@ def generate_quote_pdf(
             "PLAN DE CUOTAS",
         )
 
-        c.setFillColor(TEXT)
-        c.setFont("Helvetica", 8)
-
         cuotas_text = (
             f"{installments} cuotas mensuales de "
             f"{format_soles(installment_value)}"
         )
 
+        text_x = width / 2 + 31 * mm
+        font_name = "Helvetica"
+        font_size = 9.5
+
+        cuotas_width = c.stringWidth(
+            cuotas_text, font_name, font_size
+        )
+
+        # Resaltar toda la línea de cuotas en amarillo
+        pad = 2.0
+        highlight_y = row_y - 0.5 * mm
+        highlight_height = font_size * 1.35 + 2.5
+
+        c.saveState()
+        c.setFillColor(HIGHLIGHT_YELLOW)
+
+        c.roundRect(
+            text_x - pad,
+            highlight_y,
+            cuotas_width + 2 * pad,
+            highlight_height,
+            1.0,
+            stroke=0,
+            fill=1,
+        )
+
+        c.restoreState()
+
+        c.setFillColor(TEXT)
+        c.setFont(font_name, font_size)
+
         c.drawString(
-            width / 2 + 31 * mm,
+            text_x,
             row_y,
             cuotas_text,
         )
 
-    y -= payment_height + 10 * mm
+    y -= payment_height + 7 * mm
 
     # =========================================================================
     # RESUMEN ECONÓMICO
@@ -858,7 +889,7 @@ def generate_quote_pdf(
     summary_x = width - margin_right - summary_width
 
     c.setFillColor(GREY)
-    c.setFont("Helvetica-Bold", 7)
+    c.setFont("Helvetica-Bold", 8)
 
     c.drawString(
         summary_x,
@@ -883,7 +914,7 @@ def generate_quote_pdf(
 
     # Valor lote
     c.setFillColor(TEXT)
-    c.setFont("Helvetica", 8)
+    c.setFont("Helvetica", 9)
 
     c.drawString(
         summary_x,
@@ -935,7 +966,7 @@ def generate_quote_pdf(
 
     # Total
     c.setFillColor(NAVY)
-    c.setFont("Helvetica-Bold", 9)
+    c.setFont("Helvetica-Bold", 10)
 
     c.drawString(
         summary_x,
@@ -944,7 +975,7 @@ def generate_quote_pdf(
     )
 
     c.setFillColor(MUSTARD)
-    c.setFont("Helvetica-Bold", 11)
+    c.setFont("Helvetica-Bold", 12)
 
     c.drawRightString(
         table_right,
@@ -973,7 +1004,7 @@ def generate_quote_pdf(
         )
 
         c.setFillColor(NAVY)
-        c.setFont("Helvetica-Bold", 7.5)
+        c.setFont("Helvetica-Bold", 8.6)
 
         c.drawString(
             margin_left + 3 * mm,
@@ -986,8 +1017,8 @@ def generate_quote_pdf(
         note_style = ParagraphStyle(
             "netland_notes",
             fontName="Helvetica",
-            fontSize=7.5,
-            leading=10,
+            fontSize=8.2,
+            leading=10.5,
             textColor=TEXT,
         )
 
