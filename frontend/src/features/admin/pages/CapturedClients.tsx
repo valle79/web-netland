@@ -743,7 +743,8 @@ export default function AdminCapturedClients() {
 
                   <a
                     href={whatsappLink(
-                      `Hola ${lead.client?.name}, le escribimos de Netland Corporación Inmobiliaria.`
+                      `Hola ${lead.client?.name}, le escribimos de Netland Corporación Inmobiliaria.`,
+                      lead.client?.whatsapp || lead.client?.phone
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1371,7 +1372,8 @@ export default function AdminCapturedClients() {
 
                 <a
                   href={whatsappLink(
-                    `Hola ${selected.client?.name}, le escribimos de Netland Corporación Inmobiliaria.`
+                    `Hola ${selected.client?.name}, le escribimos de Netland Corporación Inmobiliaria.`,
+                    selected.client?.whatsapp || selected.client?.phone
                   )}
                   target="_blank"
                   rel="noopener noreferrer"

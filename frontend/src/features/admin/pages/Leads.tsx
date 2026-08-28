@@ -190,7 +190,8 @@ export default function AdminLeads() {
                   {lead.client?.whatsapp && (
                     <a
                       href={whatsappLink(
-                        `Hola ${lead.client?.name}, te escribimos de Netland por tu consulta.`
+                        `Hola ${lead.client?.name}, te escribimos de Netland por tu consulta.`,
+                        lead.client?.whatsapp || lead.client?.phone
                       )}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -365,7 +366,8 @@ export default function AdminLeads() {
             <div className="flex gap-3 border-t border-netland-light pt-4">
               <a
                 href={whatsappLink(
-                  `Hola ${selected.client?.name}, te escribimos de Netland por tu consulta.`
+                  `Hola ${selected.client?.name}, te escribimos de Netland por tu consulta.`,
+                  selected.client?.whatsapp || selected.client?.phone
                 )}
                 target="_blank"
                 rel="noopener noreferrer"

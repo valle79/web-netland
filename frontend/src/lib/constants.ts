@@ -8,9 +8,12 @@ export const WHATSAPP_NUMBER: string =
   (import.meta.env.VITE_WHATSAPP_NUMBER as string) || "51985928062";
 
 export const whatsappLink = (
-  message = "Hola Luis, estoy interesado en conocer los lotes disponibles de Netland."
-) =>
-  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  message = "Hola Luis, estoy interesado en conocer los lotes disponibles de Netland.",
+  to?: string
+) => {
+  const number = (to?.replace(/\D/g, "") || WHATSAPP_NUMBER);
+  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+};
 
 export const formatSoles = (value: number | null | undefined) => {
   if (value === null || value === undefined) return "—";
