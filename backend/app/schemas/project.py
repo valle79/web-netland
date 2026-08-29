@@ -105,6 +105,7 @@ class LotCreate(BaseModel):
     code: str
     lot_number: int | None = None
     area_m2: float | None = None
+    price_per_m2: float | None = None
     price: float | None = None
     promo_price: float | None = None
     status: str = "available"
@@ -125,6 +126,7 @@ class LotUpdate(BaseModel):
     code: str | None = None
     lot_number: int | None = None
     area_m2: float | None = None
+    price_per_m2: float | None = None
     price: float | None = None
     promo_price: float | None = None
     status: str | None = None
@@ -152,6 +154,7 @@ class LotOut(BaseModel):
     code: str
     lot_number: int | None = None
     area_m2: float | None = None
+    price_per_m2: float | None = None
     price: float | None = None
     promo_price: float | None = None
     status: str

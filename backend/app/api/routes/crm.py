@@ -593,13 +593,35 @@ def create_quote(
     elif advisor_id is None and current_user.advisor:
         advisor_id = current_user.advisor.id
 
-    lot_price_value = lot.promo_price or lot.price
-    if lot_price_value is None:
-        raise HTTPException(status_code=400, detail="El lote no tiene precio definido.")
+    # Calculo del precio del lote a partir del precio por m2 (dinámico)
+    # y recargos por ubicación (esquina / frente a parque).
+    area = float(lot.area_m2) if lot.area_m2 else None
+    esquina_surcharge = round(float(payload.esquina_surcharge or 0), 2)
+    frente_parque_surcharge = round(float(payload.frente_parque_surcharge or 0), 2)
 
-    # Precio base del lote
-    lot_price = float(payload.lot_price or lot_price_value)
-    
+    price_per_m2 = payload.price_per_m2
+    if price_per_m2 is None:
+        price_per_m2 = float(lot.price_per_m2) if lot.price_per_m2 else None
+
+    if price_per_m2 is not None and area:
+        price_per_m2_value = round(float(price_per_m2), 2)
+        base_price = round(area * price_per_m2_value, 2)
+        lot_price = round(base_price + esquina_surcharge + frente_parque_surcharge, 2)
+    elif payload.lot_price:
+        lot_price = round(float(payload.lot_price), 2)
+        price_per_m2_value = None
+    else:
+        lot_price_value = lot.promo_price or lot.price
+        if lot_price_value is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Ingresa el precio por m² o define un precio para el lote.",
+            )
+        lot_price = round(float(lot_price_value), 2)
+        price_per_m2_value = (
+            round(float(lot.price_per_m2), 2) if lot.price_per_m2 else None
+        )
+
     # Aplicar descuento si corresponde
     discount_amount = 0
     if payload.discount_type == "percentage":
@@ -634,6 +656,9 @@ def create_quote(
         project_id=payload.project_id,
         lot_id=lot.id,
         lot_price=lot_price,
+        price_per_m2=price_per_m2_value,
+        esquina_surcharge=esquina_surcharge,
+        frente_parque_surcharge=frente_parque_surcharge,
         discount_type=payload.discount_type,
         discount_value=float(payload.discount_value),
         payment_type=payload.payment_type,
@@ -651,7 +676,20 @@ def create_quote(
     db.flush()
 
     # Agregar ítems para el PDF
-    db.add(QuoteItem(quote_id=quote.id, description=f"Lote {lot.code}", amount=lot_price))
+    if price_per_m2_value is not None and area:
+        db.add(
+            QuoteItem(
+                quote_id=quote.id,
+                description=f"Lote {lot.code} ({area:,.2f} m² × S/ {price_per_m2_value:,.2f})",
+                amount=round(area * price_per_m2_value, 2),
+            )
+        )
+    else:
+        db.add(QuoteItem(quote_id=quote.id, description=f"Lote {lot.code}", amount=lot_price))
+    if esquina_surcharge > 0:
+        db.add(QuoteItem(quote_id=quote.id, description="Recargo lote en esquina", amount=esquina_surcharge))
+    if frente_parque_surcharge > 0:
+        db.add(QuoteItem(quote_id=quote.id, description="Recargo frente a parque", amount=frente_parque_surcharge))
     if discount_amount > 0:
         db.add(QuoteItem(quote_id=quote.id, description=f"Descuento ({payload.discount_type})", amount=-discount_amount))
     if payload.payment_type == "credit":
@@ -701,6 +739,9 @@ def generate_quote_pdf_endpoint(
         lot_code=lot_code,
         area_m2=float(quote.lot.area_m2) if quote.lot and quote.lot.area_m2 else None,
         lot_price=float(quote.lot_price or 0),
+        price_per_m2=float(quote.price_per_m2) if quote.price_per_m2 else None,
+        esquina_surcharge=float(quote.esquina_surcharge or 0),
+        frente_parque_surcharge=float(quote.frente_parque_surcharge or 0),
         discount_type=quote.discount_type or "none",
         discount_value=float(quote.discount_value or 0),
         discount_amount=discount_amount,

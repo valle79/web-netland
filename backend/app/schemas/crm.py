@@ -179,6 +179,9 @@ class QuoteCreate(BaseModel):
     project_id: int
     lot_id: int
     lot_price: float | None = None
+    price_per_m2: float | None = None
+    esquina_surcharge: float = 0
+    frente_parque_surcharge: float = 0
     discount_type: str = "none"  # none, percentage, fixed
     discount_value: float = 0
     payment_type: str = "credit"  # cash, credit
@@ -198,6 +201,9 @@ class QuoteOut(BaseModel):
     project_id: int | None = None
     lot_id: int | None = None
     lot_price: float | None = None
+    price_per_m2: float | None = None
+    esquina_surcharge: float | None = None
+    frente_parque_surcharge: float | None = None
     discount_type: str | None = None
     discount_value: float | None = None
     payment_type: str | None = None

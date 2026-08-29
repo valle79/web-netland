@@ -52,19 +52,17 @@ COLUMN_MAPPING = {
 }
 
 TEMPLATE_HEADERS = [
-    "MZ",
-    "N° DE LOTE",
-    "MzLt",
-    "AREA LOTE M2",
-    "Precio US $",
-    "ESTADO",
+    "MANZANA",
+    "LOTE",
+    "MZLOTE",
+    "AREA M2",
 ]
 
 TEMPLATE_EXAMPLE_ROWS = [
-    ["A", 1, "A-01", 120.50, 415, "disponible"],
-    ["A", 2, "A-02", 115.75, 415, "disponible"],
-    ["B", 1, "B-01", 135.00, 407, "reservado"],
-    ["B", 2, "B-02", 128.30, 405, "vendido"],
+    ["A", 1, "A-01", 120.50],
+    ["A", 2, "A-02", 115.75],
+    ["B", 1, "B-01", 135.00],
+    ["B", 2, "B-02", 128.30],
 ]
 
 
@@ -110,14 +108,18 @@ async def import_lots_from_excel(
 ):
     """
     Importa lotes desde un archivo Excel.
-    
-    Formato esperado del Excel:
-    - MZ: Código de la manzana (ej: A, B, 1)
-    - N° DE LOTE: Número del lote
-    - MzLt: Código completo del lote (ej: A-01, B-10)
-    - AREA LOTE M2: Área en metros cuadrados
-    - Precio US $ o M2: Precio del lote en USD
-    - ESTADO: disponible, reservado, vendido, separado
+
+    Formato esperado del Excel (columnas mínimas):
+    - MANZANA: Código de la manzana (ej: A, B, 1)
+    - LOTE: Número del lote
+    - MZLOTE: Código completo del lote (ej: A-01, B-10)
+    - AREA M2: Área en metros cuadrados
+
+    Puede incluir una columna ESTADO (disponible, reservado, vendido,
+    separado). Si no se incluye, los lotes se crean como "disponible".
+
+    Las columnas de precio NO se importan: el valor del lote se calcula
+    en el momento de crear la cotización con el precio por m² vigente.
     """
     # Verificar que el proyecto existe
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -174,7 +176,11 @@ async def import_lots_from_excel(
         codigo_col = None
         for col in df.columns:
             col_upper = str(col).upper().strip()
-            if 'MZLT' in col_upper or ('MZ' in col_upper and 'LT' in col_upper):
+            if (
+                'MZLT' in col_upper
+                or ('MZ' in col_upper and 'LT' in col_upper)
+                or ('MZ' in col_upper and 'LOTE' in col_upper)
+            ):
                 codigo_col = col
                 logger.info(f"Columna código encontrada: {col}")
                 break
@@ -182,7 +188,13 @@ async def import_lots_from_excel(
         numero_lote_col = None
         for col in df.columns:
             col_upper = str(col).upper().strip()
-            if ('N' in col_upper or 'NRO' in col_upper or 'NUMERO' in col_upper) and 'LOTE' in col_upper:
+            if (
+                col_upper == 'LOTE'
+                or (
+                    ('N' in col_upper or 'NRO' in col_upper or 'NUMERO' in col_upper)
+                    and 'LOTE' in col_upper
+                )
+            ):
                 numero_lote_col = col
                 logger.info(f"Columna número de lote encontrada: {col}")
                 break

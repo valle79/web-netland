@@ -166,6 +166,7 @@ class Lot(Base):
     code = Column(String(30), nullable=False)
     lot_number = Column(Integer, nullable=True)
     area_m2 = Column(Numeric(10, 2), nullable=True)
+    price_per_m2 = Column(Numeric(12, 2), nullable=True)
     price = Column(Numeric(12, 2), nullable=True)
     promo_price = Column(Numeric(12, 2), nullable=True)
     status = Column(String(20), default="available", nullable=False)
@@ -358,6 +359,10 @@ class Quote(Base):
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="SET NULL"))
     lot_id = Column(Integer, ForeignKey("lots.id", ondelete="SET NULL"), nullable=True)
     lot_price = Column(Numeric(12, 2), nullable=True)
+    # Precio por m2 y recargos de ubicación
+    price_per_m2 = Column(Numeric(12, 2), nullable=True)
+    esquina_surcharge = Column(Numeric(12, 2), nullable=True)
+    frente_parque_surcharge = Column(Numeric(12, 2), nullable=True)
     # Campos de descuento
     discount_type = Column(String(20), default="none")  # none, percentage, fixed
     discount_value = Column(Numeric(12, 2), default=0)

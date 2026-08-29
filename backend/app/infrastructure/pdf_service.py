@@ -32,6 +32,9 @@ def generate_quote_pdf(
     lot_code: str,
     area_m2: float | None,
     lot_price: float,
+    price_per_m2: float | None = None,
+    esquina_surcharge: float = 0,
+    frente_parque_surcharge: float = 0,
     discount_type: str = "none",
     discount_value: float = 0,
     discount_amount: float = 0,
@@ -912,21 +915,71 @@ def generate_quote_pdf(
 
     y -= 6 * mm
 
-    # Valor lote
+    # Valor del lote (base: área × precio m²)
+    base_price = lot_price - esquina_surcharge - frente_parque_surcharge
+    if price_per_m2 is not None and area_m2:
+        valor_label = (
+            f"Valor del lote ({area_m2:,.2f} m² × S/ {price_per_m2:,.2f})"
+        )
+    else:
+        valor_label = "Valor del lote"
+
     c.setFillColor(TEXT)
     c.setFont("Helvetica", 9)
 
     c.drawString(
         summary_x,
         y,
-        "Valor del lote",
+        valor_label,
     )
 
     c.drawRightString(
         table_right,
         y,
-        format_soles(lot_price),
+        format_soles(base_price),
     )
+
+    # Recargo lote en esquina
+    if esquina_surcharge > 0:
+
+        y -= 5.5 * mm
+
+        c.setFillColor(GREY)
+
+        c.drawString(
+            summary_x,
+            y,
+            "Recargo lote en esquina",
+        )
+
+        c.setFillColor(TEXT)
+
+        c.drawRightString(
+            table_right,
+            y,
+            f"+ {format_soles(esquina_surcharge)}",
+        )
+
+    # Recargo frente a parque
+    if frente_parque_surcharge > 0:
+
+        y -= 5.5 * mm
+
+        c.setFillColor(GREY)
+
+        c.drawString(
+            summary_x,
+            y,
+            "Recargo frente a parque",
+        )
+
+        c.setFillColor(TEXT)
+
+        c.drawRightString(
+            table_right,
+            y,
+            f"+ {format_soles(frente_parque_surcharge)}",
+        )
 
     # Descuento
     if discount_amount > 0:

@@ -309,14 +309,17 @@ function ExcelImportModal({
           <div className="rounded-lg border-2 border-dashed border-netland-light bg-netland-light/30 p-6">
             <h3 className="mb-3 font-semibold text-netland-dark">Formato del Excel:</h3>
             <ul className="space-y-2 text-sm text-netland-muted">
-              <li>• <strong>Columnas principales:</strong> MZ, N° DE LOTE, MzLt, AREA LOTE M2, Precio US $, ESTADO</li>
-              <li>• <strong>MzLt:</strong> Código completo del lote (ej: A-01, B-10) - REQUERIDO</li>
-              <li>• <strong>MZ:</strong> Manzana (ej: A, B, 1, 2)</li>
-              <li>• <strong>AREA LOTE M2:</strong> Área en metros cuadrados</li>
-              <li>• <strong>Precio US $:</strong> Precio en dólares</li>
-              <li>• <strong>Estados válidos:</strong> disponible, reservado, vendido, separado, no disponible</li>
+              <li>• <strong>Columnas:</strong> MANZANA, LOTE, MZLOTE, AREA M2</li>
+              <li>• <strong>MANZANA:</strong> Código de la manzana (ej: A, B, 1, 2)</li>
+              <li>• <strong>LOTE:</strong> Número del lote</li>
+              <li>• <strong>MZLOTE:</strong> Código completo del lote (ej: A-01, B-10) - REQUERIDO</li>
+              <li>• <strong>AREA M2:</strong> Área en metros cuadrados</li>
+              <li>• (Opcional) <strong>ESTADO:</strong> disponible, reservado, vendido, separado, no disponible</li>
               <li>• <strong>Formato:</strong> .xlsx, .xls o .csv</li>
             </ul>
+            <p className="mt-3 text-xs text-netland-muted">
+              El precio m² se ingresa al crear la cotización; aquí solo se registran los datos del lote.
+            </p>
           </div>
 
           <div>

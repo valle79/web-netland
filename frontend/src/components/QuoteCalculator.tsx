@@ -11,48 +11,172 @@ interface QuoteCalculatorProps {
   initialLotId?: number | null;
 }
 
-export function QuoteCalculator({ project, lots, initialLotId }: QuoteCalculatorProps) {
-  const availableLots = lots.filter((l) => l.status === "available");
-  const [lotId, setLotId] = useState<number | "">(initialLotId ?? "");
-  const [initial, setInitial] = useState(0);
+type NumericFieldValue = number | "";
+
+export function QuoteCalculator({
+  project,
+  lots,
+  initialLotId,
+}: QuoteCalculatorProps) {
+  const availableLots = useMemo(
+    () => lots.filter((l) => l.status === "available"),
+    [lots]
+  );
+
+  const [lotId, setLotId] = useState<number | "">(
+    initialLotId ?? ""
+  );
+
+  /**
+   * Puede ser:
+   * 0     → muestra cero
+   * ""    → temporalmente vacío mientras el usuario escribe
+   * número → valor ingresado
+   */
+  const [pricePerM2, setPricePerM2] =
+    useState<NumericFieldValue>(0);
+
+  const [initial, setInitial] =
+    useState<NumericFieldValue>(0);
+
   const [installments, setInstallments] = useState(24);
   const [showForm, setShowForm] = useState(false);
+
   const [formData, setFormData] = useState({
     name: "",
     last_name: "",
     phone: "",
     email: "",
   });
+
   const { submit, submitting, submitted } = useLeadForm();
+
+  // ============================================================
+  // LOTE SELECCIONADO
+  // ============================================================
 
   const selectedLot = useMemo(
     () => availableLots.find((l) => l.id === lotId),
     [availableLots, lotId]
   );
 
+  // ============================================================
+  // SINCRONIZAR LOTE INICIAL
+  // ============================================================
+
   useEffect(() => {
-    if (initialLotId) setLotId(initialLotId);
+    if (initialLotId != null) {
+      setLotId(initialLotId);
+    }
   }, [initialLotId]);
 
-  const price = selectedLot?.promo_price ?? selectedLot?.price ?? 0;
-  const balance = Math.max(price - initial, 0);
-  const installmentValue = installments > 0 ? balance / installments : 0;
+  // ============================================================
+  // VALORES NUMÉRICOS PARA CÁLCULOS
+  // ============================================================
+
+  const numericPricePerM2 = Number(pricePerM2) || 0;
+  const numericInitial = Number(initial) || 0;
+
+  // ============================================================
+  // CÁLCULO DEL PRECIO
+  // ============================================================
+
+  const price =
+    selectedLot &&
+    selectedLot.area_m2 &&
+    numericPricePerM2 > 0
+      ? selectedLot.area_m2 * numericPricePerM2
+      : selectedLot?.promo_price ??
+        selectedLot?.price ??
+        0;
+
+  const balance = Math.max(
+    price - numericInitial,
+    0
+  );
+
+  const installmentValue =
+    installments > 0
+      ? balance / installments
+      : 0;
+
+  // ============================================================
+  // PRECIO POR M²
+  // ============================================================
+
+  const handlePriceFocus = () => {
+    if (pricePerM2 === 0) {
+      setPricePerM2("");
+    }
+  };
+
+  const handlePriceChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = event.target.value;
+
+    setPricePerM2(
+      value === "" ? "" : Number(value)
+    );
+  };
+
+  const handlePriceBlur = () => {
+    if (pricePerM2 === "") {
+      setPricePerM2(0);
+    }
+  };
+
+  // ============================================================
+  // INICIAL
+  // ============================================================
+
+  const handleInitialFocus = () => {
+    if (initial === 0) {
+      setInitial("");
+    }
+  };
+
+  const handleInitialChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = event.target.value;
+
+    setInitial(
+      value === "" ? "" : Number(value)
+    );
+  };
+
+  const handleInitialBlur = () => {
+    if (initial === "") {
+      setInitial(0);
+    }
+  };
+
+  // ============================================================
+  // SOLICITAR COTIZACIÓN
+  // ============================================================
 
   const handleRequest = async () => {
     if (!selectedLot) return;
-    
-    // Validar que los campos requeridos estén llenos
-    if (!formData.name.trim() || !formData.phone.trim()) {
-      alert("Por favor ingresa tu nombre y teléfono");
+
+    if (
+      !formData.name.trim() ||
+      !formData.phone.trim()
+    ) {
+      alert(
+        "Por favor ingresa tu nombre y teléfono"
+      );
       return;
     }
-    
+
     await submit({
-      name: formData.name,
-      last_name: formData.last_name,
-      phone: formData.phone,
-      email: formData.email || null,
-      message: `Solicito cotización del lote ${selectedLot.code} (inicial S/ ${initial}, ${installments} cuotas).`,
+      name: formData.name.trim(),
+      last_name: formData.last_name.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email.trim() || null,
+      message: `Solicito cotización del lote ${
+        selectedLot.code
+      } (inicial S/ ${numericInitial}, ${installments} cuotas).`,
       project_id: project.id,
       lot_id: selectedLot.id,
       budget: price,
@@ -60,64 +184,132 @@ export function QuoteCalculator({ project, lots, initialLotId }: QuoteCalculator
     });
   };
 
+  // ============================================================
+  // RENDER
+  // ============================================================
+
   return (
     <div className="grid gap-8 lg:grid-cols-2">
+      {/* ========================================================
+          FORMULARIO
+      ======================================================== */}
+
       <div className="space-y-5">
+        {/* SELECCIÓN DE LOTE */}
         <label className="block">
           <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-netland-muted">
             Selecciona tu lote
           </span>
+
           <select
             value={lotId}
-            onChange={(e) =>
-              setLotId(e.target.value ? Number(e.target.value) : "")
-            }
+            onChange={(event) => {
+              const id = event.target.value
+                ? Number(event.target.value)
+                : "";
+
+              setLotId(id);
+
+              const lot = availableLots.find(
+                (l) => l.id === id
+              );
+
+              setPricePerM2(
+                lot?.price_per_m2
+                  ? Number(lot.price_per_m2)
+                  : 0
+              );
+            }}
             className="w-full rounded-sm border border-netland-light bg-white px-4 py-3 text-sm outline-none focus:border-netland-primary"
           >
-            <option value="">Elige un lote disponible...</option>
+            <option value="">
+              Elige un lote disponible...
+            </option>
+
             {availableLots.map((lot) => (
-              <option key={lot.id} value={lot.id}>
-                {lot.code} — {lot.area_m2} m² —{" "}
-                {formatSoles(lot.promo_price ?? lot.price)}
+              <option
+                key={lot.id}
+                value={lot.id}
+              >
+                {lot.code} — {lot.area_m2} m²
               </option>
             ))}
           </select>
         </label>
 
+        {/* PRECIO POR M² */}
+        {selectedLot && selectedLot.area_m2 && (
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-netland-muted">
+              Precio por m² (S/)
+            </span>
+
+            <input
+              type="number"
+              min={0}
+              value={pricePerM2}
+              onFocus={handlePriceFocus}
+              onChange={handlePriceChange}
+              onBlur={handlePriceBlur}
+              className="w-full rounded-sm border border-netland-light bg-white px-4 py-3 text-sm outline-none focus:border-netland-primary"
+            />
+          </label>
+        )}
+
+        {/* INICIAL */}
         <label className="block">
           <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-netland-muted">
             Inicial (S/)
           </span>
+
           <input
             type="number"
             min={0}
             value={initial}
-            onChange={(e) => setInitial(Number(e.target.value) || 0)}
+            onFocus={handleInitialFocus}
+            onChange={handleInitialChange}
+            onBlur={handleInitialBlur}
             className="w-full rounded-sm border border-netland-light bg-white px-4 py-3 text-sm outline-none focus:border-netland-primary"
           />
         </label>
 
+        {/* NÚMERO DE CUOTAS */}
         <label className="block">
           <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-netland-muted">
             Número de cuotas
           </span>
+
           <select
             value={installments}
-            onChange={(e) => setInstallments(Number(e.target.value))}
+            onChange={(event) =>
+              setInstallments(
+                Number(event.target.value)
+              )
+            }
             className="w-full rounded-sm border border-netland-light bg-white px-4 py-3 text-sm outline-none focus:border-netland-primary"
           >
-            {[6, 12, 18, 24, 36, 48, 60].map((n) => (
-              <option key={n} value={n}>
-                {n} cuotas
-              </option>
-            ))}
+            {[6, 12, 18, 24, 36, 48, 60].map(
+              (number) => (
+                <option
+                  key={number}
+                  value={number}
+                >
+                  {number} cuotas
+                </option>
+              )
+            )}
           </select>
         </label>
       </div>
 
+      {/* ========================================================
+          RESUMEN
+      ======================================================== */}
+
       <div className="flex flex-col rounded-lg bg-netland-dark p-6 text-white">
         <div className="mb-4 flex items-center gap-2 text-netland-accent">
           <Calculator className="h-5 w-5" />
+
           <span className="text-xs font-semibold uppercase tracking-[0.25em]">
             Resumen de inversión
           </span>
@@ -130,28 +322,70 @@ export function QuoteCalculator({ project, lots, initialLotId }: QuoteCalculator
         ) : (
           <>
             <dl className="space-y-3 text-sm">
-              <Row label="Lote" value={selectedLot.code} />
-              <Row label="Área" value={`${selectedLot.area_m2} m²`} />
-              <Row label="Precio del lote" value={formatSoles(price)} highlight />
-              <Row label="Inicial" value={formatSoles(initial)} />
-              <Row label="Saldo a financiar" value={formatSoles(balance)} />
-              <Row label="Cuotas" value={`${installments}`} />
-              <Row label="Valor de cuota" value={formatSoles(installmentValue)} bold />
+              <Row
+                label="Lote"
+                value={selectedLot.code}
+              />
+
+              <Row
+                label="Área"
+                value={`${selectedLot.area_m2} m²`}
+              />
+
+              <Row
+                label="Precio del lote"
+                value={formatSoles(price)}
+                highlight
+              />
+
+              <Row
+                label="Inicial"
+                value={formatSoles(
+                  numericInitial
+                )}
+              />
+
+              <Row
+                label="Saldo a financiar"
+                value={formatSoles(balance)}
+              />
+
+              <Row
+                label="Cuotas"
+                value={`${installments}`}
+              />
+
+              <Row
+                label="Valor de cuota"
+                value={formatSoles(
+                  installmentValue
+                )}
+                bold
+              />
             </dl>
 
+            {/* SOLICITUD ENVIADA */}
             {submitted ? (
               <div className="mt-6 space-y-3">
                 <div className="flex items-center gap-2 rounded-md bg-white/10 px-4 py-3 text-sm">
                   <CheckCircle2 className="h-5 w-5 text-netland-accent" />
+
                   Solicitud de cotización enviada.
                 </div>
+
                 <p className="text-xs text-white/70">
-                  Un asesor de Netland se contactará contigo muy pronto para enviarte la cotización detallada del lote {selectedLot.code}.
+                  Un asesor de Netland se contactará
+                  contigo muy pronto para enviarte la
+                  cotización detallada del lote{" "}
+                  {selectedLot.code}.
                 </p>
               </div>
             ) : !showForm ? (
               <button
-                onClick={() => setShowForm(true)}
+                type="button"
+                onClick={() =>
+                  setShowForm(true)
+                }
                 disabled={submitting}
                 className="btn-accent mt-6 w-full"
               >
@@ -159,55 +393,104 @@ export function QuoteCalculator({ project, lots, initialLotId }: QuoteCalculator
               </button>
             ) : (
               <div className="mt-6 space-y-3">
-                <p className="text-xs text-white/80">Ingresa tus datos para recibir la cotización:</p>
+                <p className="text-xs text-white/80">
+                  Ingresa tus datos para recibir la
+                  cotización:
+                </p>
+
                 <div className="grid grid-cols-2 gap-3">
+                  {/* NOMBRE */}
                   <input
                     type="text"
                     placeholder="Nombre *"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(event) =>
+                      setFormData({
+                        ...formData,
+                        name: event.target.value,
+                      })
+                    }
                     className="rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
                     required
                   />
+
+                  {/* APELLIDOS */}
                   <input
                     type="text"
                     placeholder="Apellidos"
                     value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    onChange={(event) =>
+                      setFormData({
+                        ...formData,
+                        last_name:
+                          event.target.value,
+                      })
+                    }
                     className="rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
                   />
                 </div>
+
+                {/* TELÉFONO */}
                 <input
                   type="tel"
                   placeholder="Teléfono / WhatsApp *"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(event) =>
+                    setFormData({
+                      ...formData,
+                      phone: event.target.value,
+                    })
+                  }
                   className="w-full rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
                   required
                 />
+
+                {/* EMAIL */}
                 <input
                   type="email"
                   placeholder="Email (opcional)"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(event) =>
+                    setFormData({
+                      ...formData,
+                      email: event.target.value,
+                    })
+                  }
                   className="w-full rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
                 />
+
                 <div className="flex gap-2">
+                  {/* ENVIAR */}
                   <button
+                    type="button"
                     onClick={handleRequest}
-                    disabled={submitting || !formData.name.trim() || !formData.phone.trim()}
-                    className="btn-accent flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={
+                      submitting ||
+                      !formData.name.trim() ||
+                      !formData.phone.trim()
+                    }
+                    className="btn-accent flex-1 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {submitting ? "Enviando..." : "Enviar solicitud"}
+                    {submitting
+                      ? "Enviando..."
+                      : "Enviar solicitud"}
                   </button>
+
+                  {/* CANCELAR */}
                   <button
-                    onClick={() => setShowForm(false)}
+                    type="button"
+                    onClick={() =>
+                      setShowForm(false)
+                    }
                     className="rounded-sm border border-white/20 px-4 text-sm text-white/80 hover:bg-white/10"
                   >
                     Cancelar
                   </button>
                 </div>
-                <p className="text-xs text-white/50">* Campos requeridos</p>
+
+                <p className="text-xs text-white/50">
+                  * Campos requeridos
+                </p>
               </div>
             )}
           </>
@@ -216,6 +499,10 @@ export function QuoteCalculator({ project, lots, initialLotId }: QuoteCalculator
     </div>
   );
 }
+
+// ================================================================
+// ROW
+// ================================================================
 
 function Row({
   label,
@@ -230,11 +517,20 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <dt className="text-white/60">{label}</dt>
+      <dt className="text-white/60">
+        {label}
+      </dt>
+
       <dd
         className={`${
-          highlight ? "text-netland-accent" : ""
-        } ${bold ? "font-semibold" : ""}`}
+          highlight
+            ? "text-netland-accent"
+            : ""
+        } ${
+          bold
+            ? "font-semibold"
+            : ""
+        }`}
       >
         {value}
       </dd>
@@ -242,37 +538,78 @@ function Row({
   );
 }
 
-export function QuoteDownloadButton({ quoteId }: { quoteId: number }) {
-  const { refetch, isFetching } = useQuery({
+// ================================================================
+// DESCARGAR PDF
+// ================================================================
+
+export function QuoteDownloadButton({
+  quoteId,
+}: {
+  quoteId: number;
+}) {
+  const {
+    refetch,
+    isFetching,
+  } = useQuery({
     queryKey: ["quote-pdf", quoteId],
+
     queryFn: async () => {
-      const token = localStorage.getItem("netland_token");
-      const res = await fetch(
+      const token =
+        localStorage.getItem(
+          "netland_token"
+        );
+
+      const response = await fetch(
         `${API_URL}/quotes/${quoteId}/pdf`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `cotizacion-${quoteId}.pdf`;
-      a.click();
+
+      if (!response.ok) {
+        throw new Error(
+          `No se pudo generar el PDF (${response.status})`
+        );
+      }
+
+      const blob =
+        await response.blob();
+
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
+
+      link.href = url;
+      link.download = `cotizacion-${quoteId}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
       URL.revokeObjectURL(url);
+
       return true;
     },
+
     enabled: false,
   });
 
   return (
     <button
+      type="button"
       onClick={() => refetch()}
       disabled={isFetching}
       className="btn-primary !py-2.5 text-xs"
     >
       <Download className="h-4 w-4" />
-      {isFetching ? "Generando..." : "Descargar PDF"}
+
+      {isFetching
+        ? "Generando..."
+        : "Descargar PDF"}
     </button>
   );
 }
