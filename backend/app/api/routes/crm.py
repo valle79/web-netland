@@ -718,7 +718,7 @@ def generate_quote_pdf_endpoint(
         client_name = f"{quote.lead.client.name} {quote.lead.client.last_name}".strip()
     
     advisor_name = quote.advisor.name if quote.advisor else None
-    advisor_phone = quote.advisor.whatsapp if quote.advisor else None
+    advisor_phone = (quote.advisor.phone or quote.advisor.whatsapp) if quote.advisor else None
 
     project_name = quote.project.name if quote.project else "Netland"
     lot_code = quote.lot.code if quote.lot else ""

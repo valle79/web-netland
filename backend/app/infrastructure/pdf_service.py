@@ -141,7 +141,7 @@ def generate_quote_pdf(
 
     client = client_name or "Cliente por confirmar"
     advisor = advisor_name or "Área de Ventas"
-    phone = advisor_phone or "985 928 062"
+    phone = advisor_phone or ""
 
     area_text = (
         f"{area_m2:,.2f} m²"
