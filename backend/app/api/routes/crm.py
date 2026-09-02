@@ -15,6 +15,7 @@ from app.domain.models import (
     Project,
     Quote,
     QuoteItem,
+    SiteConfig,
     User,
     Visit,
 )
@@ -31,6 +32,7 @@ from app.schemas.crm import (
     PublicLeadCreate,
     QuoteCreate,
     QuoteOut,
+    QuoteUpdate,
     VisitCreate,
     VisitOut,
     VisitUpdate,
@@ -79,6 +81,22 @@ def _is_admin_user(user: User) -> bool:
     return bool(user.role and user.role.name in ("SUPER_ADMIN", "ADMIN"))
 
 
+def _next_quote_number(db: Session) -> str:
+    """Genera un número de cotización único para hoy, reutilizando huecos
+    dejados por cotizaciones eliminadas para evitar colisiones."""
+    today = datetime.now().strftime("%Y%m%d")
+    prefix = f"COT-{today}-"
+    taken = {
+        row[0]
+        for row in db.query(Quote.quote_number)
+        .filter(Quote.quote_number.like(f"{prefix}%"))
+    }
+    seq = len(taken) + 1
+    while f"{prefix}{seq:04d}" in taken:
+        seq += 1
+    return f"{prefix}{seq:04d}"
+
+
 def _ensure_lead_access(user: User, lead: Lead) -> None:
     """Los asesores solo pueden acceder a los leads que ellos gestionan."""
     if _is_admin_user(user):
@@ -123,6 +141,150 @@ def _ensure_quote_access(user: User, quote: Quote) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes acceso a esta cotización.",
         )
+
+
+def _apply_quote_values(quote: Quote, payload, lot: Lot):
+    """Aplica el pricing de una cotización sobre el quote a partir de un lote.
+
+    Recalcula precio por m², recargos, descuento, tipo de pago y total.
+    Retorna un dict con los valores calculados para reconstruir los ítems.
+    """
+    sent = payload.model_fields_set
+
+    area = float(lot.area_m2) if lot.area_m2 else None
+    esquina_surcharge = round(float(payload.esquina_surcharge or 0), 2)
+    frente_parque_surcharge = round(float(payload.frente_parque_surcharge or 0), 2)
+    frente_a_pista_surcharge = round(float(payload.frente_a_pista_surcharge or 0), 2)
+
+    price_per_m2 = payload.price_per_m2
+    if price_per_m2 is None:
+        price_per_m2 = float(lot.price_per_m2) if lot.price_per_m2 else None
+
+    if price_per_m2 is not None and area:
+        price_per_m2_value = round(float(price_per_m2), 2)
+        lot_price = round(
+            area * price_per_m2_value
+            + esquina_surcharge
+            + frente_parque_surcharge
+            + frente_a_pista_surcharge,
+            2,
+        )
+    elif payload.lot_price:
+        lot_price = round(float(payload.lot_price), 2)
+        price_per_m2_value = None
+    else:
+        lot_price_value = lot.promo_price or lot.price
+        if lot_price_value is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Ingresa el precio por m² o define un precio para el lote.",
+            )
+        lot_price = round(float(lot_price_value), 2)
+        price_per_m2_value = (
+            round(float(lot.price_per_m2), 2) if lot.price_per_m2 else None
+        )
+
+    discount_amount = 0
+    if payload.discount_type == "percentage":
+        discount_amount = lot_price * (float(payload.discount_value or 0) / 100)
+    elif payload.discount_type == "fixed":
+        discount_amount = float(payload.discount_value or 0)
+
+    final_price = max(lot_price - discount_amount, 0)
+
+    initial = float(payload.initial_payment or 0)
+    installments = int(payload.installments or 12)
+
+    if payload.payment_type == "cash":
+        installments = 0
+        installment_value = 0
+    else:
+        balance = max(final_price - initial, 0)
+        installment_value = round(balance / installments, 2) if installments > 0 else 0
+
+    quote.project_id = lot.project_id
+    quote.lot_id = lot.id
+    quote.lot_price = lot_price
+    quote.price_per_m2 = price_per_m2_value
+    quote.esquina_surcharge = esquina_surcharge
+    quote.frente_parque_surcharge = frente_parque_surcharge
+    quote.frente_a_pista_surcharge = frente_a_pista_surcharge
+    quote.total_amount = final_price
+    quote.installment_value = installment_value
+
+    if "lead_id" in sent:
+        quote.lead_id = payload.lead_id
+    if "discount_type" in sent:
+        quote.discount_type = payload.discount_type
+    if "discount_value" in sent:
+        quote.discount_value = round(float(payload.discount_value or 0), 2)
+    if "payment_type" in sent:
+        quote.payment_type = payload.payment_type
+    if "initial_payment" in sent:
+        quote.initial_payment = initial
+    if "installments" in sent:
+        quote.installments = installments
+    if "client_name" in sent:
+        quote.client_name = payload.client_name or ""
+    if "client_phone" in sent:
+        quote.client_phone = payload.client_phone or ""
+    if "client_email" in sent:
+        quote.client_email = payload.client_email or ""
+    if "notes" in sent:
+        quote.notes = payload.notes or ""
+
+    return {
+        "area": area,
+        "price_per_m2_value": price_per_m2_value,
+        "lot_price": lot_price,
+        "esquina_surcharge": esquina_surcharge,
+        "frente_parque_surcharge": frente_parque_surcharge,
+        "frente_a_pista_surcharge": frente_a_pista_surcharge,
+        "discount_amount": discount_amount,
+        "initial": initial,
+        "installments": installments,
+        "installment_value": installment_value,
+    }
+
+
+def _replace_quote_items(db: Session, quote: Quote, lot: Lot, values: dict) -> None:
+    """Reconstruye los ítems de una cotización a partir de los valores calculados."""
+    for item in list(quote.items):
+        db.delete(item)
+    db.flush()
+
+    area = values["area"]
+    price_per_m2_value = values["price_per_m2_value"]
+    lot_price = values["lot_price"]
+    esquina_surcharge = values["esquina_surcharge"]
+    frente_parque_surcharge = values["frente_parque_surcharge"]
+    frente_a_pista_surcharge = values["frente_a_pista_surcharge"]
+    discount_amount = values["discount_amount"]
+    initial = values["initial"]
+    installments = values["installments"]
+    installment_value = values["installment_value"]
+
+    if price_per_m2_value is not None and area:
+        db.add(
+            QuoteItem(
+                quote_id=quote.id,
+                description=f"Lote {lot.code} ({area:,.2f} m² × S/ {price_per_m2_value:,.2f})",
+                amount=round(area * price_per_m2_value, 2),
+            )
+        )
+    else:
+        db.add(QuoteItem(quote_id=quote.id, description=f"Lote {lot.code}", amount=lot_price))
+    if esquina_surcharge > 0:
+        db.add(QuoteItem(quote_id=quote.id, description="Recargo lote en esquina", amount=esquina_surcharge))
+    if frente_parque_surcharge > 0:
+        db.add(QuoteItem(quote_id=quote.id, description="Recargo frente a parque", amount=frente_parque_surcharge))
+    if frente_a_pista_surcharge > 0:
+        db.add(QuoteItem(quote_id=quote.id, description="Recargo frente a pista", amount=frente_a_pista_surcharge))
+    if discount_amount > 0:
+        db.add(QuoteItem(quote_id=quote.id, description=f"Descuento ({quote.discount_type})", amount=-discount_amount))
+    if quote.payment_type == "credit":
+        db.add(QuoteItem(quote_id=quote.id, description="Cuota inicial", amount=initial))
+        db.add(QuoteItem(quote_id=quote.id, description=f"Saldo en {installments} cuotas", amount=installment_value))
 
 
 def _auto_assign_lead_to_advisor(lead: Lead, db: Session) -> None:
@@ -593,112 +755,80 @@ def create_quote(
     elif advisor_id is None and current_user.advisor:
         advisor_id = current_user.advisor.id
 
-    # Calculo del precio del lote a partir del precio por m2 (dinámico)
-    # y recargos por ubicación (esquina / frente a parque).
-    area = float(lot.area_m2) if lot.area_m2 else None
-    esquina_surcharge = round(float(payload.esquina_surcharge or 0), 2)
-    frente_parque_surcharge = round(float(payload.frente_parque_surcharge or 0), 2)
-
-    price_per_m2 = payload.price_per_m2
-    if price_per_m2 is None:
-        price_per_m2 = float(lot.price_per_m2) if lot.price_per_m2 else None
-
-    if price_per_m2 is not None and area:
-        price_per_m2_value = round(float(price_per_m2), 2)
-        base_price = round(area * price_per_m2_value, 2)
-        lot_price = round(base_price + esquina_surcharge + frente_parque_surcharge, 2)
-    elif payload.lot_price:
-        lot_price = round(float(payload.lot_price), 2)
-        price_per_m2_value = None
-    else:
-        lot_price_value = lot.promo_price or lot.price
-        if lot_price_value is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Ingresa el precio por m² o define un precio para el lote.",
-            )
-        lot_price = round(float(lot_price_value), 2)
-        price_per_m2_value = (
-            round(float(lot.price_per_m2), 2) if lot.price_per_m2 else None
-        )
-
-    # Aplicar descuento si corresponde
-    discount_amount = 0
-    if payload.discount_type == "percentage":
-        discount_amount = lot_price * (float(payload.discount_value) / 100)
-    elif payload.discount_type == "fixed":
-        discount_amount = float(payload.discount_value)
-    
-    final_price = max(lot_price - discount_amount, 0)
-    
-    # Calcular pagos según tipo
-    initial = float(payload.initial_payment or 0)
-    installments = int(payload.installments or 12)
-    
-    if payload.payment_type == "cash":
-        # Pago al contado: no hay cuotas
-        installments = 0
-        installment_value = 0
-        total = final_price
-    else:
-        # Pago a crédito
-        balance = max(final_price - initial, 0)
-        installment_value = round(balance / installments, 2) if installments > 0 else 0
-        total = final_price
-
-    count = db.query(func.count(Quote.id)).scalar() + 1
-    quote_number = f"COT-{datetime.now().strftime('%Y%m%d')}-{count:04d}"
-
+    # Calculo del precio del lote a partir del precio por m2 (dinámico),
+    # recargos por ubicación, descuento y financiamiento.
     quote = Quote(
-        quote_number=quote_number,
         lead_id=payload.lead_id,
         advisor_id=advisor_id,
-        project_id=payload.project_id,
-        lot_id=lot.id,
-        lot_price=lot_price,
-        price_per_m2=price_per_m2_value,
-        esquina_surcharge=esquina_surcharge,
-        frente_parque_surcharge=frente_parque_surcharge,
-        discount_type=payload.discount_type,
-        discount_value=float(payload.discount_value),
-        payment_type=payload.payment_type,
-        initial_payment=initial,
-        installments=installments,
-        installment_value=installment_value,
-        total_amount=total,
-        client_name=payload.client_name,
-        client_phone=payload.client_phone,
-        client_email=payload.client_email,
-        notes=payload.notes,
         status="draft",
     )
+    values = _apply_quote_values(quote, payload, lot)
+
+    quote.quote_number = _next_quote_number(db)
     db.add(quote)
     db.flush()
 
-    # Agregar ítems para el PDF
-    if price_per_m2_value is not None and area:
-        db.add(
-            QuoteItem(
-                quote_id=quote.id,
-                description=f"Lote {lot.code} ({area:,.2f} m² × S/ {price_per_m2_value:,.2f})",
-                amount=round(area * price_per_m2_value, 2),
-            )
-        )
-    else:
-        db.add(QuoteItem(quote_id=quote.id, description=f"Lote {lot.code}", amount=lot_price))
-    if esquina_surcharge > 0:
-        db.add(QuoteItem(quote_id=quote.id, description="Recargo lote en esquina", amount=esquina_surcharge))
-    if frente_parque_surcharge > 0:
-        db.add(QuoteItem(quote_id=quote.id, description="Recargo frente a parque", amount=frente_parque_surcharge))
-    if discount_amount > 0:
-        db.add(QuoteItem(quote_id=quote.id, description=f"Descuento ({payload.discount_type})", amount=-discount_amount))
-    if payload.payment_type == "credit":
-        db.add(QuoteItem(quote_id=quote.id, description="Cuota inicial", amount=initial))
-        db.add(QuoteItem(quote_id=quote.id, description=f"Saldo en {installments} cuotas", amount=installment_value))
+    _replace_quote_items(db, quote, lot, values)
 
     db.commit()
     db.refresh(quote)
     return _quote_out(quote)
+
+
+@router.patch("/quotes/{quote_id}", response_model=QuoteOut)
+def update_quote(
+    quote_id: int,
+    payload: QuoteUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    quote = db.get(Quote, quote_id)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada.")
+    _ensure_quote_access(current_user, quote)
+
+    lot = db.get(Lot, quote.lot_id)
+    if not lot:
+        raise HTTPException(status_code=404, detail="Lote no encontrado.")
+
+    data = payload.model_dump(exclude_unset=True)
+
+    if "lot_id" in data and data["lot_id"]:
+        new_lot = db.get(Lot, data["lot_id"])
+        if not new_lot:
+            raise HTTPException(status_code=404, detail="Lote no encontrado.")
+        lot = new_lot
+
+    if "lead_id" in data and data["lead_id"] is not None:
+        lead = db.get(Lead, data["lead_id"])
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead no encontrado.")
+        _ensure_lead_access(current_user, lead)
+
+    # Los asesores siempre conservan su propia autoría.
+    if not _is_admin_user(current_user):
+        quote.advisor_id = _scoped_advisor_id(current_user)
+
+    values = _apply_quote_values(quote, payload, lot)
+    _replace_quote_items(db, quote, lot, values)
+
+    db.commit()
+    db.refresh(quote)
+    return _quote_out(quote)
+
+
+@router.delete("/quotes/{quote_id}", status_code=204)
+def delete_quote(
+    quote_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    quote = db.get(Quote, quote_id)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada.")
+    _ensure_quote_access(current_user, quote)
+    db.delete(quote)
+    db.commit()
 
 
 @router.get("/quotes/{quote_id}/pdf")
@@ -732,9 +862,35 @@ def generate_quote_pdf_endpoint(
 
     from fastapi.responses import Response
 
+    # Datos de empresa/editables desde Configuración (con valores por defecto)
+    config = {
+        c.key: c.value
+        for c in db.query(SiteConfig).filter(
+            SiteConfig.key.in_(
+                [
+                    "company_ruc",
+                    "company_razon_social",
+                    "company_address",
+                    "company_bank_accounts",
+                ]
+            )
+        ).all()
+    }
+    company_accounts = [
+        line.strip()
+        for line in (config.get("company_bank_accounts") or "").splitlines()
+        if line.strip()
+    ]
+
     pdf = generate_quote_pdf(
         quote_number=quote.quote_number,
         company_name=settings.APP_NAME,
+        company_ruc=config.get("company_ruc") or "20610742468",
+        company_razon_social=config.get("company_razon_social")
+        or "NETLAND CORPORACION INMOBILIARIA S.A.C.",
+        company_address=config.get("company_address")
+        or "Urb. Magisterial Mz. B Lote. 3, (cerca al Grifo Primax) - San Vicente de Cañete, Lima, Perú",
+        company_accounts=company_accounts,
         project_name=project_name,
         lot_code=lot_code,
         area_m2=float(quote.lot.area_m2) if quote.lot and quote.lot.area_m2 else None,
@@ -742,6 +898,7 @@ def generate_quote_pdf_endpoint(
         price_per_m2=float(quote.price_per_m2) if quote.price_per_m2 else None,
         esquina_surcharge=float(quote.esquina_surcharge or 0),
         frente_parque_surcharge=float(quote.frente_parque_surcharge or 0),
+        frente_a_pista_surcharge=float(quote.frente_a_pista_surcharge or 0),
         discount_type=quote.discount_type or "none",
         discount_value=float(quote.discount_value or 0),
         discount_amount=discount_amount,

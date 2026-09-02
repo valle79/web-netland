@@ -33,7 +33,7 @@ const emptyForm: FormState = {
 
 export default function AdminPromotions() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Promotion | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -151,8 +151,8 @@ export default function AdminPromotions() {
                   <Button
                     variant="danger"
                     className="!px-2.5 !py-1.5"
-                    onClick={() => {
-                      if (confirm(`¿Eliminar la promoción ${promo.name}?`)) {
+                    onClick={async () => {
+                      if (await confirm(`¿Eliminar la promoción ${promo.name}?`)) {
                         deleteMutation.mutate(promo.id);
                       }
                     }}

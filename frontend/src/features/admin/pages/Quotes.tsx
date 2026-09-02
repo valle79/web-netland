@@ -8,9 +8,11 @@ import {
   Download,
   Eye,
   FileText,
+  Pencil,
   Plus,
   Search,
   Send,
+  Trash2,
   User,
   X,
 } from "lucide-react";
@@ -36,6 +38,7 @@ import {
 } from "../ui";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { Modal } from "../../../components/ui/Modal";
+import { useToast } from "../../../components/ui/Toast";
 
 const statusColors: Record<string, string> = {
   draft: "#6b7280",
@@ -77,12 +80,32 @@ export default function AdminQuotes() {
   const [detailQuote, setDetailQuote] =
     useState<Quote | null>(null);
 
+  const [editingQuote, setEditingQuote] =
+    useState<Quote | null>(null);
+
   const queryClient = useQueryClient();
+  const { toast, confirm } = useToast();
 
   const { data: quotes } = useQuery({
     queryKey: ["quotes-admin"],
     queryFn: () =>
       api.get<Quote[]>("/quotes", true),
+  });
+
+  // ==============================================================
+  // ELIMINAR COTIZACIÓN (físicamente)
+  // ==============================================================
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) =>
+      api.del(`/quotes/${id}`, true),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["quotes-admin"],
+      });
+      toast("Cotización eliminada.");
+    },
+    onError: (e) => toast(e.message, "error"),
   });
 
   // ==============================================================
@@ -309,6 +332,17 @@ export default function AdminQuotes() {
                       variant="outline"
                       className="!px-3 !py-1.5"
                       onClick={() =>
+                        setEditingQuote(quote)
+                      }
+                      title="Editar cotización"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="!px-3 !py-1.5"
+                      onClick={() =>
                         setDetailQuote(quote)
                       }
                       title="Ver detalles"
@@ -339,6 +373,25 @@ export default function AdminQuotes() {
                         <Send className="h-3.5 w-3.5" />
                       </Button>
                     )}
+
+                    <Button
+                      variant="danger"
+                      className="!px-3 !py-1.5"
+                      onClick={async () => {
+                        if (
+                          await confirm(
+                            `¿Eliminar definitivamente la cotización ${quote.quote_number}?\nEsta acción no se puede deshacer.`
+                          )
+                        ) {
+                          deleteMutation.mutate(
+                            quote.id
+                          );
+                        }
+                      }}
+                      title="Eliminar cotización"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -358,6 +411,23 @@ export default function AdminQuotes() {
             });
 
             setShowCreateModal(false);
+          }}
+        />
+      )}
+
+      {editingQuote && (
+        <CreateQuoteModal
+          quote={editingQuote}
+          onClose={() =>
+            setEditingQuote(null)
+          }
+          onSuccess={() => {
+            queryClient.invalidateQueries({
+              queryKey: ["quotes-admin"],
+            });
+
+            setEditingQuote(null);
+            toast("Cotización actualizada.");
           }}
         />
       )}
@@ -383,60 +453,110 @@ export default function AdminQuotes() {
 function CreateQuoteModal({
   onClose,
   onSuccess,
+  quote,
 }: {
   onClose: () => void;
   onSuccess: () => void;
+  quote?: Quote | null;
 }) {
   const [selectedProjectId, setSelectedProjectId] =
-    useState<number | null>(null);
+    useState<number | null>(quote?.project_id ?? null);
 
   const [selectedLotId, setSelectedLotId] =
-    useState<number | null>(null);
+    useState<number | null>(quote?.lot_id ?? null);
 
   // ==============================================================
   // CAMPOS NUMÉRICOS
   // ==============================================================
 
   const [pricePerM2, setPricePerM2] =
-    useState<NumericFieldValue>(0);
+    useState<NumericFieldValue>(
+      quote?.price_per_m2
+        ? Number(quote.price_per_m2)
+        : 0
+    );
 
   const [esquinaEnabled, setEsquinaEnabled] =
-    useState(false);
+    useState((quote?.esquina_surcharge ?? 0) > 0);
 
   const [esquinaSurcharge, setEsquinaSurcharge] =
-    useState<NumericFieldValue>(0);
+    useState<NumericFieldValue>(
+      quote?.esquina_surcharge
+        ? Number(quote.esquina_surcharge)
+        : 0
+    );
 
   const [frenteParqueEnabled, setFrenteParqueEnabled] =
-    useState(false);
+    useState((quote?.frente_parque_surcharge ?? 0) > 0);
 
   const [frenteParqueSurcharge, setFrenteParqueSurcharge] =
-    useState<NumericFieldValue>(0);
+    useState<NumericFieldValue>(
+      quote?.frente_parque_surcharge
+        ? Number(quote.frente_parque_surcharge)
+        : 0
+    );
+
+  const [frentePistaEnabled, setFrentePistaEnabled] =
+    useState((quote?.frente_a_pista_surcharge ?? 0) > 0);
+
+  const [frentePistaSurcharge, setFrentePistaSurcharge] =
+    useState<NumericFieldValue>(
+      quote?.frente_a_pista_surcharge
+        ? Number(quote.frente_a_pista_surcharge)
+        : 0
+    );
 
   const [discountType, setDiscountType] =
     useState<
       "none" | "percentage" | "fixed"
-    >("none");
+    >(
+      quote?.discount_type === "percentage" ||
+        quote?.discount_type === "fixed"
+        ? quote.discount_type
+        : "none"
+    );
 
   const [discountValue, setDiscountValue] =
-    useState<NumericFieldValue>(0);
+    useState<NumericFieldValue>(
+      quote?.discount_value
+        ? Number(quote.discount_value)
+        : 0
+    );
 
   const [paymentType, setPaymentType] =
-    useState<"cash" | "credit">("credit");
+    useState<"cash" | "credit">(
+      quote?.payment_type === "cash"
+        ? "cash"
+        : "credit"
+    );
 
   const [initialPayment, setInitialPayment] =
-    useState<NumericFieldValue>(0);
+    useState<NumericFieldValue>(
+      quote?.initial_payment
+        ? Number(quote.initial_payment)
+        : 0
+    );
 
   const [installments, setInstallments] =
-    useState(12);
+    useState(quote?.installments ?? 12);
 
   const [selectedLeadId, setSelectedLeadId] =
-    useState<number | null>(null);
+    useState<number | null>(quote?.lead_id ?? null);
 
   const [clientSearch, setClientSearch] =
     useState("");
 
+  const [clientName, setClientName] =
+    useState(quote?.client_name ?? "");
+
+  const [clientPhone, setClientPhone] =
+    useState(quote?.client_phone ?? "");
+
+  const [clientEmail, setClientEmail] =
+    useState(quote?.client_email ?? "");
+
   const [notes, setNotes] =
-    useState("");
+    useState(quote?.notes ?? "");
 
   // ==============================================================
   // DATOS
@@ -505,18 +625,6 @@ function CreateQuoteModal({
       lead.id === selectedLeadId
   );
 
-  const clientName = selectedLead
-    ? `${selectedLead.client?.name ?? ""} ${
-        selectedLead.client?.last_name ?? ""
-      }`.trim()
-    : "";
-
-  const clientPhone =
-    selectedLead?.client?.phone ?? "";
-
-  const clientEmail =
-    selectedLead?.client?.email ?? "";
-
   const selectedLot = lots?.find(
     (lot) =>
       lot.id === selectedLotId
@@ -534,6 +642,9 @@ function CreateQuoteModal({
 
   const numericFrenteParqueSurcharge =
     toNumber(frenteParqueSurcharge);
+
+  const numericFrentePistaSurcharge =
+    toNumber(frentePistaSurcharge);
 
   const numericDiscountValue =
     toNumber(discountValue);
@@ -582,10 +693,16 @@ function CreateQuoteModal({
       ? numericFrenteParqueSurcharge
       : 0;
 
+  const frentePistaValue =
+    frentePistaEnabled
+      ? numericFrentePistaSurcharge
+      : 0;
+
   const lotPrice =
     baseLotPrice +
     esquinaValue +
-    frenteParqueValue;
+    frenteParqueValue +
+    frentePistaValue;
 
   // ==============================================================
   // DESCUENTO
@@ -632,11 +749,17 @@ function CreateQuoteModal({
       mutationFn: (
         data: QuoteInput
       ) =>
-        api.post<Quote>(
-          "/quotes",
-          data,
-          true
-        ),
+        quote
+          ? api.patch<Quote>(
+              `/quotes/${quote.id}`,
+              data,
+              true
+            )
+          : api.post<Quote>(
+              "/quotes",
+              data,
+              true
+            ),
       onSuccess,
     });
 
@@ -673,6 +796,9 @@ function CreateQuoteModal({
 
       frente_parque_surcharge:
         frenteParqueValue,
+
+      frente_a_pista_surcharge:
+        frentePistaValue,
 
       discount_type:
         discountType,
@@ -724,11 +850,15 @@ function CreateQuoteModal({
 
           <div>
             <h3 className="text-xl font-bold text-netland-dark">
-              Nueva Cotización
+              {quote
+                ? "Editar Cotización"
+                : "Nueva Cotización"}
             </h3>
 
             <p className="text-sm text-netland-muted">
-              Genera una cotización profesional
+              {quote
+                ? `Actualizando ${quote.quote_number}`
+                : "Genera una cotización profesional"}
             </p>
           </div>
         </div>
@@ -840,7 +970,10 @@ function CreateQuoteModal({
                 ?.filter(
                   (lot) =>
                     lot.status ===
-                    "available"
+                      "available" ||
+                    (quote &&
+                      lot.id ===
+                        quote.lot_id)
                 )
                 .map((lot) => (
                   <option
@@ -930,7 +1063,7 @@ function CreateQuoteModal({
                 RECARGOS
             ================================================== */}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {/* ESQUINA */}
               <label
                 className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
@@ -1070,6 +1203,80 @@ function CreateQuoteModal({
                     }}
                     disabled={
                       !frenteParqueEnabled
+                    }
+                    min="0"
+                    step="0.01"
+                    placeholder="S/"
+                    className="mt-1 w-full px-2 py-1.5 rounded border border-netland-muted/30 disabled:bg-gray-50 disabled:text-gray-400"
+                  />
+                </div>
+              </label>
+
+              {/* FRENTE A PISTA */}
+              <label
+                className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                  frentePistaEnabled
+                    ? "border-netland-primary bg-netland-primary/10"
+                    : "border-netland-muted/20 hover:border-netland-primary/30"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={
+                    frentePistaEnabled
+                  }
+                  onChange={(event) =>
+                    setFrentePistaEnabled(
+                      event.target
+                        .checked
+                    )
+                  }
+                  className="mt-1"
+                />
+
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-netland-dark">
+                    Frente a pista
+                  </div>
+
+                  <input
+                    type="number"
+                    value={
+                      frentePistaSurcharge
+                    }
+                    onFocus={() => {
+                      if (
+                        frentePistaSurcharge ===
+                        0
+                      ) {
+                        setFrentePistaSurcharge(
+                          ""
+                        );
+                      }
+                    }}
+                    onChange={(event) => {
+                      const value =
+                        event.target
+                          .value;
+
+                      setFrentePistaSurcharge(
+                        value === ""
+                          ? ""
+                          : Number(value)
+                      );
+                    }}
+                    onBlur={() => {
+                      if (
+                        frentePistaSurcharge ===
+                        ""
+                      ) {
+                        setFrentePistaSurcharge(
+                          0
+                        );
+                      }
+                    }}
+                    disabled={
+                      !frentePistaEnabled
                     }
                     min="0"
                     step="0.01"
@@ -1455,11 +1662,33 @@ function CreateQuoteModal({
                       key={lead.id}
                       type="button"
                       onClick={() => {
+                        const isSelected =
+                          lead.id ===
+                          selectedLeadId;
+
                         setSelectedLeadId(
                           isSelected
                             ? null
                             : lead.id
                         );
+
+                        if (!isSelected) {
+                          setClientName(
+                            `${lead.client?.name ?? ""} ${
+                              lead.client
+                                ?.last_name ??
+                              ""
+                            }`.trim()
+                          );
+                          setClientPhone(
+                            lead.client
+                              ?.phone ?? ""
+                          );
+                          setClientEmail(
+                            lead.client
+                              ?.email ?? ""
+                          );
+                        }
 
                         setClientSearch(
                           ""
@@ -1547,6 +1776,72 @@ function CreateQuoteModal({
             NOTAS
         ====================================================== */}
 
+        <div className="p-4 rounded-lg border border-netland-muted/20 space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-netland-muted">
+            Datos del cliente
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-netland-dark mb-2">
+                Nombre
+              </label>
+
+              <input
+                type="text"
+                value={clientName}
+                onChange={(event) =>
+                  setClientName(
+                    event.target.value
+                  )
+                }
+                placeholder="Nombre del cliente"
+                className="w-full px-4 py-2.5 rounded-lg border border-netland-muted/30 focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-netland-dark mb-2">
+                Teléfono
+              </label>
+
+              <input
+                type="text"
+                value={clientPhone}
+                onChange={(event) =>
+                  setClientPhone(
+                    event.target.value
+                  )
+                }
+                placeholder="+51 999 999 999"
+                className="w-full px-4 py-2.5 rounded-lg border border-netland-muted/30 focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20 outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-netland-dark mb-2">
+              Email
+            </label>
+
+            <input
+              type="email"
+              value={clientEmail}
+              onChange={(event) =>
+                setClientEmail(
+                  event.target.value
+                )
+              }
+              placeholder="cliente@correo.com"
+              className="w-full px-4 py-2.5 rounded-lg border border-netland-muted/30 focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20 outline-none"
+            />
+          </div>
+        </div>
+
+        {/* ======================================================
+            NOTAS
+        ====================================================== */}
+
         <div>
           <label className="block text-sm font-semibold text-netland-dark mb-2">
             Observaciones adicionales
@@ -1589,8 +1884,12 @@ function CreateQuoteModal({
             className="flex-1"
           >
             {createMutation.isPending
-              ? "Generando..."
-              : "Generar Cotización"}
+              ? quote
+                ? "Guardando..."
+                : "Generando..."
+              : quote
+                ? "Guardar cambios"
+                : "Generar Cotización"}
           </Button>
         </div>
       </form>
@@ -1847,6 +2146,22 @@ function QuoteDetailModal({
                       +
                       {formatSoles(
                         quote.frente_parque_surcharge
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {(quote.frente_a_pista_surcharge ||
+                  0) > 0 && (
+                  <div className="flex items-center justify-between px-5 py-3">
+                    <span className="text-sm text-netland-muted">
+                      Recargo frente a pista
+                    </span>
+
+                    <span className="font-medium text-netland-dark">
+                      +
+                      {formatSoles(
+                        quote.frente_a_pista_surcharge
                       )}
                     </span>
                   </div>

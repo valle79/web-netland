@@ -167,6 +167,7 @@ export interface Quote {
   price_per_m2: number | null;
   esquina_surcharge: number | null;
   frente_parque_surcharge: number | null;
+  frente_a_pista_surcharge: number | null;
   discount_type: string | null;
   discount_value: number | null;
   payment_type: string | null;
@@ -223,6 +224,7 @@ export interface QuoteInput {
   price_per_m2: number | null;
   esquina_surcharge: number;
   frente_parque_surcharge: number;
+  frente_a_pista_surcharge: number;
   discount_type: string;
   discount_value: number;
   payment_type: string;

@@ -363,6 +363,7 @@ class Quote(Base):
     price_per_m2 = Column(Numeric(12, 2), nullable=True)
     esquina_surcharge = Column(Numeric(12, 2), nullable=True)
     frente_parque_surcharge = Column(Numeric(12, 2), nullable=True)
+    frente_a_pista_surcharge = Column(Numeric(12, 2), nullable=True)
     # Campos de descuento
     discount_type = Column(String(20), default="none")  # none, percentage, fixed
     discount_value = Column(Numeric(12, 2), default=0)

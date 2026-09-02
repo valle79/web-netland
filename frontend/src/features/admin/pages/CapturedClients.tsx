@@ -36,6 +36,7 @@ import {
   Field,
   Input,
   PageHeader,
+  Pagination,
   Select,
   StatCard,
   Table,
@@ -109,6 +110,9 @@ export default function AdminCapturedClients() {
 
   const [filtersOpen, setFiltersOpen] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const [filters, setFilters] =
     useState<LeadFiltersState>(emptyFilters);
 
@@ -157,10 +161,12 @@ export default function AdminCapturedClients() {
       ...prev,
       [key]: value,
     }));
+    setPage(1);
   };
 
   const handleClearFilters = () => {
     setFilters({ ...emptyFilters });
+    setPage(1);
   };
 
   // =========================
@@ -550,6 +556,12 @@ export default function AdminCapturedClients() {
     });
   }, [clients, filters]);
 
+  const totalClients = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalClients / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedClients = filtered.slice(startIndex, startIndex + pageSize)
+
   // =========================
   // VALIDACIÓN FORMULARIO
   // =========================
@@ -686,6 +698,7 @@ export default function AdminCapturedClients() {
           />
         </Card>
       ) : isLoading ? null : (
+        <>
         <Table
           headers={[
             "Cliente",
@@ -697,7 +710,7 @@ export default function AdminCapturedClients() {
             "Acciones",
           ]}
         >
-          {filtered.map((lead) => {
+          {paginatedClients.map((lead) => {
             const Icon =
               SOURCE_ICONS[lead.source] ??
               Users;
@@ -846,6 +859,16 @@ export default function AdminCapturedClients() {
             );
           })}
         </Table>
+
+        <Pagination
+          page={currentPage}
+          pageSize={pageSize}
+          total={totalClients}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          unitLabel="clientes"
+        />
+        </>
       )}
 
       {/* =========================

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { api } from "../../../lib/api";
 import type { Block, Lot, Project } from "../../../types";
 import { LOT_STATUS_COLORS, LOT_STATUS_LABELS, formatSoles } from "../../../lib/constants";
@@ -50,7 +50,7 @@ function getPageItems(current: number, total: number): PageItem[] {
 
 export default function AdminLots() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const { user } = useAuth();
   const canManageLots = ["SUPER_ADMIN", "ADMIN"].includes(
     (user?.role ?? "").toUpperCase()
@@ -61,6 +61,7 @@ export default function AdminLots() {
   const [form, setForm] = useState<LotFormState>(emptyForm);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
+  const [search, setSearch] = useState("");
 
   const { data: projects } = useQuery({
     queryKey: ["projects-admin"],
@@ -69,17 +70,41 @@ export default function AdminLots() {
 
   const selectedProject = projectId || projects?.[0]?.id;
 
-  const { data: lots } = useQuery({
+  const {
+    data: lots,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["admin-lots", selectedProject],
     queryFn: () => api.get<Lot[]>(`/projects/${selectedProject}/lots`),
     enabled: !!selectedProject,
   });
 
-  const totalLots = lots?.length ?? 0;
+  const filteredLots = useMemo(() => {
+    if (!lots) return [];
+    const term = search.trim().toLowerCase();
+    if (!term) return lots;
+    return lots.filter((lot) => {
+      const haystack = [
+        lot.code,
+        lot.block_code,
+        lot.lot_number?.toString(),
+        lot.area_m2?.toString(),
+        lot.notes,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [lots, search]);
+
+  const totalLots = filteredLots.length;
   const totalPages = Math.max(1, Math.ceil(totalLots / pageSize));
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedLots = lots?.slice(startIndex, startIndex + pageSize) ?? [];
+  const paginatedLots = filteredLots.slice(startIndex, startIndex + pageSize);
 
   const { data: blocks } = useQuery({
     queryKey: ["admin-blocks", selectedProject],
@@ -175,39 +200,99 @@ export default function AdminLots() {
         }
       />
 
-      <div className="mb-6 max-w-xs">
-        <Field label="Proyecto">
-          <Select
-            value={projectId}
-            onChange={(e) => {
-              setProjectId(e.target.value ? Number(e.target.value) : "");
-              setPage(1);
-            }}
-          >
-            <option value="">Seleccionar proyecto...</option>
-            {projects?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.short_name}
-              </option>
-            ))}
-          </Select>
-        </Field>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-xs flex-1">
+          <Field label="Proyecto">
+            <Select
+              value={selectedProject ?? ""}
+              onChange={(e) => {
+                setProjectId(e.target.value ? Number(e.target.value) : "");
+                setPage(1);
+              }}
+            >
+              <option value="">Seleccionar proyecto...</option>
+              {projects?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.short_name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+
+        <div className="min-w-64 flex-1">
+          <Field label="Buscar lote">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-netland-muted" />
+              <Input
+                type="text"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Buscar por código, manzana, número..."
+                className="!pl-9 !pr-10"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-netland-muted transition-colors hover:text-netland-dark"
+                  title="Limpiar búsqueda"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </Field>
+        </div>
       </div>
 
-      {!lots || lots.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <EmptyState title="Cargando lotes..." />
+        </Card>
+      ) : isError ? (
+        <Card>
+          <div className="flex flex-col items-center gap-4 py-12 text-center">
+            <EmptyState
+              title="No se pudieron cargar los lotes"
+              description="Ocurrió un error al consultar el proyecto. Intenta nuevamente."
+            />
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+            >
+              Reintentar
+            </Button>
+          </div>
+        </Card>
+      ) : (lots?.length ?? 0) === 0 ? (
         <Card>
           <EmptyState
             title="Sin lotes en este proyecto"
             description="Crea manzanas y lotes desde este módulo."
           />
         </Card>
+      ) : filteredLots.length === 0 ? (
+        <Card>
+          <EmptyState
+            title="Sin resultados"
+            description={`No se encontraron lotes que coincidan con «${search}».`}
+          />
+        </Card>
       ) : (
         <>
-          <Table headers={["Código", "Manzana", "Área", "Precio", "Promoción", "Estado", "Acciones"]}>
+          <Table headers={["Código", "Manzana", "N° lote", "Área", "Precio", "Promoción", "Estado", "Acciones"]}>
           {paginatedLots.map((lot) => (
             <tr key={lot.id} className="hover:bg-netland-light/30">
               <td className="px-5 py-3 font-semibold text-netland-dark">{lot.code}</td>
               <td className="px-5 py-3">{lot.block_code ?? "—"}</td>
+              <td className="px-5 py-3">{lot.lot_number ?? "—"}</td>
               <td className="px-5 py-3">{lot.area_m2 ? `${lot.area_m2} m²` : "—"}</td>
               <td className="px-5 py-3">{formatSoles(lot.price)}</td>
               <td className="px-5 py-3 font-medium text-netland-accent">
@@ -241,8 +326,12 @@ export default function AdminLots() {
                     <Button
                       variant="danger"
                       className="!px-2.5 !py-1.5"
-                      onClick={() => {
-                        if (confirm(`¿Eliminar el lote ${lot.code}?`)) {
+                      onClick={async () => {
+                        if (
+                          await confirm(
+                            `¿Eliminar el lote ${lot.code}?`
+                          )
+                        ) {
                           deleteMutation.mutate(lot.id);
                         }
                       }}

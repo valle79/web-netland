@@ -182,11 +182,33 @@ class QuoteCreate(BaseModel):
     price_per_m2: float | None = None
     esquina_surcharge: float = 0
     frente_parque_surcharge: float = 0
+    frente_a_pista_surcharge: float = 0
     discount_type: str = "none"  # none, percentage, fixed
     discount_value: float = 0
     payment_type: str = "credit"  # cash, credit
     initial_payment: float = 0
-    installments: int = Field(default=12, ge=1, le=120)
+    installments: int = Field(default=12, ge=0, le=120)
+    client_name: str = ""
+    client_phone: str = ""
+    client_email: str = ""
+    notes: str = ""
+
+
+class QuoteUpdate(BaseModel):
+    lead_id: int | None = None
+    advisor_id: int | None = None
+    project_id: int | None = None
+    lot_id: int | None = None
+    lot_price: float | None = None
+    price_per_m2: float | None = None
+    esquina_surcharge: float | None = None
+    frente_parque_surcharge: float | None = None
+    frente_a_pista_surcharge: float | None = None
+    discount_type: str = "none"
+    discount_value: float = 0
+    payment_type: str = "credit"  # cash, credit
+    initial_payment: float = 0
+    installments: int = Field(default=12, ge=0, le=120)
     client_name: str = ""
     client_phone: str = ""
     client_email: str = ""
@@ -204,6 +226,7 @@ class QuoteOut(BaseModel):
     price_per_m2: float | None = None
     esquina_surcharge: float | None = None
     frente_parque_surcharge: float | None = None
+    frente_a_pista_surcharge: float | None = None
     discount_type: str | None = None
     discount_value: float | None = None
     payment_type: str | None = None

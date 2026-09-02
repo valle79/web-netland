@@ -24,7 +24,7 @@ const emptyForm = {
 
 export default function AdminAdvisors() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Advisor | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -143,8 +143,8 @@ export default function AdminAdvisors() {
                   <Button
                     variant="danger"
                     className="!px-2.5 !py-1.5"
-                    onClick={() => {
-                      if (confirm(`¿Eliminar a ${advisor.name}?`)) {
+                    onClick={async () => {
+                      if (await confirm(`¿Eliminar a ${advisor.name}?`)) {
                         deleteMutation.mutate(advisor.id);
                       }
                     }}

@@ -21,6 +21,16 @@ def format_soles(value: float | None) -> str:
     return f"S/ {value:,.2f}"
 
 
+def _safe(text: str) -> str:
+    """Escapa texto para renderizarlo con reportlab Paragraph."""
+    return (
+        str(text)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
 # ============================================================================
 # GENERADOR DE COTIZACIÓN INMOBILIARIA
 # ============================================================================
@@ -32,9 +42,14 @@ def generate_quote_pdf(
     lot_code: str,
     area_m2: float | None,
     lot_price: float,
+    company_ruc: str | None = None,
+    company_razon_social: str | None = None,
+    company_address: str | None = None,
+    company_accounts: list[str] | None = None,
     price_per_m2: float | None = None,
     esquina_surcharge: float = 0,
     frente_parque_surcharge: float = 0,
+    frente_a_pista_surcharge: float = 0,
     discount_type: str = "none",
     discount_value: float = 0,
     discount_amount: float = 0,
@@ -197,11 +212,11 @@ def generate_quote_pdf(
     )
 
     # Logo aumentado
-    logo_width = 22 * mm
-    logo_height = 22 * mm
+    logo_width = 30 * mm  # Aumentado de 22mm a 26mm
+    logo_height = 30 * mm  # Aumentado de 22mm a 26mm
 
     logo_x = margin_left
-    logo_y = y - 16 * mm
+    logo_y = y - 18 * mm  # Ajustado para el nuevo tamaño
 
     logo_exists = False
 
@@ -225,54 +240,58 @@ def generate_quote_pdf(
             logo_exists = False
 
     # -------------------------------------------------------------------------
-    # INFORMACIÓN DE LA EMPRESA
+    # INFORMACIÓN DE LA COTIZACIÓN (en card cuadrada, alineada con el logo)
     # -------------------------------------------------------------------------
 
-    if logo_exists:
-        company_x = margin_left + logo_width + 5 * mm
-    else:
-        company_x = margin_left
+    pad_x = 4 * mm  # Reducido para hacer la card más angosta
+    pad_y = 4 * mm
+    box_h = 13 * mm + 2 * pad_y
+    max_w = max(
+        c.stringWidth(t, f, s)
+        for t, f, s in (
+            ("COTIZACIÓN INMOBILIARIA", "Helvetica-Bold", 8.5),
+            (f"N.º {quote_number}", "Helvetica-Bold", 9.2),
+            (f"{generation_date} · {generation_time}", "Helvetica", 6.8),
+        )
+    )
+    box_w = max_w + 2 * pad_x
 
-    # Título principal: SOLO NETLAND
+    # Alinear con el logo (misma posición Y)
+    card_y = y
+
+    c.setFillColor(WHITE)
+    c.setStrokeColor(BORDER)
+    c.setLineWidth(0.5)
+
+    c.roundRect(
+        right_x - box_w,
+        card_y - 13 * mm - pad_y,
+        box_w,
+        box_h,
+        1.5 * mm,
+        stroke=1,
+        fill=1,
+    )
+
+    # Barra lateral azul noche
     c.setFillColor(NAVY)
-    c.setFont("Helvetica-Bold", 16)
 
-    c.drawString(
-        company_x,
-        y,
-        "NETLAND",
+    c.roundRect(
+        right_x - box_w,
+        card_y - 13 * mm - pad_y,
+        1.2 * mm,
+        box_h,
+        0.6 * mm,
+        stroke=0,
+        fill=1,
     )
-
-    # Subtítulo
-    c.setFillColor(MUSTARD)
-    c.setFont("Helvetica-Bold", 7.2)
-
-    c.drawString(
-        company_x,
-        y - 4.8 * mm,
-        "CORPORACIÓN INMOBILIARIA",
-    )
-
-    # Ubicación
-    c.setFillColor(GREY)
-    c.setFont("Helvetica", 6.8)
-
-    c.drawString(
-        company_x,
-        y - 9 * mm,
-        "Cañete · Lima · Perú",
-    )
-
-    # -------------------------------------------------------------------------
-    # INFORMACIÓN DE LA COTIZACIÓN
-    # -------------------------------------------------------------------------
 
     c.setFillColor(NAVY)
     c.setFont("Helvetica-Bold", 8.5)
 
     c.drawRightString(
-        right_x,
-        y,
+        right_x - pad_x,
+        card_y,
         "COTIZACIÓN INMOBILIARIA",
     )
 
@@ -280,8 +299,8 @@ def generate_quote_pdf(
     c.setFont("Helvetica-Bold", 9.2)
 
     c.drawRightString(
-        right_x,
-        y - 4.8 * mm,
+        right_x - pad_x,
+        card_y - 4.8 * mm,
         f"N.º {quote_number}",
     )
 
@@ -289,22 +308,109 @@ def generate_quote_pdf(
     c.setFont("Helvetica", 6.8)
 
     c.drawRightString(
-        right_x,
-        y - 9 * mm,
+        right_x - pad_x,
+        card_y - 9 * mm,
         f"{generation_date} · {generation_time}",
     )
+
+    # -------------------------------------------------------------------------
+    # INFORMACIÓN DE LA EMPRESA (centrada en el encabezado)
+    # -------------------------------------------------------------------------
+
+    center_x = width / 2
+
+    # Título principal: NETLAND
+    c.setFillColor(NAVY)
+    c.setFont("Helvetica-Bold", 16)
+
+    c.drawCentredString(
+        center_x,
+        y,
+        "NETLAND",
+    )
+
+    # Subtítulo: CORPORACIÓN INMOBILIARIA
+    c.setFillColor(MUSTARD)
+    c.setFont("Helvetica-Bold", 7.2)
+
+    c.drawCentredString(
+        center_x,
+        y - 4.8 * mm,
+        "CORPORACIÓN INMOBILIARIA",
+    )
+
+    # Ubicación + RUC
+    c.setFillColor(GREY)
+    c.setFont("Helvetica", 6.8)
+
+    location = "Cañete · Lima · Perú"
+    if company_ruc:
+        location += f"  ·  RUC {company_ruc}"
+
+    c.drawCentredString(
+        center_x,
+        y - 9 * mm,
+        location,
+    )
+
+    # -------------------------------------------------------------------------
+    # DATOS ADICIONALES DE LA EMPRESA (centrados)
+    # -------------------------------------------------------------------------
+
+    current_y = y - 12 * mm
+
+    # Dirección completa (dividida en 2 líneas)
+    if company_address:
+        c.setFillColor(GREY)
+        c.setFont("Helvetica", 6.2)
+        
+        # Dividir la dirección en la posición del guion
+        address_clean = company_address.replace("\n", " ")
+        if " - " in address_clean:
+            # Dividir por el guion
+            parts = address_clean.split(" - ", 1)
+            c.drawCentredString(center_x, current_y, parts[0].strip())
+            current_y -= 3 * mm
+            if len(parts) > 1:
+                c.drawCentredString(center_x, current_y, parts[1].strip())
+                current_y -= 3.5 * mm
+        else:
+            # Si no hay guion, mostrar en una línea
+            c.drawCentredString(center_x, current_y, address_clean)
+            current_y -= 3.5 * mm
+
+    # Razón social
+    if company_razon_social or company_name:
+        c.setFillColor(GREY)
+        c.setFont("Helvetica", 6.5)
+        c.drawCentredString(
+            center_x,
+            current_y,
+            company_razon_social or company_name,
+        )
+        current_y -= 3.5 * mm
+
+    # Cuentas bancarias
+    if company_accounts:
+        c.setFillColor(GREY)
+        c.setFont("Helvetica", 6.5)
+        for account_line in company_accounts:
+            c.drawCentredString(
+                center_x,
+                current_y,
+                account_line,
+            )
+            current_y -= 3.5 * mm
+
+    # Actualizar y para la siguiente sección
+    y = current_y
 
     # -------------------------------------------------------------------------
     # DETALLE DECORATIVO DEL HEADER
     # -------------------------------------------------------------------------
 
-    y -= 16 * mm
-
-    # Línea azul noche
-    c.setStrokeColor(NAVY)
-    c.setLineWidth(0.8)
-
-
+    # Calcular la posición justo debajo del logo (super pegado)
+    y = logo_y - 0.5 * mm  # Justo 0.5mm debajo del borde inferior del logo
 
     # Pequeño detalle mostaza
     c.setStrokeColor(MUSTARD)
@@ -321,7 +427,7 @@ def generate_quote_pdf(
     # DATOS DEL CLIENTE
     # =========================================================================
 
-    y -= 8 * mm
+    y -= 15 * mm  # Aumentado de 8mm a 15mm para más separación
 
     # Título de sección
     c.setFillColor(BLUE_LIGHT)
@@ -916,7 +1022,7 @@ def generate_quote_pdf(
     y -= 6 * mm
 
     # Valor del lote (base: área × precio m²)
-    base_price = lot_price - esquina_surcharge - frente_parque_surcharge
+    base_price = lot_price - esquina_surcharge - frente_parque_surcharge - frente_a_pista_surcharge
     if price_per_m2 is not None and area_m2:
         valor_label = (
             f"Valor del lote ({area_m2:,.2f} m² × S/ {price_per_m2:,.2f})"
@@ -979,6 +1085,27 @@ def generate_quote_pdf(
             table_right,
             y,
             f"+ {format_soles(frente_parque_surcharge)}",
+        )
+
+    # Recargo frente a pista
+    if frente_a_pista_surcharge > 0:
+
+        y -= 5.5 * mm
+
+        c.setFillColor(GREY)
+
+        c.drawString(
+            summary_x,
+            y,
+            "Recargo frente a pista",
+        )
+
+        c.setFillColor(TEXT)
+
+        c.drawRightString(
+            table_right,
+            y,
+            f"+ {format_soles(frente_a_pista_surcharge)}",
         )
 
     # Descuento
@@ -1127,7 +1254,6 @@ def generate_quote_pdf(
     # =========================================================================
     # PIE DE PÁGINA
     # =========================================================================
-
     # Pie compacto
     footer_y = 14 * mm
 

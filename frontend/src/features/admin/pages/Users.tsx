@@ -16,7 +16,7 @@ const roleColors: Record<string, string> = {
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "ASESOR", is_active: true, advisor_id: "" });
@@ -136,8 +136,8 @@ export default function AdminUsers() {
                   <Button
                     variant="danger"
                     className="!px-2.5 !py-1.5"
-                    onClick={() => {
-                      if (confirm(`¿Eliminar a ${user.name}?`)) {
+                    onClick={async () => {
+                      if (await confirm(`¿Eliminar a ${user.name}?`)) {
                         deleteMutation.mutate(user.id);
                       }
                     }}

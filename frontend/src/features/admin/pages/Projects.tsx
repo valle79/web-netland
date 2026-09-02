@@ -13,7 +13,7 @@ import { FileUploader } from "../../../components/ui/FileUploader";
 
 export default function AdminProjects() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const [showExcelImport, setShowExcelImport] = useState<number | null>(null);
   const [showPlanUpload, setShowPlanUpload] = useState<number | null>(null);
 
@@ -143,8 +143,8 @@ export default function AdminProjects() {
                   <Button
                     variant="danger"
                     className="!px-3 !py-2"
-                    onClick={() => {
-                      if (confirm(`¿Eliminar el proyecto ${project.short_name}?`)) {
+                    onClick={async () => {
+                      if (await confirm(`¿Eliminar el proyecto ${project.short_name}?`)) {
                         deleteMutation.mutate(project.id);
                       }
                     }}

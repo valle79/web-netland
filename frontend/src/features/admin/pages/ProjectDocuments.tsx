@@ -21,7 +21,7 @@ interface DocumentItem {
 export default function ProjectDocuments() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const queryClient = useQueryClient();
   const [documentName, setDocumentName] = useState("");
   const [documentCategory, setDocumentCategory] = useState("brochure");
@@ -227,8 +227,8 @@ export default function ProjectDocuments() {
                         <ExternalLink className="h-4 w-4" />
                       </a>
                       <button
-                        onClick={() => {
-                          if (confirm(`¿Eliminar el documento "${doc.name}"?`)) {
+                        onClick={async () => {
+                          if (await confirm(`¿Eliminar el documento "${doc.name}"?`)) {
                             deleteDocumentMutation.mutate(doc.id);
                           }
                         }}

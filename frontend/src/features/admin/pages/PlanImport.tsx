@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../../lib/api';
 import { API_URL } from '../../../lib/constants';
+import { useToast } from '../../../components/ui/Toast';
 
 interface BoundingBox {
   x: number;
@@ -51,6 +52,7 @@ interface ImportResponse {
 }
 
 export default function PlanImport() {
+  const { toast } = useToast();
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   
@@ -174,14 +176,10 @@ export default function PlanImport() {
       );
       
       if (result.total_imported > 0) {
-        alert(
-          `✓ Importación completada:\n\n` +
-          `• ${result.total_imported} lotes importados\n` +
-          `• ${result.total_skipped} lotes omitidos (ya existen)\n` +
-          `• ${result.total_errors} errores`
+        toast.success(
+          `${result.total_imported} importados · ${result.total_skipped} omitidos · ${result.total_errors} errores`,
+          { title: "Importación completada" }
         );
-        
-        // Volver a la lista de lotes
         navigate(`/admin/lotes`);
       } else {
         setError('No se pudo importar ningún lote');

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Video, Info, Upload } from "lucide-react";
+import { Save, Video, Info, Upload, Plus, X } from "lucide-react";
 import { api } from "../../../lib/api";
 import { useToast } from "../../../components/ui/Toast";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -10,7 +10,58 @@ interface SiteConfig {
   [key: string]: string;
 }
 
-const VIDEO_ID_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\ w-]{11})/;
+const VIDEO_ID_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+
+const DEFAULT_COMPANY: SiteConfig = {
+  company_ruc: "20610742468",
+  company_razon_social: "NETLAND CORPORACION INMOBILIARIA S.A.C.",
+  company_address:
+    "Urb. Magisterial Mza. B Lote. 3, (cerca al Grifo Primax) - San Vicente de Cañete, Cañete, Lima, Perú",
+  company_bank_accounts: "",
+};
+
+const PERUVIAN_BANKS = [
+  "Banco de Crédito del Perú (BCP)",
+  "Banco de la Nación",
+  "Interbank",
+  "BBVA Perú",
+  "Scotiabank Perú",
+  "Mi Banco",
+  "Banbif",
+  "Banco Pichincha",
+  "Banco Falabella",
+  "Caja Arequipa",
+  "Caja Cusco",
+  "Caja Huancayo",
+  "Caja Ica",
+  "Caja Trujillo",
+  "Caja Piura",
+  "Caja Tacna",
+  "Banco Interamericano de Finanzas (BIF)",
+];
+
+interface BankAccount {
+  bank: string;
+  number: string;
+}
+
+function parseAccounts(text: string): BankAccount[] {
+  return text
+    .split("\n")
+    .filter((l) => l.trim())
+    .map((line) => {
+      const idx = line.indexOf(" - ");
+      if (idx === -1) return { bank: line.trim(), number: "" };
+      return { bank: line.slice(0, idx).trim(), number: line.slice(idx + 3).trim() };
+    });
+}
+
+function serializeAccounts(accounts: BankAccount[]): string {
+  return accounts
+    .filter((a) => a.bank && a.number)
+    .map((a) => `${a.bank} - ${a.number}`)
+    .join("\n");
+}
 
 function extractVideoId(url: string): string | null {
   const match = url.match(VIDEO_ID_REGEX);
@@ -27,7 +78,16 @@ export default function SiteSettings() {
     queryFn: () => api.get("/config", true),
   });
 
-  const [formData, setFormData] = useState<SiteConfig>({});
+  const [formData, setFormData] = useState<SiteConfig>({ ...DEFAULT_COMPANY });
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [newBank, setNewBank] = useState(PERUVIAN_BANKS[0]);
+  const [newAccountNumber, setNewAccountNumber] = useState("");
+
+  useEffect(() => {
+    if (config?.company_bank_accounts !== undefined) {
+      setBankAccounts(parseAccounts(config.company_bank_accounts));
+    }
+  }, [config?.company_bank_accounts]);
 
   const updateMutation = useMutation({
     mutationFn: (data: SiteConfig) => api.put("/config", data, true),
@@ -43,11 +103,24 @@ export default function SiteSettings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate(formData);
+    updateMutation.mutate({
+      ...formData,
+      company_bank_accounts: serializeAccounts(bankAccounts),
+    });
   };
 
   const handleChange = (key: string, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const addBankAccount = () => {
+    if (!newAccountNumber.trim()) return;
+    setBankAccounts((prev) => [...prev, { bank: newBank, number: newAccountNumber.trim() }]);
+    setNewAccountNumber("");
+  };
+
+  const removeBankAccount = (index: number) => {
+    setBankAccounts((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleVideoUpload = (url: string) => {
@@ -223,25 +296,138 @@ export default function SiteSettings() {
           <div className="mb-6">
             <h2 className="text-xl font-bold text-netland-dark">Información de la empresa</h2>
             <p className="text-sm text-netland-muted">
-              Información legal y de contacto
+              Razón social, RUC, dirección legal y cuentas bancarias que aparecen en el PDF de
+              cotizaciones
             </p>
           </div>
 
           <div className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-netland-dark">
+                  RUC
+                </label>
+                <input
+                  type="text"
+                  value={currentConfig.company_ruc || ""}
+                  onChange={(e) => handleChange("company_ruc", e.target.value)}
+                  placeholder="20610742468"
+                  className="w-full rounded-lg border border-netland-light bg-netland-background px-4 py-3 text-sm outline-none transition-colors focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-netland-dark">
+                  Razón social
+                </label>
+                <input
+                  type="text"
+                  value={currentConfig.company_razon_social || ""}
+                  onChange={(e) => handleChange("company_razon_social", e.target.value)}
+                  placeholder="NETLAND CORPORACION INMOBILIARIA S.A.C."
+                  className="w-full rounded-lg border border-netland-light bg-netland-background px-4 py-3 text-sm outline-none transition-colors focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="mb-2 block text-sm font-semibold text-netland-dark">
-                Información legal
+                Dirección legal
               </label>
               <textarea
-                value={currentConfig.company_legal_info || ""}
-                onChange={(e) => handleChange("company_legal_info", e.target.value)}
-                rows={3}
-                placeholder="RUC, razón social, etc."
+                value={currentConfig.company_address || ""}
+                onChange={(e) => handleChange("company_address", e.target.value)}
+                rows={2}
+                placeholder="Otr. Magisterial Mza. B Lote. 3, Urb. Magisterial..."
                 className="w-full rounded-lg border border-netland-light bg-netland-background px-4 py-3 text-sm outline-none transition-colors focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20"
               />
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-netland-dark">
+                Cuentas bancarias
+              </label>
+
+              {/* Lista de cuentas existentes */}
+              {bankAccounts.length > 0 && (
+                <div className="mb-3 space-y-2">
+                  {bankAccounts.map((acc, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded-lg border border-netland-light bg-netland-background px-4 py-2.5"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-netland-dark">
+                          {acc.bank}
+                        </p>
+                        <p className="truncate text-xs text-netland-muted">
+                          {acc.number}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeBankAccount(i)}
+                        className="ml-3 shrink-0 rounded-md p-1.5 text-netland-muted transition-colors hover:bg-red-50 hover:text-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Formulario para agregar cuenta */}
+              <div className="flex gap-3">
+                <select
+                  value={newBank}
+                  onChange={(e) => setNewBank(e.target.value)}
+                  className="min-w-0 flex-1 rounded-lg border border-netland-light bg-netland-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20"
+                >
+                  {PERUVIAN_BANKS.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={newAccountNumber}
+                  onChange={(e) => setNewAccountNumber(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addBankAccount())}
+                  placeholder="N.º de cuenta o CCI"
+                  className="w-48 rounded-lg border border-netland-light bg-netland-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20"
+                />
+                <button
+                  type="button"
+                  onClick={addBankAccount}
+                  disabled={!newAccountNumber.trim()}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-netland-light bg-white px-3 py-2.5 text-sm font-semibold text-netland-dark transition-colors hover:bg-netland-background disabled:opacity-40"
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar
+                </button>
+              </div>
+
+              <p className="mt-2 flex items-start gap-2 text-xs text-netland-muted">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>Selecciona el banco, ingresa el número de cuenta y haz clic en Agregar. Aparecerán en el PDF de la cotización.</span>
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-netland-dark">
+                Información legal (extra)
+              </label>
+              <textarea
+                value={currentConfig.company_legal_info || ""}
+                onChange={(e) => handleChange("company_legal_info", e.target.value)}
+                rows={2}
+                placeholder="Texto legal adicional (se muestra en el sitio público)"
+                className="w-full rounded-lg border border-netland-light bg-netland-background px-4 py-3 text-sm outline-none transition-colors focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20"
+              />
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-netland-dark">
                   Horarios de atención
