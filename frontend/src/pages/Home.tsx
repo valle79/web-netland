@@ -20,7 +20,7 @@ import { api } from "../lib/api";
 import { whatsappLink } from "../lib/constants";
 import type { Project } from "../types";
 import { Reveal } from "../components/Reveal";
-import { CardSkeleton } from "../components/ui/Skeleton";
+import { CoreSpinLoader } from "../components/ui/CoreSpinLoader";
 import { useState } from "react";
 
 interface SiteConfig {
@@ -216,10 +216,7 @@ function ProjectsSection({
         </Reveal>
 
         {loading ? (
-          <div className="grid gap-8 md:grid-cols-2">
-            <CardSkeleton />
-            <CardSkeleton />
-          </div>
+          <CoreSpinLoader />
         ) : (
           <div className="grid gap-8 md:grid-cols-2">
             {projects?.map((project, i) => (

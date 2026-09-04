@@ -4,7 +4,7 @@ import { api } from "../lib/api";
 import { whatsappLink } from "../lib/constants";
 import type { Advisor } from "../types";
 import { Reveal } from "../components/Reveal";
-import { CardSkeleton } from "../components/ui/Skeleton";
+import { CoreSpinLoader } from "../components/ui/CoreSpinLoader";
 
 export default function Advisors() {
   const { data: advisors, isLoading } = useQuery({
@@ -94,11 +94,7 @@ export default function Advisors() {
       <section className="section-padding bg-netland-background">
         <div className="container-netland">
           {isLoading ? (
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              <CardSkeleton />
-              <CardSkeleton />
-              <CardSkeleton />
-            </div>
+            <CoreSpinLoader />
           ) : availableAdvisors.length === 0 ? (
             <div className="rounded-xl border-2 border-dashed border-netland-light bg-white p-16 text-center">
               <Award className="mx-auto mb-4 h-12 w-12 text-netland-muted/40" />

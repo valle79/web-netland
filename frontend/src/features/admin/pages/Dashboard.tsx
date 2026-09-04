@@ -23,7 +23,7 @@ import type { DashboardStats } from "../../../types";
 import { LEAD_STATUS_LABELS, LOT_STATUS_LABELS, LOT_STATUS_COLORS, CAPTURED_SOURCES } from "../../../lib/constants";
 import { PageHeader, Card, StatCard, Table } from "../ui";
 import { useAuth } from "../AuthContext";
-import { Skeleton } from "../../../components/ui/Skeleton";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 
 const statusColors: Record<string, string> = {
   available: "#16a34a",
@@ -58,13 +58,8 @@ export default function Dashboard() {
 
   if (isLoading || !stats) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 rounded-lg" />
-          ))}
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <CoreSpinLoader />
       </div>
     );
   }

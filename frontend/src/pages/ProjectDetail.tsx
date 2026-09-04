@@ -24,7 +24,7 @@ import { QuoteCalculator } from "../components/QuoteCalculator";
 import { Lightbox } from "../components/ui/Lightbox";
 import { Reveal } from "../components/Reveal";
 import { useLeadForm } from "../features/leads/useLeadForm";
-import { Skeleton } from "../components/ui/Skeleton";
+import { CoreSpinLoader } from "../components/ui/CoreSpinLoader";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=80";
@@ -73,13 +73,8 @@ export default function ProjectDetail() {
 
   if (isLoading || !project) {
     return (
-      <div className="min-h-screen bg-netland-background pt-24">
-        <div className="container-netland space-y-6 py-10">
-          <Skeleton className="h-72 w-full rounded-lg" />
-          <Skeleton className="h-10 w-1/2" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-96 w-full rounded-lg" />
-        </div>
+      <div className="min-h-screen bg-netland-background pt-24 flex items-center justify-center">
+        <CoreSpinLoader />
       </div>
     );
   }

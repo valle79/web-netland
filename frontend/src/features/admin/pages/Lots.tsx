@@ -7,6 +7,7 @@ import { LOT_STATUS_COLORS, LOT_STATUS_LABELS, formatSoles } from "../../../lib/
 import { PageHeader, Button, Card, Field, Input, Select, Table } from "../ui";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useAuth } from "../AuthContext";
 
@@ -254,7 +255,9 @@ export default function AdminLots() {
 
       {isLoading ? (
         <Card>
-          <EmptyState title="Cargando lotes..." />
+          <div className="py-8">
+            <CoreSpinLoader />
+          </div>
         </Card>
       ) : isError ? (
         <Card>

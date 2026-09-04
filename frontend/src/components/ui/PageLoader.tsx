@@ -1,12 +1,10 @@
 import { Loader2 } from "lucide-react";
+import { CoreSpinLoader } from "./CoreSpinLoader";
 
 export function PageLoader() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-netland-background">
-      <div className="flex flex-col items-center gap-3 text-netland-primary">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="text-xs uppercase tracking-[0.3em]">Netland</span>
-      </div>
+      <CoreSpinLoader />
     </div>
   );
 }

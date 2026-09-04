@@ -4,7 +4,7 @@ import { ArrowRight, MapPin } from "lucide-react";
 import { api } from "../lib/api";
 import type { Project } from "../types";
 import { Reveal } from "../components/Reveal";
-import { CardSkeleton } from "../components/ui/Skeleton";
+import { CoreSpinLoader } from "../components/ui/CoreSpinLoader";
 import { EmptyState } from "../components/ui/EmptyState";
 
 const HERO_IMAGE =
@@ -73,10 +73,7 @@ export default function Projects() {
       <section className="section-padding bg-netland-background">
         <div className="container-netland">
           {isLoading ? (
-            <div className="grid gap-8 md:grid-cols-2">
-              <CardSkeleton />
-              <CardSkeleton />
-            </div>
+            <CoreSpinLoader />
           ) : !projects || projects.length === 0 ? (
             <EmptyState
               title="Próximamente nuevos proyectos"

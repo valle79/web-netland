@@ -13,6 +13,7 @@ import {
 import { PageHeader, Card, Badge, Field, Select, Button, Textarea, Table } from "../ui";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { LeadFilters, type LeadFiltersState } from "../components/LeadFilters";
 
@@ -141,7 +142,9 @@ export default function AdminLeads() {
       {/* Tabla de leads */}
       {isLoading ? (
         <Card>
-          <p className="text-center text-netland-muted">Cargando...</p>
+          <div className="py-8">
+            <CoreSpinLoader />
+          </div>
         </Card>
       ) : !leads || leads.length === 0 ? (
         <Card>
