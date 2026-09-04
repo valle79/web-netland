@@ -113,7 +113,7 @@ function Hero({ config }: { config?: SiteConfig }) {
               // YouTube video
               <>
                 <iframe
-                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&showinfo=0`}
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&loop=1&playlist=${videoId}&controls=1&modestbranding=1&rel=0&showinfo=0`}
                   title={config?.hero_video_title || "Video hero"}
                   className="absolute inset-0 h-full w-full scale-150 object-cover"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -127,9 +127,9 @@ function Hero({ config }: { config?: SiteConfig }) {
                 <video
                   src={videoUrl}
                   autoPlay
-                  muted
                   loop
                   playsInline
+                  controls
                   className="absolute inset-0 h-full w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-netland-dark/90 via-netland-dark/40 to-netland-dark/20" />
