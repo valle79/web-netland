@@ -3,9 +3,11 @@ import { useState } from "react";
 import { MapPin, MessageCircle, Phone } from "lucide-react";
 import { api } from "../lib/api";
 import { whatsappLink } from "../lib/constants";
+import { validateName, validatePhone, validateEmail } from "../lib/validations";
 import type { Advisor, Project } from "../types";
 import { Reveal } from "../components/Reveal";
 import { useLeadForm } from "../features/leads/useLeadForm";
+import { ValidatedInput } from "../components/ui/ValidatedInput";
 import { CheckCircle2 } from "lucide-react";
 
 export default function Contact() {
@@ -27,8 +29,14 @@ export default function Contact() {
     message: "",
   });
 
+  const formIsValid =
+    !validateName(form.name) &&
+    !validatePhone(form.phone) &&
+    !validateEmail(form.email);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formIsValid) return;
     await submit({
       name: form.name,
       last_name: form.last_name,
@@ -124,34 +132,38 @@ export default function Contact() {
                 className="space-y-5 rounded-lg bg-white p-8 shadow-soft"
               >
                 <div className="grid gap-5 sm:grid-cols-2">
-                  <Field
+                  <ValidatedInput
                     label="Nombre"
                     value={form.name}
                     onChange={(v) => setForm({ ...form, name: v })}
                     placeholder="Tu nombre"
+                    type="name"
                     required
                   />
-                  <Field
+                  <ValidatedInput
                     label="Apellidos"
                     value={form.last_name}
                     onChange={(v) => setForm({ ...form, last_name: v })}
                     placeholder="Tus apellidos"
+                    type="name"
                   />
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2">
-                  <Field
+                  <ValidatedInput
                     label="Teléfono / WhatsApp"
                     value={form.phone}
                     onChange={(v) => setForm({ ...form, phone: v })}
                     placeholder="999 888 777"
+                    type="phone"
                     required
                   />
-                  <Field
+                  <ValidatedInput
                     label="Correo electrónico"
                     value={form.email}
                     onChange={(v) => setForm({ ...form, email: v })}
                     placeholder="tucorreo@email.com"
                     type="email"
+                    inputType="email"
                   />
                 </div>
                 <label className="block">
@@ -185,7 +197,7 @@ export default function Contact() {
                 </label>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !formIsValid}
                   className="btn-primary w-full disabled:opacity-60"
                 >
                   {submitting ? "Enviando..." : "Enviar mensaje"}
@@ -273,34 +285,3 @@ export default function Contact() {
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-  required,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  type?: string;
-  required?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-netland-muted">
-        {label}
-      </span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        className="w-full rounded-sm border border-netland-light bg-netland-background px-4 py-3 text-sm outline-none focus:border-netland-primary"
-      />
-    </label>
-  );
-}

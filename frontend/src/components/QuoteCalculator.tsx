@@ -4,6 +4,7 @@ import { Calculator, CheckCircle2, Download } from "lucide-react";
 import type { Lot, Project } from "../types";
 import { API_URL, formatSoles } from "../lib/constants";
 import { useLeadForm } from "../features/leads/useLeadForm";
+import { validateName, validatePhone, validateEmail } from "../lib/validations";
 
 interface QuoteCalculatorProps {
   project: Project;
@@ -48,6 +49,28 @@ export function QuoteCalculator({
     phone: "",
     email: "",
   });
+
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    phone?: string;
+    email?: string;
+  }>({});
+
+  const formIsValid =
+    !validateName(formData.name) && !validatePhone(formData.phone);
+
+  const updateForm = (key: keyof typeof formData, value: string) => {
+    const next = { ...formData, [key]: value };
+    setFormData(next);
+    const errs: typeof formErrors = {};
+    if (key === "name") errs.name = validateName(value) ?? undefined;
+    if (key === "phone") {
+      const digits = value.replace(/\D/g, "");
+      errs.phone = validatePhone(digits) ?? undefined;
+    }
+    if (key === "email") errs.email = validateEmail(value) ?? undefined;
+    setFormErrors(errs);
+  };
 
   const { submit, submitting, submitted } = useLeadForm();
 
@@ -159,13 +182,8 @@ export function QuoteCalculator({
   const handleRequest = async () => {
     if (!selectedLot) return;
 
-    if (
-      !formData.name.trim() ||
-      !formData.phone.trim()
-    ) {
-      alert(
-        "Por favor ingresa tu nombre y teléfono"
-      );
+    if (!formIsValid) {
+      alert("Revisa los campos marcados en rojo antes de enviar.");
       return;
     }
 
@@ -400,19 +418,30 @@ export function QuoteCalculator({
 
                 <div className="grid grid-cols-2 gap-3">
                   {/* NOMBRE */}
-                  <input
-                    type="text"
-                    placeholder="Nombre *"
-                    value={formData.name}
-                    onChange={(event) =>
-                      setFormData({
-                        ...formData,
-                        name: event.target.value,
-                      })
-                    }
-                    className="rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
-                    required
-                  />
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Nombre *"
+                      value={formData.name}
+                      onChange={(event) =>
+                        updateForm(
+                          "name",
+                          event.target.value
+                        )
+                      }
+                      className={`rounded-sm border bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent ${
+                        formErrors.name
+                          ? "border-red-400"
+                          : "border-white/20"
+                      }`}
+                      required
+                    />
+                    {formErrors.name && (
+                      <p className="mt-1 text-xs text-red-400">
+                        {formErrors.name}
+                      </p>
+                    )}
+                  </div>
 
                   {/* APELLIDOS */}
                   <input
@@ -431,33 +460,51 @@ export function QuoteCalculator({
                 </div>
 
                 {/* TELÉFONO */}
-                <input
-                  type="tel"
-                  placeholder="Teléfono / WhatsApp *"
-                  value={formData.phone}
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      phone: event.target.value,
-                    })
-                  }
-                  className="w-full rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
-                  required
-                />
+                <div>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="Teléfono / WhatsApp *"
+                    value={formData.phone}
+                    onChange={(event) => {
+                      const digits = event.target.value.replace(/\D/g, "");
+                      updateForm("phone", digits.slice(0, 9));
+                    }}
+                    className={`w-full rounded-sm border bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent ${
+                      formErrors.phone
+                        ? "border-red-400"
+                        : "border-white/20"
+                    }`}
+                    required
+                  />
+                  {formErrors.phone && (
+                    <p className="mt-1 text-xs text-red-400">
+                      {formErrors.phone}
+                    </p>
+                  )}
+                </div>
 
                 {/* EMAIL */}
-                <input
-                  type="email"
-                  placeholder="Email (opcional)"
-                  value={formData.email}
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      email: event.target.value,
-                    })
-                  }
-                  className="w-full rounded-sm border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent"
-                />
+                <div>
+                  <input
+                    type="email"
+                    placeholder="Email (opcional)"
+                    value={formData.email}
+                    onChange={(event) =>
+                      updateForm("email", event.target.value)
+                    }
+                    className={`w-full rounded-sm border bg-white/10 px-3 py-2 text-sm text-white placeholder-white/50 outline-none focus:border-netland-accent ${
+                      formErrors.email
+                        ? "border-red-400"
+                        : "border-white/20"
+                    }`}
+                  />
+                  {formErrors.email && (
+                    <p className="mt-1 text-xs text-red-400">
+                      {formErrors.email}
+                    </p>
+                  )}
+                </div>
 
                 <div className="flex gap-2">
                   {/* ENVIAR */}
@@ -466,8 +513,7 @@ export function QuoteCalculator({
                     onClick={handleRequest}
                     disabled={
                       submitting ||
-                      !formData.name.trim() ||
-                      !formData.phone.trim()
+                      !formIsValid
                     }
                     className="btn-accent flex-1 disabled:cursor-not-allowed disabled:opacity-50"
                   >

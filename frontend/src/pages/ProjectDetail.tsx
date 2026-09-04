@@ -20,7 +20,6 @@ import type {
 } from "../types";
 import { PlanInteractive } from "../components/PlanInteractive";
 import { LotModal } from "../components/LotModal";
-import { QuoteCalculator } from "../components/QuoteCalculator";
 import { Lightbox } from "../components/ui/Lightbox";
 import { Reveal } from "../components/Reveal";
 import { useLeadForm } from "../features/leads/useLeadForm";
@@ -508,6 +507,11 @@ function VisitBanner({ project }: { project: Project }) {
   const { submit, submitted } = useLeadForm();
   const [form, setForm] = useState({ name: "", phone: "" });
 
+  const nameValid = form.name.trim().length > 0 && !/\d/.test(form.name.trim());
+  const phoneValid =
+    form.phone.length === 9 && form.phone.startsWith("9");
+  const formValid = nameValid && phoneValid;
+
   if (submitted) {
     return (
       <section className="bg-netland-primary py-20 text-white">
@@ -553,7 +557,7 @@ function VisitBanner({ project }: { project: Project }) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (form.name && form.phone) {
+            if (formValid) {
               submit({
                 name: form.name,
                 phone: form.phone,
@@ -577,21 +581,58 @@ function VisitBanner({ project }: { project: Project }) {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-                className="w-full rounded-sm border border-white/15 bg-white/10 px-4 py-3 text-sm outline-none focus:border-netland-accent"
+                className={`w-full rounded-sm border bg-white/10 px-4 py-3 text-sm text-white outline-none focus:border-netland-accent placeholder:text-white/40 ${
+                  /\d/.test(form.name.trim()) && form.name.trim().length > 0
+                    ? "border-yellow-400"
+                    : "border-white/15"
+                }`}
               />
+              {/\d/.test(form.name.trim()) && form.name.trim().length > 0 && (
+                <span className="mt-1 block text-xs text-yellow-400">
+                  El nombre no puede contener números
+                </span>
+              )}
             </label>
             <label className="block">
               <span className="mb-1 block text-xs uppercase tracking-wider text-white/60">
                 Teléfono / WhatsApp
               </span>
               <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={9}
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  setForm({ ...form, phone: digits.slice(0, 9) });
+                }}
                 required
-                className="w-full rounded-sm border border-white/15 bg-white/10 px-4 py-3 text-sm outline-none focus:border-netland-accent"
+                className={`w-full rounded-sm border bg-white/10 px-4 py-3 text-sm text-white outline-none focus:border-netland-accent placeholder:text-white/40 ${
+                  form.phone.length > 0 &&
+                  (!form.phone.startsWith("9") || form.phone.length !== 9)
+                    ? "border-yellow-400"
+                    : "border-white/15"
+                }`}
               />
+              {form.phone.length > 0 && (
+                <>
+                  {!form.phone.startsWith("9") ? (
+                    <span className="mt-1 block text-xs text-yellow-400">
+                      El teléfono debe empezar con 9
+                    </span>
+                  ) : form.phone.length !== 9 ? (
+                    <span className="mt-1 block text-xs text-yellow-400">
+                      Debe tener 9 dígitos
+                    </span>
+                  ) : null}
+                </>
+              )}
             </label>
-            <button type="submit" className="btn-accent w-full">
+            <button
+              type="submit"
+              disabled={!formValid}
+              className="btn-accent w-full disabled:cursor-not-allowed disabled:opacity-50"
+            >
               Solicitar visita
             </button>
           </div>

@@ -11,6 +11,8 @@ import {
   whatsappLink,
 } from "../lib/constants";
 import { useLeadForm } from "../features/leads/useLeadForm";
+import { validateName, validatePhone, validateEmail } from "../lib/validations";
+import { ValidatedInput } from "./ui/ValidatedInput";
 
 interface LotModalProps {
   lot: Lot | null;
@@ -191,10 +193,15 @@ function LeadForm({ lot, submitting, onCancel, onSubmit }: LeadFormProps) {
   });
   const [error, setError] = useState("");
 
+  const formIsValid =
+    !validateName(form.name) &&
+    !validatePhone(form.phone) &&
+    !validateEmail(form.email);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.phone.trim()) {
-      setError("Ingresa al menos tu nombre y teléfono.");
+    if (!formIsValid) {
+      setError("Completa correctamente nombre y teléfono.");
       return;
     }
     setError("");
@@ -210,15 +217,42 @@ function LeadForm({ lot, submitting, onCancel, onSubmit }: LeadFormProps) {
         <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Nombre" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="Tu nombre" />
-        <Field label="Apellidos" value={form.last_name} onChange={(v) => setForm({ ...form, last_name: v })} placeholder="Tus apellidos" />
+        <ValidatedInput
+          label="Nombre"
+          value={form.name}
+          onChange={(v) => setForm({ ...form, name: v })}
+          placeholder="Tu nombre"
+          type="name"
+          required
+        />
+        <ValidatedInput
+          label="Apellidos"
+          value={form.last_name}
+          onChange={(v) => setForm({ ...form, last_name: v })}
+          placeholder="Tus apellidos"
+          type="name"
+        />
       </div>
-      <Field label="Teléfono / WhatsApp" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} placeholder="999 888 777" />
-      <Field label="Correo (opcional)" value={form.email} onChange={(v) => setForm({ ...form, email: v })} placeholder="tucorreo@email.com" type="email" />
+      <ValidatedInput
+        label="Teléfono / WhatsApp"
+        value={form.phone}
+        onChange={(v) => setForm({ ...form, phone: v })}
+        placeholder="999 888 777"
+        type="phone"
+        required
+      />
+      <ValidatedInput
+        label="Correo (opcional)"
+        value={form.email}
+        onChange={(v) => setForm({ ...form, email: v })}
+        placeholder="tucorreo@email.com"
+        type="email"
+        inputType="email"
+      />
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || !formIsValid}
           className="btn-primary flex-1 disabled:opacity-60"
         >
           {submitting ? "Enviando..." : "Enviar solicitud"}
@@ -232,35 +266,6 @@ function LeadForm({ lot, submitting, onCancel, onSubmit }: LeadFormProps) {
         </button>
       </div>
     </form>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  type?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-netland-muted">
-        {label}
-      </span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-sm border border-netland-light bg-netland-background px-3 py-2.5 text-sm outline-none transition-colors focus:border-netland-primary"
-      />
-    </label>
   );
 }
 
