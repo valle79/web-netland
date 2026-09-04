@@ -26,6 +26,7 @@ const Contact = lazy(() => import("./pages/Contact"));
 const About = lazy(() => import("./pages/About"));
 const Advisors = lazy(() => import("./pages/Advisors"));
 const ReferAndEarn = lazy(() => import("./pages/ReferAndEarn"));
+const PoliticaPrivacidad = lazy(() => import("./pages/PoliticaPrivacidad"));
 
 const AdminLogin = lazy(() => import("./features/admin/AdminLogin"));
 const AdminLayout = lazy(() => import("./features/admin/AdminLayout"));
@@ -151,6 +152,7 @@ export default function App() {
             <Route path="/refiere-y-gana" element={<ReferAndEarn />} />
             <Route path="/contacto" element={<Contact />} />
             <Route path="/nosotros" element={<About />} />
+            <Route path="/politica-de-privacidad" element={<PoliticaPrivacidad />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

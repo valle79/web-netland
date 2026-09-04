@@ -103,7 +103,7 @@ export function Footer() {
 
               <li>
                 <Link
-                  to="/contacto"
+                  to="/politica-de-privacidad"
                   className="text-sm text-slate-400 transition-colors hover:text-white"
                 >
                   Política de privacidad
