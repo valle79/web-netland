@@ -103,7 +103,7 @@ export default function ProjectDetail() {
             <div className="absolute inset-0">
               {videoId ? (
                 <iframe
-                  src={`https://www.youtube.com/embed/${videoId}?autoplay=0&mute=1&loop=0&controls=1&modestbranding=1`}
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=0&mute=0&loop=0&controls=1&modestbranding=1`}
                   title={mainVideo.title}
                   className="h-full w-full object-cover"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -113,9 +113,7 @@ export default function ProjectDetail() {
                 <video
                   src={mainVideo.url}
                   controls
-                  muted
                   loop
-                  autoPlay
                   playsInline
                   className="h-full w-full object-cover"
                 />
@@ -517,12 +515,12 @@ function VisitBanner({ project }: { project: Project }) {
 
   if (submitted) {
     return (
-      <section className="bg-netland-dark py-20 text-white">
+      <section className="bg-netland-primary py-20 text-white">
         <div className="container-netland text-center">
           <p className="font-display text-3xl font-semibold">
             ¡Solicitud de visita enviada!
           </p>
-          <p className="mt-3 text-white/70">
+          <p className="mt-3 text-white/90">
             Un asesor de Netland coordinará tu visita guiada a {project.short_name}.
           </p>
         </div>
@@ -531,14 +529,14 @@ function VisitBanner({ project }: { project: Project }) {
   }
 
   return (
-    <section className="bg-netland-dark py-20 text-white">
+    <section className="bg-netland-primary py-20 text-white">
       <div className="container-netland grid items-center gap-10 lg:grid-cols-2">
         <div>
           <p className="eyebrow">Visitas guiadas</p>
           <h2 className="font-display text-4xl font-semibold sm:text-5xl">
             Agenda una visita a {project.short_name}
           </h2>
-          <p className="mt-4 text-white/70">
+          <p className="mt-4 text-white/90">
             Recorre el terreno, conoce las áreas comunes y resuelve todas tus dudas
             con un asesor de Netland.
           </p>
