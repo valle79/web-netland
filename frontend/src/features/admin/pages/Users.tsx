@@ -8,6 +8,8 @@ import { PageHeader, Button, Card, Field, Input, Select, Table, Badge } from "..
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
+import { QueryError } from "../../../components/ui/QueryError";
 import { useAuth } from "../AuthContext";
 
 const roleColors: Record<string, string> = ROLE_COLORS;
@@ -98,7 +100,7 @@ export default function AdminUsers() {
   const isSuperAdmin = me?.role?.toUpperCase() === "SUPER_ADMIN";
   const myId = me?.id;
 
-  const { data: users = [] } = useQuery({
+  const { data: users = [], isLoading, isError } = useQuery({
     queryKey: ["users-admin"],
     queryFn: ({ signal }) => api.get<User[]>("/users", true, signal),
   });
@@ -249,7 +251,11 @@ export default function AdminUsers() {
         </Card>
       )}
 
-      {users.length === 0 ? (
+      {isLoading ? (
+        <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+      ) : isError ? (
+        <Card><QueryError /></Card>
+      ) : users.length === 0 ? (
         <Card>
           <EmptyState title="Sin usuarios" description="Crea usuarios para el equipo." />
         </Card>

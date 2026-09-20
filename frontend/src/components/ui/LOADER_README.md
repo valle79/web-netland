@@ -86,26 +86,7 @@ El componente usa las siguientes clases de Tailwind que pueden personalizarse:
 
 ## Migración desde otros loaders
 
-### Desde Skeleton
-```tsx
-// Antes
-<Skeleton className="h-32 rounded-lg" />
-
-// Después
-<CoreSpinLoader />
-```
-
-### Desde CardSkeleton
-```tsx
-// Antes
-<div className="grid gap-8 md:grid-cols-2">
-  <CardSkeleton />
-  <CardSkeleton />
-</div>
-
-// Después
-<CoreSpinLoader />
-```
+> **Nota**: `frontend/src/components/ui/Skeleton.tsx` (con `Skeleton` y `CardSkeleton`) fue eliminado del código por estar sin uso tras la estandarización. Todo consumo de carga debe usar `CoreSpinLoader`.
 
 ### Desde Spinner
 ```tsx

@@ -6,7 +6,8 @@ import { api } from "../../../lib/api";
 import type { Project } from "../../../types";
 import { PageHeader, Button, Card, Field, Input, Select, Textarea } from "../ui";
 import { useToast } from "../../../components/ui/Toast";
-import { Skeleton } from "../../../components/ui/Skeleton";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
+import { QueryError } from "../../../components/ui/QueryError";
 import { FileUploader } from "../../../components/ui/FileUploader";
 
 interface DocumentItem {
@@ -35,7 +36,7 @@ export default function ProjectDocuments() {
   });
 
   // Cargar documentos
-  const { data: documents, isLoading } = useQuery({
+  const { data: documents, isLoading, isError } = useQuery({
     queryKey: ["project-documents-list", id],
     queryFn: ({ signal }) => api.get<DocumentItem[]>(`/projects/${id}/documents`, false, signal),
   });
@@ -196,7 +197,9 @@ export default function ProjectDocuments() {
           </h3>
 
           {isLoading ? (
-            <Skeleton className="h-64 rounded-lg" />
+            <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+          ) : isError ? (
+            <Card><QueryError /></Card>
           ) : documents && documents.length > 0 ? (
             <div className="space-y-3">
               {documents.map((doc) => (

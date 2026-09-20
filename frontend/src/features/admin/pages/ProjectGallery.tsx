@@ -6,7 +6,7 @@ import { api } from "../../../lib/api";
 import type { Project } from "../../../types";
 import { PageHeader, Button, Card } from "../ui";
 import { useToast } from "../../../components/ui/Toast";
-import { Skeleton } from "../../../components/ui/Skeleton";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { FileUploader } from "../../../components/ui/FileUploader";
 
 interface GalleryItem {
@@ -146,6 +146,9 @@ export default function ProjectGallery() {
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-netland-light">
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "images"}
           onClick={() => setActiveTab("images")}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === "images"
@@ -159,6 +162,9 @@ export default function ProjectGallery() {
           </div>
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "videos"}
           onClick={() => setActiveTab("videos")}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === "videos"
@@ -192,7 +198,7 @@ export default function ProjectGallery() {
           </Card>
 
           {loadingImages ? (
-            <Skeleton className="h-64 rounded-lg" />
+            <Card><div className="py-8"><CoreSpinLoader /></div></Card>
           ) : images && images.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {images.map((image) => (
@@ -252,7 +258,7 @@ export default function ProjectGallery() {
           </Card>
 
           {loadingVideos ? (
-            <Skeleton className="h-64 rounded-lg" />
+            <Card><div className="py-8"><CoreSpinLoader /></div></Card>
           ) : videos && videos.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {videos.map((video) => (

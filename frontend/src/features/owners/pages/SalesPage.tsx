@@ -4,12 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { Download, FileText, Plus, Search, X } from "lucide-react";
 import { api } from "../../../lib/api";
 import { API_URL } from "../../../lib/constants";
+import { useDebouncedValue } from "../../../lib/useDebounce";
 import { PageHeader, Button, Card, Badge, Table, Field, Select, Input, Pagination } from "../../admin/ui";
 import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import type { Project, Advisor } from "../../../types";
 import NewSaleModal from "../components/NewSaleModal";
 import { PAYMENT_MODALITIES, CONTRACT_STATUS, COLLECTION_STATUS, COLLECTION_STATUS_COLORS, formatSoles } from "../constants";
+import { downloadBlob } from "../../../lib/download";
 
 export interface SaleItem {
   sale_id: number;
@@ -35,6 +37,22 @@ export interface SaleItem {
   collection_status: "al_dia" | "proximo_vencer" | "vencido" | "cancelado";
 }
 
+export interface SalePage {
+  items: SaleItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+const SORT_OPTIONS: Record<string, string> = {
+  date_desc: "Fecha (reciente → antiguo)",
+  date_asc: "Fecha (antiguo → reciente)",
+  outstanding_desc: "Mayor deuda primero",
+  overdue_first: "En mora primero",
+  contract_desc: "Contrato (Z → A)",
+  contract_asc: "Contrato (A → Z)",
+};
+
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   pendiente: "Pendiente",
   parcial: "Parcial",
@@ -56,11 +74,13 @@ export default function SalesPage() {
   const [status, setStatus] = useState("");
   const [modality, setModality] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
+  const [sortBy, setSortBy] = useState("date_desc");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const [newSaleOpen, setNewSaleOpen] = useState(false);
 
   const { data: projects } = useQuery({
-    queryKey: ["projects-admin"],
+    queryKey: ["projects-auth"],
     queryFn: ({ signal }) => api.get<Project[]>("/projects", true, signal),
   });
 
@@ -69,8 +89,19 @@ export default function SalesPage() {
     queryFn: ({ signal }) => api.get<Advisor[]>("/advisors", true, signal),
   });
 
-  const { data: items, isLoading } = useQuery({
-    queryKey: ["sales", projectId, advisorId, status, modality, paymentStatus, search],
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: [
+      "sales",
+      projectId,
+      advisorId,
+      status,
+      modality,
+      paymentStatus,
+      sortBy,
+      debouncedSearch,
+      page,
+      pageSize,
+    ],
     queryFn: ({ signal }) => {
       const params = new URLSearchParams();
       if (projectId) params.append("project_id", projectId.toString());
@@ -78,15 +109,16 @@ export default function SalesPage() {
       if (status) params.append("status", status);
       if (modality) params.append("payment_modality", modality);
       if (paymentStatus) params.append("payment_status", paymentStatus);
-      if (search) params.append("search", search);
-      return api.get<SaleItem[]>(`/sales?${params.toString()}`, true, signal);
+      if (debouncedSearch) params.append("search", debouncedSearch);
+      params.append("sort_by", sortBy);
+      params.append("skip", String((page - 1) * pageSize));
+      params.append("limit", String(pageSize));
+      return api.get<SalePage>(`/sales?${params.toString()}`, true, signal);
     },
   });
 
-  const sales = items || [];
-  const totalItems = sales.length;
-  const startIndex = (page - 1) * pageSize;
-  const paginatedItems = sales.slice(startIndex, startIndex + pageSize);
+  const sales = pageData?.items || [];
+  const totalItems = pageData?.total ?? 0;
 
   /**
    * Descarga el PDF de la venta (documento comercial, se genera siempre).
@@ -97,15 +129,7 @@ export default function SalesPage() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) return;
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${item.contract_number}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    downloadBlob(await response.blob(), `${item.contract_number}.pdf`);
   };
 
   return (
@@ -122,7 +146,7 @@ export default function SalesPage() {
       />
 
       <Card className="mb-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
           <Field label="Proyecto">
             <Select value={projectId} onChange={(e) => { setProjectId(e.target.value ? Number(e.target.value) : ""); setPage(1); }}>
               <option value="">Todos</option>
@@ -184,6 +208,13 @@ export default function SalesPage() {
               )}
             </div>
           </Field>
+          <Field label="Ordenar">
+            <Select value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPage(1); }}>
+              {Object.entries(SORT_OPTIONS).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </Select>
+          </Field>
         </div>
       </Card>
 
@@ -201,7 +232,7 @@ export default function SalesPage() {
               "Precio", "Pagado", "Pendiente", "Pago", "Cobranza", "Acciones",
             ]}
           >
-            {paginatedItems.map((item) => (
+            {sales.map((item) => (
               <tr key={item.sale_id} className="hover:bg-netland-light/30">
                 <td className="px-5 py-3 font-semibold text-netland-dark">{item.contract_number}</td>
                 <td className="px-5 py-3">

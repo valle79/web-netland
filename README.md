@@ -1,6 +1,6 @@
 # 🏡 Netland - Corporación Inmobiliaria
 
-Sistema completo de gestión inmobiliaria con CRM, panel administrativo, módulo de ventas, propietarios y cobranzas, importación de planos con OCR y sitio web público.
+Sistema completo de gestión inmobiliaria con CRM, panel administrativo, módulo de ventas, propietarios y cobranzas, comisiones y planillas, respaldos de base de datos, importación de planos con OCR, anuncios pop-up y sitio web público.
 
 ## 🌟 Características Principales
 
@@ -10,6 +10,7 @@ Sistema completo de gestión inmobiliaria con CRM, panel administrativo, módulo
 - **Planos interactivos** con disponibilidad en tiempo real de lotes
 - **Asesores de la empresa** con dexcripcion, contacto y enlace hacia wasap de cada uno
 - **Sistema de referidos** ("Refiere y Gana") con recompensas por niveles
+- **Pop-ups de anuncios y promociones** configurables (imagen o video, fechas de vigencia, frecuencia y botón de WhatsApp)
 - **Formularios de contacto** con captura automática de leads
 - **WhatsApp flotante** integrado en todas las páginas
 - **Diseño responsive** optimizado para móvil, tablet y desktop
@@ -29,7 +30,8 @@ Sistema completo de gestión inmobiliaria con CRM, panel administrativo, módulo
 - **Sistema de Cotizaciones** con generación y envío de PDF
 - **Gestión de Visitas** con calendario integrado
 - **Gestión de Asesores** con perfil público en la web
-- **Promociones** con fechas de vigencia
+- **Anuncios pop-up** para la web pública (anuncios y promociones con imagen/video, vigencia y frecuencia)
+- **Pricing de lotes** con recargos (esquina, frente a parque, frente a pista) y descuentos (porcentaje o monto fijo)
 - **Multimedia** centralizada con Cloudinary CDN
 - **Configuración del Sitio** (contenido dinámico de la web)
 - **Gestión de Usuarios** con roles y control de accesos
@@ -53,15 +55,46 @@ Sistema completo de gestión inmobiliaria con CRM, panel administrativo, módulo
 - **Integración WhatsApp** para recordatorios de pago
 - **Reportes y Estados de Cuenta**
 - **Control de Mora** automático con alertas
-- **Importación masiva de propietarios y pagos desde Excel** (validación + aplicación en 2 pasos)
+- **Importación masiva desde Excel en 2 pasos** (previsualización + confirmación) con plantillas descargables, detección automática de columnas y selección de mapeo para:
+  - Propietarios
+  - Pagos
+  - Clientes
+  - Contratos / Ventas
+  - Planes de financiamiento
+  - Cuotas del cronograma
+- **Exportación a Excel** de propietarios y pagos
 
 #### Módulo de Ventas 💼
-- **Registro de ventas** vinculadas a contratos y lotes
+- **Registro de ventas atómico**: resuelve o crea cliente y propietario titular, valida disponibilidad del lote y genera el contrato en una sola operación
+- **Carga de vouchers iniciales** (separación/adelanto) al crear la venta
+- **PDF comercial de la venta** con pricing completo (recargos, descuentos) y cuentas bancarias del proyecto
 - **Seguimiento del embudo comercial** desde la captación hasta el cierre
 - **Asignación de asesores** y supervisores de ventas
+- **Comisión automática del asesor** al registrar la venta, según porcentaje configurado
+
+#### Módulo de Comisiones y Planillas 💰
+- **Porcentajes de comisión por asesor y proyecto** (con control de combinaciones duplicadas)
+- **Comisiones de venta** generadas automáticamente al registrar la venta o de forma manual
+- **Mensualidades de asesores** con período contable (ej: `2026-09`)
+- **Control de estados:** pendiente → parcial → pagado | anulado
+- **Registro de pago** con método, fecha y número de transacción
+- **Anulación y reactivación** con motivo y auditoría completa
+- **Búsqueda y filtros** por tipo, asesor, proyecto, estado, período y rango de fechas
+
+#### Módulo de Respaldos 🛡️ (Solo SUPER_ADMIN)
+- **Generación de respaldos** completos de la base de datos (JSON) almacenados en Cloudinary
+- **Descarga** del archivo de respaldo a la máquina local
+- **Restauración total** de la base de datos desde un archivo (con confirmación de riesgo)
+- **Historial** de respaldos con tamaño, tablas, filas y estado
+
+#### Mantenimiento y Zona de Peligro ⚠️ (Solo SUPER_ADMIN)
+- **Restablecimiento de datos de negocio** con confirmación escrita ("BORRAR TODO")
+- Elimina datos transaccionales (propietarios, contratos, pagos, cronogramas, leads, clientes, cotizaciones, visitas, comisiones, anuncios, notificaciones y auditoría)
+- **Conserva intactos:** proyectos, bloques, lotes, usuarios, roles, configuración del sitio y respaldos
 
 #### Seguridad y Control
 - **Autenticación JWT** con roles y permisos
+- **Rate limiting** en login y formularios de captación de leads (protección anti fuerza bruta/spam)
 - **Roles de Usuario:** SUPER_ADMIN, ADMIN, ASESOR, VENTAS, COBRANZAS, SUPERVISOR
 - **Auditoría completa** de acciones (quién y cuándo)
 - **Gestión de Usuarios** con control de accesos
@@ -76,7 +109,8 @@ Sistema completo de gestión inmobiliaria con CRM, panel administrativo, módulo
 - **Pydantic** v2 - Validación de datos
 - **Cloudinary** - CDN y almacenamiento de archivos
 - **JWT** + **bcrypt** - Autenticación y autorización
-- **ReportLab** - Generación de PDFs (cotizaciones, contratos, estados de cuenta)
+- **Rate limiting** - Ventana deslizante para login y leads
+- **ReportLab** - Generación de PDFs (cotizaciones, contratos, ventas, estados de cuenta)
 - **pandas + openpyxl** - Importación/exportación de Excel
 - **OCR de Planos:** pdf2image, pytesseract, OpenCV, NumPy (detección de lotes)
 - **Python** 3.11+
@@ -118,32 +152,45 @@ netland-proyecto/
 │   │   │       ├── config.py     # Configuración del sitio
 │   │   │       ├── uploads.py    # Subidas a Cloudinary
 │   │   │       ├── excel_import.py
+│   │   │       ├── imports.py        # Importación genérica Excel
 │   │   │       ├── plan_import.py    # OCR de planos
 │   │   │       ├── owners.py     # Módulo propietarios
 │   │   │       ├── contracts.py  # Módulo contratos
 │   │   │       ├── payments.py   # Módulo pagos
 │   │   │       ├── collections.py # Módulo cobranzas
 │   │   │       ├── installments.py # Cuotas del cronograma
-│   │   │       └── sales.py      # Módulo de ventas
+│   │   │       ├── sales.py      # Módulo de ventas
+│   │   │       ├── commissions.py   # Comisiones y planillas
+│   │   │       ├── backups.py       # Respaldos de base de datos
+│   │   │       ├── announcements.py # Anuncios pop-up de la web
+│   │   │       └── maintenance.py   # Zona de peligro (reset de datos)
 │   │   ├── core/
 │   │   │   ├── config.py        # Configuración
 │   │   │   ├── database.py      # Conexión a BD
 │   │   │   ├── dependencies.py  # Dependencias FastAPI
 │   │   │   ├── logging.py       # Sistema de logs
+│   │   │   ├── pricing.py       # Motor de precios (recargos/descuentos)
+│   │   │   ├── rate_limit.py    # Limitador de intentos
 │   │   │   └── security.py      # JWT y hashing
 │   │   ├── domain/
 │   │   │   ├── models.py        # Modelos SQLAlchemy principales
-│   │   │   └── owners_models.py # Modelos del módulo de cobranzas
+│   │   │   ├── owners_models.py # Modelos del módulo de cobranzas
+│   │   │   ├── commission_models.py # Modelos de comisiones
+│   │   │   └── backup_models.py     # Modelo de respaldos
 │   │   ├── infrastructure/
 │   │   │   ├── cloudinary_service.py
 │   │   │   ├── pdf_service.py
 │   │   │   ├── owners_service.py     # Lógica de negocio cobranzas
+│   │   │   ├── commissions_service.py # Lógica de comisiones
+│   │   │   ├── backup_service.py     # Respaldos y restauración
 │   │   │   └── plan_analyzer/        # OCR y detección de lotes
 │   │   ├── schemas/
 │   │   │   ├── auth.py
 │   │   │   ├── project.py
 │   │   │   ├── crm.py
 │   │   │   ├── owners.py        # Schemas de cobranzas
+│   │   │   ├── commissions.py   # Schemas de comisiones
+│   │   │   ├── backups.py       # Schemas de respaldos
 │   │   │   └── ...
 │   │   ├── main.py              # Punto de entrada
 │   │   └── seed.py              # Datos iniciales
@@ -180,9 +227,19 @@ netland-proyecto/
 │   │   │   │       ├── Lots.tsx
 │   │   │   │       ├── Leads.tsx / CapturedClients.tsx
 │   │   │   │       ├── Quotes.tsx / Visits.tsx
-│   │   │   │       ├── Advisors.tsx / Promotions.tsx
+│   │   │   │       ├── Advisors.tsx
 │   │   │   │       ├── Media.tsx / SiteSettings.tsx / Users.tsx
+│   │   │   │       ├── Announcements.tsx   # Anuncios pop-up
+│   │   │   │       ├── Backups.tsx         # Respaldos de base de datos
+│   │   │   │       ├── DangerZone.tsx      # Restablecimiento de datos
 │   │   │   │       └── ...
+│   │   │   ├── commissions/    # Módulo de comisiones y planillas
+│   │   │   │   ├── types.ts / constants.ts
+│   │   │   │   ├── components/ # Lista y formularios de comisiones
+│   │   │   │   └── pages/
+│   │   │   │       ├── CommissionsPage.tsx
+│   │   │   │       ├── SalariesPage.tsx
+│   │   │   │       └── CommissionPercentagesPage.tsx
 │   │   │   ├── owners/         # Módulo de cobranzas
 │   │   │   │   ├── types.ts
 │   │   │   │   ├── constants.ts
@@ -341,8 +398,9 @@ Después de ejecutar `python -m app.seed`:
 
 ### Documentación Técnica Específica
 - **[backend/OWNERS_MODULE_README.md](./backend/OWNERS_MODULE_README.md)** - Documentación del módulo de cobranzas
-- **[backend/PLAN_IMPORT_SETUP.md](./backend/PLAN_IMPORT_SETUP.md)** - Setup de importación de planos
 - **[backend/sql_examples.sql](./backend/sql_examples.sql)** - Ejemplos de consultas SQL
+- **[backend/test_ocr_setup.py](./backend/test_ocr_setup.py)** - Test de setup OCR para importación de planos
+- **[backend/test_owners_module.py](./backend/test_owners_module.py)** - Test del módulo de propietarios
 - **[VOUCHER_UPLOAD_IMPLEMENTATION.md](./VOUCHER_UPLOAD_IMPLEMENTATION.md)** - Implementación de vouchers de pago
 - **[VOUCHER_TESTING_GUIDE.md](./VOUCHER_TESTING_GUIDE.md)** - Guía de pruebas de vouchers
 
@@ -371,7 +429,6 @@ El proyecto usa **Neon PostgreSQL** (serverless y compatible con Render, Netlify
 - `project_images` - Galería de imágenes
 - `project_videos` - Videos promocionales
 - `project_documents` - Documentos descargables y planos PDF
-- `promotions` - Promociones activas
 - `advisors` - Asesores de ventas (con perfil público)
 - `leads` - Leads capturados (con estados de seguimiento)
 - `clients` - Clientes registrados
@@ -381,6 +438,7 @@ El proyecto usa **Neon PostgreSQL** (serverless y compatible con Render, Netlify
 - `notifications` - Notificaciones del sistema
 - `audit_logs` - Auditoría de acciones (quién y cuándo)
 - `site_config` - Configuración dinámica del sitio web
+- `site_announcements` - Anuncios pop-up de la web pública
 
 #### Módulo de Propietarios y Cobranzas
 - `owners` - Propietarios (persona natural y jurídica)
@@ -395,7 +453,14 @@ El proyecto usa **Neon PostgreSQL** (serverless y compatible con Render, Netlify
 - `import_batches` - Lotes de importación Excel
 - `import_errors` - Errores de importación
 
-**Total:** 29 tablas normalizadas (3FN)
+#### Módulo de Comisiones y Planillas
+- `advisor_commissions` - Porcentajes de comisión por asesor × proyecto
+- `commission_payments` - Pagos de comisiones de venta y mensualidades
+
+#### Sistema
+- `backups` - Respaldos completos de la base de datos (archivos en Cloudinary)
+
+**Total:** 32 tablas normalizadas (3FN)
 
 ### Roles del Sistema
 
@@ -440,6 +505,8 @@ Project → Lots  ← Visits   Contracts → Owners
 Blocks   PropertyOwnership    FinancingPlan → Installments
                                ↓                   ↓
                            CashPayment       Payments → PaymentAllocations
+  ↓
+AdvisorCommission → CommissionPayment        SiteAnnouncement · Backup
 ```
 
 ## 📤 Cloudinary
@@ -455,6 +522,8 @@ Folders organizados:
 - `plans/` - Planos de lotes (PDF → imagen)
 - `contracts/` y `contract_documents/` - Contratos y documentos legales
 - `vouchers/contract_{id}/` - Vouchers de pago por contrato
+- `announcements/` - Imágenes y videos de anuncios pop-up
+- `backups/` - Respaldos completos de la base de datos
 - `site/` - Configuración del sitio (hero, etc.)
 
 ## 🧪 Testing
@@ -600,8 +669,16 @@ Todos los derechos reservados © 2026 Netland.
 - [x] Módulo de propietarios, contratos, pagos y cobranzas
 - [x] Módulo de ventas (dashboard comercial)
 - [x] Importación masiva de propietarios y pagos desde Excel
+- [x] Importación masiva extendida: clientes, contratos/ventas, financiamiento y cuotas
+- [x] Exportación a Excel de propietarios y pagos
 - [x] Generación de contratos y estados de cuenta PDF
-- [x] Carga de vouchers de pago
+- [x] PDF comercial de ventas con pricing (recargos y descuentos)
+- [x] Carga de vouchers de pago (incluida en el registro de ventas)
+- [x] Módulo de comisiones y planillas de asesores
+- [x] Respaldos y restauración de base de datos (Cloudinary)
+- [x] Anuncios pop-up en la web pública (imagen/video, vigencia, frecuencia)
+- [x] Restablecimiento de datos (zona de peligro, solo SUPER_ADMIN)
+- [x] Rate limiting en login y formularios públicos
 - [x] Dashboard de KPIs
 - [x] Roles y permisos (6 roles) + gestión de usuarios
 - [x] Configuración dinámica del sitio web (admin)
@@ -612,6 +689,7 @@ Todos los derechos reservados © 2026 Netland.
 - [ ] Notificaciones por email automatizadas
 - [ ] Reportes avanzados de cobranzas
 - [ ] Portal del cliente (ver su estado de cuenta)
+- [ ] Programación/refinanciamiento de cuotas en línea
 
 ### 📋 Planeado (v2.0)
 - [ ] App móvil para asesores (React Native)
@@ -622,7 +700,6 @@ Todos los derechos reservados © 2026 Netland.
 - [ ] Integración con ERP contable
 - [ ] Business Intelligence (BI) dashboards
 - [ ] Email marketing automatizado
-- [ ] Sistema de comisiones para asesores
 
 ### 💡 Ideas Futuras
 - [ ] Realidad aumentada para visualizar lotes
@@ -680,6 +757,6 @@ Todos los derechos reservados © 2026 Netland.
 
 ---
 
-**Versión:** 1.0.0  
+**Versión:** 1.1.0  
 **Última actualización:** Septiembre 2026  
 **Estado:** ✅ En Producción

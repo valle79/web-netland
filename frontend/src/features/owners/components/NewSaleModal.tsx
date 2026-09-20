@@ -115,12 +115,12 @@ export default function NewSaleModal({ open, onClose }: NewSaleModalProps) {
   });
 
   const { data: projects } = useQuery({
-    queryKey: ["projects"],
+    queryKey: ["projects-auth"],
     queryFn: ({ signal }) => api.get<Project[]>("/projects", true, signal),
   });
 
   const { data: advisors } = useQuery({
-    queryKey: ["advisors"],
+    queryKey: ["advisors-auth"],
     queryFn: ({ signal }) => api.get<Advisor[]>("/advisors", true, signal),
   });
 

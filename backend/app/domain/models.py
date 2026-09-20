@@ -240,6 +240,7 @@ class Lot(Base):
 
     __table_args__ = (
         Index("ix_lots_project_status", "project_id", "status"),
+        Index("ix_lots_project_block_number", "project_id", "block_id", "lot_number"),
         UniqueConstraint("project_id", "code", name="uq_lot_project_code"),
     )
 

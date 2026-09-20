@@ -19,11 +19,13 @@ import { API_URL } from "../../../lib/constants";
 import type { Project } from "../../../types";
 import { PageHeader, Button, Card, Badge } from "../ui";
 import { useToast } from "../../../components/ui/Toast";
-import { Skeleton } from "../../../components/ui/Skeleton";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { QueryError } from "../../../components/ui/QueryError";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileUploader } from "../../../components/ui/FileUploader";
+import { downloadBlob } from "../../../lib/download";
 
 const PROJECT_TYPE_LABELS: Record<string, string> = {
   lotes: "Lotes",
@@ -70,7 +72,7 @@ export default function AdminProjects() {
   const [showExcelImport, setShowExcelImport] = useState<number | null>(null);
   const [showPlanUpload, setShowPlanUpload] = useState<number | null>(null);
 
-  const { data: projects, isLoading } = useQuery({
+  const { data: projects, isLoading, isError } = useQuery({
     queryKey: ["projects-admin"],
     queryFn: ({ signal }) => api.get<Project[]>("/projects", false, signal),
   });
@@ -78,7 +80,7 @@ export default function AdminProjects() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.del(`/projects/${id}`, true),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast("Proyecto eliminado.");
     },
     onError: (e) => toast(e.message, "error"),
@@ -88,7 +90,7 @@ export default function AdminProjects() {
     mutationFn: ({ id, plan_pdf_url }: { id: number; plan_pdf_url: string }) =>
       api.put(`/projects/${id}`, { plan_pdf_url }, true),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast("PDF del plano actualizado correctamente");
       setShowPlanUpload(null);
     },
@@ -111,11 +113,9 @@ export default function AdminProjects() {
       />
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-72 rounded-xl" />
-          <Skeleton className="h-72 rounded-xl" />
-          <Skeleton className="h-72 rounded-xl" />
-        </div>
+        <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+      ) : isError ? (
+        <Card><QueryError /></Card>
       ) : !projects || projects.length === 0 ? (
         <Card>
           <EmptyState
@@ -263,7 +263,7 @@ export default function AdminProjects() {
           onClose={() => setShowExcelImport(null)}
           onSuccess={() => {
             setShowExcelImport(null);
-            queryClient.invalidateQueries({ queryKey: ["projects-admin"] });
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
             toast("Lotes importados correctamente desde Excel");
           }}
         />
@@ -354,15 +354,7 @@ function ExcelImportModal({
         throw new Error("No se pudo generar la plantilla");
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "plantilla-lotes.xlsx";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      downloadBlob(await response.blob(), "plantilla-lotes.xlsx");
     } catch {
       toast("No se pudo descargar la plantilla. Intenta de nuevo.", "error");
     } finally {

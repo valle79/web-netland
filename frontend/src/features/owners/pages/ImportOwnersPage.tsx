@@ -14,6 +14,7 @@ import { API_URL } from "../../../lib/constants";
 import { PageHeader, Button, Card, Field, Select, Badge, Table } from "../../admin/ui";
 import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { useToast } from "../../../components/ui/Toast";
+import { downloadBlob } from "../../../lib/download";
 
 interface ImportPreview {
   batch_id: number;
@@ -75,13 +76,7 @@ async function downloadFile(path: string, filename: string) {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!response.ok) throw new Error("Error al descargar el archivo");
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(await response.blob(), filename);
 }
 
 export default function ImportOwnersPage() {

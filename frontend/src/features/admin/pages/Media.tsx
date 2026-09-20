@@ -7,6 +7,8 @@ import { PageHeader, Button, Card, Field, Input, Select, Table, Textarea } from 
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
+import { QueryError } from "../../../components/ui/QueryError";
 import { FileUploader } from "../../../components/ui/FileUploader";
 
 type MediaTab = "galeria" | "videos" | "documentos";
@@ -207,6 +209,9 @@ export default function AdminMedia() {
         ).map(([key, label, Icon]) => (
           <button
             key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
             onClick={() => {
               setTab(key);
               resetForm();
@@ -224,7 +229,11 @@ export default function AdminMedia() {
       </div>
 
       {tab === "galeria" &&
-        (gallery.data?.length ? (
+        (gallery.isLoading ? (
+          <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+        ) : gallery.isError ? (
+          <Card><QueryError /></Card>
+        ) : gallery.data?.length ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {gallery.data.map((img) => (
               <div key={img.id} className="group relative overflow-hidden rounded-lg">
@@ -253,7 +262,11 @@ export default function AdminMedia() {
         ))}
 
       {tab === "videos" &&
-        (videos.data?.length ? (
+        (videos.isLoading ? (
+          <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+        ) : videos.isError ? (
+          <Card><QueryError /></Card>
+        ) : videos.data?.length ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {videos.data.map((video) => {
               const videoId = video.url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\ w-]{11})/)?.[1];
@@ -298,7 +311,11 @@ export default function AdminMedia() {
         ))}
 
       {tab === "documentos" &&
-        (documents.data?.length ? (
+        (documents.isLoading ? (
+          <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+        ) : documents.isError ? (
+          <Card><QueryError /></Card>
+        ) : documents.data?.length ? (
           <Table headers={["Nombre", "Categoría", "URL", "Acciones"]}>
             {documents.data.map((doc) => (
               <tr key={doc.id}>

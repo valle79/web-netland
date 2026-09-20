@@ -195,6 +195,14 @@ class LotOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class LotPage(BaseModel):
+    """Página del listado de lotes (pagina el backend, no el cliente)"""
+    items: list[LotOut]
+    total: int
+    page: int
+    page_size: int
+
+
 class ProjectImagesOut(BaseModel):
     items: list[Any] = []
 

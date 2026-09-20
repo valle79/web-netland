@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func
+from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 import httpx
 
@@ -17,6 +17,7 @@ from app.schemas.project import (
     GalleryItem,
     LotCreate,
     LotOut,
+    LotPage,
     LotStatusUpdate,
     LotUpdate,
     ProjectCreate,
@@ -140,6 +141,83 @@ def list_project_lots(
         out.block_code = lot.block.code if lot.block else None
         result.append(out)
     return result
+
+
+@router.get("/{project_identifier}/lots/page", response_model=LotPage)
+def list_project_lots_page(
+    project_identifier: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(25, ge=1, le=1000),
+    status_filter: str | None = Query(default=None, alias="status"),
+    block_id: int | None = Query(default=None),
+    search: str | None = Query(default=None, description="Código, manzana, número, área u observaciones"),
+    sort_by: str = Query("default", description="default | code_asc | code_desc | price_asc | price_desc | area_asc | area_desc"),
+    db: Session = Depends(get_db),
+):
+    """Listado paginado de lotes (el backend pagina, filtra, busca y ordena).
+
+    Es la versión escalable de ``/lots``: solo se transmite la página solicitada
+    junto con el total de coincidencias. El endpoint original se mantiene para
+    los consumidores que necesitan la lista completa (planos, cotizaciones, etc.).
+    """
+    project = get_project_or_404(db, project_identifier)
+
+    stmt = (
+        select(Lot, Block)
+        .outerjoin(Block, Block.id == Lot.block_id)
+        .where(Lot.project_id == project.id)
+    )
+
+    if status_filter:
+        stmt = stmt.where(Lot.status == status_filter)
+    if block_id:
+        stmt = stmt.where(Lot.block_id == block_id)
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        stmt = stmt.where(
+            or_(
+                Lot.code.ilike(term),
+                Block.code.ilike(term),
+                cast(Lot.lot_number, String).ilike(term),
+                cast(Lot.area_m2, String).ilike(term),
+                Lot.notes.ilike(term),
+            )
+        )
+
+    total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar() or 0
+
+    effective_skip = skip
+    if total > 0 and effective_skip >= total:
+        effective_skip = ((total - 1) // limit) * limit
+
+    order_map = {
+        "default": [Lot.block_id, Lot.lot_number, Lot.code],
+        "code_asc": [Lot.code.asc(), Lot.block_id, Lot.lot_number],
+        "code_desc": [Lot.code.desc(), Lot.block_id, Lot.lot_number],
+        "price_asc": [func.coalesce(Lot.normal_price_usd, 0).asc(), Lot.block_id, Lot.lot_number],
+        "price_desc": [func.coalesce(Lot.normal_price_usd, 0).desc(), Lot.block_id, Lot.lot_number],
+        "area_asc": [func.coalesce(Lot.area_m2, 0).asc(), Lot.block_id, Lot.lot_number],
+        "area_desc": [func.coalesce(Lot.area_m2, 0).desc(), Lot.block_id, Lot.lot_number],
+    }
+    rows = db.execute(
+        stmt.order_by(*order_map.get(sort_by, order_map["default"]))
+        .offset(effective_skip)
+        .limit(limit)
+    ).all()
+
+    items = []
+    for lot, block in rows:
+        out = LotOut.model_validate(lot)
+        out.block_code = block.code if block else None
+        items.append(out)
+
+    return LotPage(
+        items=items,
+        total=total,
+        page=effective_skip // limit + 1 if limit else 1,
+        page_size=limit,
+    )
 
 
 # ---- Blocks ----

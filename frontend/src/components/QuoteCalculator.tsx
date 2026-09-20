@@ -5,6 +5,7 @@ import type { Lot, Project } from "../types";
 import { API_URL, formatSoles } from "../lib/constants";
 import { useLeadForm } from "../features/leads/useLeadForm";
 import { validateName, validatePhone, validateEmail } from "../lib/validations";
+import { downloadBlob } from "../lib/download";
 
 interface QuoteCalculatorProps {
   project: Project;
@@ -621,23 +622,10 @@ export function QuoteDownloadButton({
         );
       }
 
-      const blob =
-        await response.blob();
-
-      const url =
-        URL.createObjectURL(blob);
-
-      const link =
-        document.createElement("a");
-
-      link.href = url;
-      link.download = `cotizacion-${quoteId}.pdf`;
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      URL.revokeObjectURL(url);
+      downloadBlob(
+        await response.blob(),
+        `cotizacion-${quoteId}.pdf`
+      );
 
       return true;
     },

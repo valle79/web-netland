@@ -38,7 +38,7 @@ export default function CommissionPercentagesPage() {
   });
 
   const { data: projects } = useQuery({
-    queryKey: ["projects-admin"],
+    queryKey: ["projects-auth"],
     queryFn: ({ signal }) => api.get<Project[]>("/projects", true, signal),
   });
 

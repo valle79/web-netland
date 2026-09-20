@@ -46,6 +46,8 @@ import {
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
+import { QueryError } from "../../../components/ui/QueryError";
 
 // Componente reutilizable de filtros
 import {
@@ -130,7 +132,7 @@ export default function AdminCapturedClients() {
   // CONSULTAS
   // =========================
 
-  const { data: clients, isLoading } = useQuery({
+  const { data: clients, isLoading, isError } = useQuery({
     queryKey: ["captured-clients"],
     queryFn: ({ signal }) =>
       api.get<Lead[]>(
@@ -141,7 +143,7 @@ export default function AdminCapturedClients() {
   });
 
   const { data: projects } = useQuery({
-    queryKey: ["projects-list"],
+    queryKey: ["projects-admin"],
     queryFn: ({ signal }) => api.get<Project[]>("/projects", false, signal),
   });
 
@@ -675,7 +677,11 @@ export default function AdminCapturedClients() {
           TABLA / ESTADOS VACÍOS
       ========================= */}
 
-      {!clients || clients.length === 0 ? (
+      {isLoading ? (
+        <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+      ) : isError ? (
+        <Card><QueryError /></Card>
+      ) : !clients || clients.length === 0 ? (
         <Card>
           <EmptyState
             title="Aún no hay clientes captados"
@@ -698,7 +704,7 @@ export default function AdminCapturedClients() {
             description="Ningún cliente coincide con los filtros aplicados."
           />
         </Card>
-      ) : isLoading ? null : (
+      ) : (
         <>
         <Table
           headers={[

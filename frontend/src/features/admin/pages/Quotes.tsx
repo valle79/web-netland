@@ -38,7 +38,9 @@ import {
   Pagination,
 } from "../ui";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { downloadBlob } from "../../../lib/download";
 import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
+import { QueryError } from "../../../components/ui/QueryError";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 
@@ -91,7 +93,7 @@ export default function AdminQuotes() {
   const queryClient = useQueryClient();
   const { toast, confirm } = useToast();
 
-  const { data: quotes, isLoading } = useQuery({
+  const { data: quotes, isLoading, isError } = useQuery({
     queryKey: ["quotes-admin"],
     queryFn: ({ signal }) =>
       api.get<Quote[]>("/quotes", true, signal),
@@ -141,22 +143,10 @@ export default function AdminQuotes() {
 
     if (!response.ok) return;
 
-    const blob = await response.blob();
-
-    const url =
-      URL.createObjectURL(blob);
-
-    const link =
-      document.createElement("a");
-
-    link.href = url;
-    link.download = `cotizacion-${id}.pdf`;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    URL.revokeObjectURL(url);
+    downloadBlob(
+      await response.blob(),
+      `cotizacion-${id}.pdf`
+    );
   };
 
   // ==============================================================
@@ -210,6 +200,8 @@ export default function AdminQuotes() {
             <CoreSpinLoader />
           </div>
         </Card>
+      ) : isError ? (
+        <Card><QueryError /></Card>
       ) : !quotes || quotes.length === 0 ? (
         <Card>
           <EmptyState
@@ -592,7 +584,7 @@ function CreateQuoteModal({
   // ==============================================================
 
   const { data: projects } = useQuery({
-    queryKey: ["projects-for-quote"],
+    queryKey: ["projects-admin"],
     queryFn: ({ signal }) =>
       api.get<Project[]>(
         "/projects",

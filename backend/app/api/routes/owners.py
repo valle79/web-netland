@@ -70,11 +70,13 @@ def list_owners(
         )
     
     owners = query.offset(skip).limit(limit).all()
-    
-    # Enriquecer con datos del cliente y totales
+
+    # Enriquecer con datos del cliente y totales en un número constante de
+    # consultas (evita el N+1 de get_owner_with_summary por propietario).
+    summaries = OwnersService.get_owners_summary(db, [owner.id for owner in owners])
     result = []
     for owner in owners:
-        summary = OwnersService.get_owner_with_summary(db, owner.id)
+        summary = summaries.get(owner.id)
         if summary:
             result.append({
                 **owner.__dict__,

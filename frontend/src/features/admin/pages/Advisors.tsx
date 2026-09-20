@@ -8,6 +8,8 @@ import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { FileUploader } from "../../../components/ui/FileUploader";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
+import { QueryError } from "../../../components/ui/QueryError";
 
 const emptyForm = {
   name: "",
@@ -34,7 +36,7 @@ export default function AdminAdvisors() {
   const [form, setForm] = useState(emptyForm);
   const [uploadMethod, setUploadMethod] = useState<"url" | "upload">("upload");
 
-  const { data: advisors } = useQuery({
+  const { data: advisors, isLoading, isError } = useQuery({
     queryKey: ["advisors-admin"],
     queryFn: ({ signal }) => api.get<Advisor[]>("/advisors?include_deleted=true", false, signal),
   });
@@ -52,6 +54,8 @@ export default function AdminAdvisors() {
           }, true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["advisors-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["advisors-auth"] });
       toast(editing ? "Asesor actualizado." : "Asesor creado.");
       setModalOpen(false);
     },
@@ -62,6 +66,8 @@ export default function AdminAdvisors() {
     mutationFn: (id: number) => api.del(`/advisors/${id}`, true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["advisors-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["advisors-auth"] });
       toast("Asesor eliminado.");
     },
     onError: (e) => toast(e.message, "error"),
@@ -71,6 +77,8 @@ export default function AdminAdvisors() {
     mutationFn: (id: number) => api.post(`/advisors/${id}/restore`, undefined, true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["advisors-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["advisors-auth"] });
       toast("Asesor restaurado.");
     },
     onError: (e) => toast(e.message, "error"),
@@ -118,7 +126,11 @@ export default function AdminAdvisors() {
         }
       />
 
-      {!advisors || advisors.length === 0 ? (
+      {isLoading ? (
+        <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+      ) : isError ? (
+        <Card><QueryError /></Card>
+      ) : !advisors || advisors.length === 0 ? (
         <Card>
           <EmptyState title="Sin asesores" description="Agrega el equipo comercial de Netland." />
         </Card>

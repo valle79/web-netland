@@ -13,19 +13,23 @@ import {
   X,
 } from "lucide-react";
 import { api } from "../../../lib/api";
+import { useDebouncedValue } from "../../../lib/useDebounce";
 import { PageHeader, Button, Card, Badge, Table, Field, Select, Input, StatCard, Pagination } from "../../admin/ui";
 import { useToast } from "../../../components/ui/Toast";
 import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { QueryError } from "../../../components/ui/QueryError";
 import type { Project } from "../../../types";
-import type { CollectionDashboard, CollectionItem } from "../types";
+import type { CollectionDashboard, CollectionItemsPage } from "../types";
 import {
   COLLECTION_STATUS,
   COLLECTION_STATUS_COLORS,
+  COLLECTION_SORT_OPTIONS,
   formatSoles,
   formatDate,
   getDaysOverdueLabel,
 } from "../constants";
+import type { CollectionSortBy } from "../constants";
 
 export default function CollectionsPage() {
   const navigate = useNavigate();
@@ -36,31 +40,41 @@ export default function CollectionsPage() {
   const [projectId, setProjectId] = useState<number | "">("");
   const [status, setStatus] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<CollectionSortBy>("priority");
+  const debouncedSearch = useDebouncedValue(search, 400);
 
   // Fetch dashboard stats
-  const { data: dashboard, isLoading: loadingDashboard } = useQuery({
+  const {
+    data: dashboard,
+    isLoading: loadingDashboard,
+    isError: dashboardError,
+  } = useQuery({
     queryKey: ["collections-dashboard"],
     queryFn: ({ signal }) => api.get<CollectionDashboard>("/collections/dashboard", true, signal),
   });
 
   // Fetch projects for filter
   const { data: projects } = useQuery({
-    queryKey: ["projects-admin"],
+    queryKey: ["projects-auth"],
     queryFn: ({ signal }) => api.get<Project[]>("/projects", true, signal),
   });
 
-  // Fetch collection items
+  // Fetch collection page (el backend pagina, filtra y ordena)
   const {
-    data: items,
+    data: pageData,
     isLoading: loadingItems,
+    isError: itemsError,
   } = useQuery({
-    queryKey: ["collections-items", projectId, status, search],
+    queryKey: ["collections-items", projectId, status, debouncedSearch, sortBy, page, pageSize],
     queryFn: ({ signal }) => {
       const params = new URLSearchParams();
+      params.append("skip", String((page - 1) * pageSize));
+      params.append("limit", String(pageSize));
       if (projectId) params.append("project_id", projectId.toString());
       if (status) params.append("status", status);
-      if (search) params.append("search", search);
-      return api.get<CollectionItem[]>(`/collections/items?${params.toString()}`, true, signal);
+      if (debouncedSearch) params.append("search", debouncedSearch);
+      if (sortBy) params.append("sort_by", sortBy);
+      return api.get<CollectionItemsPage>(`/collections/items?${params.toString()}`, true, signal);
     },
   });
 
@@ -75,10 +89,8 @@ export default function CollectionsPage() {
     onError: (e: Error) => toast(e.message, "error"),
   });
 
-  const filteredItems = items || [];
-  const totalItems = filteredItems.length;
-  const startIndex = (page - 1) * pageSize;
-  const paginatedItems = filteredItems.slice(startIndex, startIndex + pageSize);
+  const items = pageData?.items ?? [];
+  const totalItems = pageData?.total ?? 0;
 
   const handleWhatsApp = (phone: string, ownerName: string, contractNumber: string, overdueAmount: number) => {
     const message = `Hola ${ownerName}, le recordamos que el contrato ${contractNumber} tiene una deuda pendiente de ${formatSoles(overdueAmount)}. Por favor, póngase al día con sus pagos. Gracias.`;
@@ -108,6 +120,10 @@ export default function CollectionsPage() {
             </Card>
           ))}
         </div>
+      ) : dashboardError ? (
+        <Card className="mb-6">
+          <QueryError title="No se pudieron cargar los indicadores" />
+        </Card>
       ) : dashboard ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
           <StatCard
@@ -192,7 +208,20 @@ export default function CollectionsPage() {
             </Select>
           </Field>
 
-          <Field label="Buscar" className="sm:col-span-2">
+          <Field label="Ordenar por">
+            <Select value={sortBy} onChange={(e) => {
+              setSortBy(e.target.value as CollectionSortBy);
+              setPage(1);
+            }}>
+              {COLLECTION_SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Buscar">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-netland-muted" />
               <Input
@@ -202,7 +231,7 @@ export default function CollectionsPage() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Buscar por contrato, propietario, documento..."
+                placeholder="Contrato, propietario, DNI, manzana o lote"
                 className="!pl-9 !pr-10"
               />
               {search && (
@@ -229,6 +258,10 @@ export default function CollectionsPage() {
             <CoreSpinLoader />
           </div>
         </Card>
+      ) : itemsError ? (
+        <Card>
+          <QueryError title="No se pudieron cargar los contratos" />
+        </Card>
       ) : totalItems === 0 ? (
         <Card>
           <EmptyState
@@ -245,15 +278,16 @@ export default function CollectionsPage() {
               "Proyecto",
               "Lote",
               "Modalidad",
-              "Próximo Venc.",
-              "Saldo Pendiente",
+              "Próx. Venc.",
+              "Cuotas Venc.",
               "Deuda Vencida",
-              "Días Atraso",
+              "Días Mora",
+              "Saldo Pendiente",
               "Estado",
               "Acciones",
             ]}
           >
-            {paginatedItems.map((item) => (
+            {items.map((item) => (
               <tr key={item.contract_id} className="hover:bg-netland-light/30">
                 <td className="px-5 py-3 font-semibold text-netland-dark">
                   {item.contract_number}
@@ -271,8 +305,14 @@ export default function CollectionsPage() {
                 </td>
                 <td className="px-5 py-3 text-xs uppercase">{item.payment_modality}</td>
                 <td className="px-5 py-3 text-sm">{formatDate(item.next_due_date)}</td>
-                <td className="px-5 py-3 font-semibold text-netland-primary">
-                  {formatSoles(item.outstanding_balance)}
+                <td className="px-5 py-3">
+                  {item.overdue_installments > 0 ? (
+                    <span className="font-semibold text-red-600">
+                      {item.overdue_installments}
+                    </span>
+                  ) : (
+                    <span className="text-netland-muted">—</span>
+                  )}
                 </td>
                 <td className="px-5 py-3 font-semibold text-red-600">
                   {formatSoles(item.overdue_amount)}
@@ -286,9 +326,12 @@ export default function CollectionsPage() {
                     <span className="text-green-600">Al día</span>
                   )}
                 </td>
+                <td className="px-5 py-3 font-semibold text-netland-primary">
+                  {formatSoles(item.outstanding_balance)}
+                </td>
                 <td className="px-5 py-3">
                   <Badge color={COLLECTION_STATUS_COLORS[item.collection_status]}>
-                    {COLLECTION_STATUS[item.collection_status]}
+                    {COLLECTION_STATUS[item.collection_status] ?? item.collection_status}
                   </Badge>
                 </td>
                 <td className="px-5 py-3">
@@ -327,7 +370,7 @@ export default function CollectionsPage() {
           </Table>
 
           <Pagination
-            page={page}
+            page={pageData?.page ?? 1}
             pageSize={pageSize}
             total={totalItems}
             onPageChange={setPage}

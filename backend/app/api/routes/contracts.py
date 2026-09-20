@@ -8,18 +8,20 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.pricing import compute_payment_plan, lot_gross_price
-from app.domain.models import SiteConfig, User
+from app.domain.models import Block, Client, Lot, SiteConfig, User
 from app.domain.owners_models import (
     Contract,
     ContractDocument,
     FinancingPlan,
     Installment,
+    Owner,
 )
 from app.infrastructure.cloudinary_service import upload_file
 from app.infrastructure.owners_service import ContractsService, FinancingService
@@ -33,6 +35,7 @@ from app.schemas.owners import (
     ContractUpdate,
     ContractResponse,
     ContractDetail,
+    ContractPage,
     CashPaymentCreate,
     CashPaymentResponse,
     FinancingPlanCreate,
@@ -200,6 +203,87 @@ def list_contracts(
     
     contracts = query.order_by(Contract.created_at.desc()).offset(skip).limit(limit).all()
     return contracts
+
+
+@router.get("/page", response_model=ContractPage)
+def list_contracts_page(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(25, ge=1, le=1000),
+    project_id: Optional[int] = Query(None),
+    owner_id: Optional[int] = Query(None),
+    status: Optional[str] = Query(None),
+    payment_modality: Optional[str] = Query(None),
+    search: Optional[str] = Query(None, description="Contrato, propietario, documento, manzana o lote"),
+    sort_by: str = Query("date_desc", description="date_desc | date_asc | contract_asc | contract_desc"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Listado de contratos paginado (el backend pagina, filtra y busca).
+
+    Reemplaza la consulta íntegra que hacía el frontend: solo se transmite la
+    página solicitada junto con el total de coincidencias, y la búsqueda
+    cubre contrato, propietario, documento (DNI/RUC), manzana y lote.
+    """
+    query = db.query(Contract).options(
+        joinedload(Contract.owner).joinedload(Owner.client),
+        joinedload(Contract.project),
+        joinedload(Contract.lot).joinedload(Lot.block),
+        joinedload(Contract.advisor),
+    )
+
+    if project_id:
+        query = query.filter(Contract.project_id == project_id)
+    if owner_id:
+        query = query.filter(Contract.owner_id == owner_id)
+    if status:
+        query = query.filter(Contract.status == status)
+    if payment_modality:
+        query = query.filter(Contract.payment_modality == payment_modality)
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = (
+            query.join(Owner, Owner.id == Contract.owner_id)
+            .join(Client, Client.id == Owner.client_id)
+            .join(Lot, Lot.id == Contract.lot_id)
+            .outerjoin(Block, Block.id == Lot.block_id)
+            .filter(
+                or_(
+                    Contract.contract_number.ilike(term),
+                    Client.name.ilike(term),
+                    Owner.document_number.ilike(term),
+                    Owner.business_name.ilike(term),
+                    Lot.code.ilike(term),
+                    Block.code.ilike(term),
+                )
+            )
+        )
+
+    total = query.count()
+
+    effective_skip = skip
+    if total > 0 and effective_skip >= total:
+        effective_skip = ((total - 1) // limit) * limit
+
+    order_map = {
+        "date_desc": [Contract.contract_date.desc(), Contract.id.desc()],
+        "date_asc": [Contract.contract_date.asc(), Contract.id.asc()],
+        "contract_desc": [Contract.contract_number.desc()],
+        "contract_asc": [Contract.contract_number.asc()],
+    }
+    contracts = (
+        query.order_by(*order_map.get(sort_by, order_map["date_desc"]))
+        .offset(effective_skip)
+        .limit(limit)
+        .all()
+    )
+
+    return ContractPage(
+        items=[ContractResponse.model_validate(c) for c in contracts],
+        total=total,
+        page=effective_skip // limit + 1 if limit else 1,
+        page_size=limit,
+    )
 
 
 @router.get("/{contract_id}", response_model=ContractDetail)

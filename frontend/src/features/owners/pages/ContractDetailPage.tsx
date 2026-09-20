@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { api, authStorage } from "../../../lib/api";
 import { API_URL } from "../../../lib/constants";
+import { downloadBlob } from "../../../lib/download";
 import {
   PageHeader,
   Button,
@@ -96,12 +97,7 @@ async function downloadPdf(path: string) {
   const disposition = response.headers.get("Content-Disposition") || "";
   const match = disposition.match(/filename="?([^";]+)"?/);
   const filename = match?.[1] || "documento.pdf";
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, filename);
 }
 
 export default function ContractDetailPage() {
@@ -301,12 +297,7 @@ export default function ContractDetailPage() {
       const disposition = response.headers.get("Content-Disposition") || "";
       const match = disposition.match(/filename="?([^";]+)"?/);
       const filename = match?.[1] || "documento.pdf";
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, filename);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contract-documents"] });

@@ -13,7 +13,10 @@ import { API_URL } from "../../../lib/constants";
 import type { Backup } from "../../../types";
 import { Badge, Button, Card, PageHeader, StatCard, Table } from "../ui";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
+import { QueryError } from "../../../components/ui/QueryError";
 import { useToast } from "../../../components/ui/Toast";
+import { downloadBlob } from "../../../lib/download";
 
 interface BackupDetail extends Backup {
   url: string;
@@ -58,7 +61,7 @@ export default function AdminBackups() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [restoring, setRestoring] = useState(false);
 
-  const { data: backups } = useQuery({
+  const { data: backups, isLoading, isError } = useQuery({
     queryKey: ["backups-admin"],
     queryFn: ({ signal }) => api.get<Backup[]>("/backups", true, signal),
   });
@@ -96,14 +99,7 @@ export default function AdminBackups() {
       }
 
       const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = backup.filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
+      downloadBlob(blob, backup.filename);
     } catch (e) {
       toast(errorMessage(e), "error");
     }
@@ -200,7 +196,11 @@ export default function AdminBackups() {
         />
       </div>
 
-      {!backups || backups.length === 0 ? (
+      {isLoading ? (
+        <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+      ) : isError ? (
+        <Card><QueryError /></Card>
+      ) : !backups || backups.length === 0 ? (
         <Card>
           <EmptyState
             title="Sin respaldos"

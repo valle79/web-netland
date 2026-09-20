@@ -356,6 +356,7 @@ class Contract(Base):
         Index("ix_contracts_lot", "lot_id"),
         Index("ix_contracts_status", "status"),
         Index("ix_contracts_modality", "payment_modality"),
+        Index("ix_contracts_status_created_at", "status", "created_at"),
     )
 
 
@@ -519,6 +520,7 @@ class Installment(Base):
         CheckConstraint("paid_amount <= scheduled_amount", name="ck_installment_paid_valid"),
         CheckConstraint("days_overdue >= 0", name="ck_installment_days_overdue_positive"),
         Index("ix_installments_financing", "financing_plan_id"),
+        Index("ix_installments_financing_status_due", "financing_plan_id", "status", "due_date"),
         Index("ix_installments_due_date", "due_date"),
         Index("ix_installments_status", "status"),
     )

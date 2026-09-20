@@ -17,7 +17,10 @@ import { Badge, Button, Card, Field, Input, PageHeader, Select, Textarea } from 
 import { Modal } from "../../../components/ui/Modal";
 import { FileUploader } from "../../../components/ui/FileUploader";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
+import { QueryError } from "../../../components/ui/QueryError";
 import { useToast } from "../../../components/ui/Toast";
+import { formatDate } from "../../../lib/format";
 
 interface FormState {
   title: string;
@@ -40,12 +43,6 @@ const emptyForm: FormState = {
   start_date: "",
   end_date: "",
 };
-
-function formatDate(value: string | null): string {
-  if (!value) return "";
-  const [y, m, d] = value.split("-");
-  return `${d}/${m}/${y}`;
-}
 
 function dateRange(announcement: Announcement): string {
   if (!announcement.start_date && !announcement.end_date) return "Siempre visible";
@@ -91,7 +88,7 @@ export default function AdminAnnouncements() {
   const [editing, setEditing] = useState<Announcement | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
 
-  const { data: announcements } = useQuery({
+  const { data: announcements, isLoading, isError } = useQuery({
     queryKey: ["announcements-admin"],
     queryFn: ({ signal }) => api.get<Announcement[]>("/announcements", true, signal),
   });
@@ -183,7 +180,11 @@ export default function AdminAnnouncements() {
 
 
 
-      {items.length === 0 ? (
+      {isLoading ? (
+        <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+      ) : isError ? (
+        <Card><QueryError /></Card>
+      ) : items.length === 0 ? (
         <Card>
           <EmptyState
             title="Sin anuncios"

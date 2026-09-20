@@ -1,6 +1,7 @@
 /**
  * Constants for Owners and Collections module
  */
+import { parseDate } from "../../lib/format";
 
 export const PERSON_TYPES = {
   natural: "Persona Natural",
@@ -37,7 +38,7 @@ export const CONTRACT_STATUS_COLORS = {
 export const COLLECTION_STATUS = {
   al_dia: "Al Día",
   proximo_vencer: "Próximo a Vencer",
-  vencido: "Vencido",
+  vencido: "En Mora",
   cancelado: "Cancelado",
   pendiente: "Pendiente",
 } as const;
@@ -49,6 +50,17 @@ export const COLLECTION_STATUS_COLORS = {
   cancelado: "#0d7a44",
   pendiente: "#64748b",
 } as const;
+
+export const COLLECTION_SORT_OPTIONS = [
+  { value: "priority", label: "Prioridad de cobranza (mora primero)" },
+  { value: "contract_asc", label: "Contrato (A → Z)" },
+  { value: "contract_desc", label: "Contrato (Z → A)" },
+  { value: "next_due", label: "Próximo vencimiento" },
+  { value: "overdue_desc", label: "Mayor deuda vencida" },
+  { value: "outstanding_desc", label: "Mayor saldo pendiente" },
+] as const;
+
+export type CollectionSortBy = (typeof COLLECTION_SORT_OPTIONS)[number]["value"];
 
 export const INSTALLMENT_STATUS = {
   pendiente: "Pendiente",
@@ -97,38 +109,7 @@ export const formatSoles = (amount: number | string | undefined | null): string 
   return `S/ ${num.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-export const formatDate = (dateString: string | undefined | null): string => {
-  if (!dateString) return "—";
-  const date = parseDate(dateString);
-  if (Number.isNaN(date.getTime())) return dateString;
-  return date.toLocaleDateString("es-PE", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-};
-
-export const formatDateLong = (dateString: string | undefined | null): string => {
-  if (!dateString) return "—";
-  const date = parseDate(dateString);
-  if (Number.isNaN(date.getTime())) return dateString;
-  return date.toLocaleDateString("es-PE", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-};
-
-// Evita el desfase de 1 día al renderizar fechas puras "YYYY-MM-DD":
-// new Date("2026-09-17") se interpreta como medianoche UTC y en zonas
-// como Perú (UTC-5) se mostraría como 16/09. Se parsea en hora local.
-const parseDate = (dateString: string): Date => {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    const [y, m, d] = dateString.split("-").map(Number);
-    return new Date(y, m - 1, d);
-  }
-  return new Date(dateString);
-};
+export { formatDate, formatDateLong, parseDate } from "../../lib/format";
 
 export const getOwnerFullName = (owner: {
   person_type: string;

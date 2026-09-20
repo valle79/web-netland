@@ -19,7 +19,7 @@ from app.domain.models import SiteConfig, User
 from app.domain.owners_models import Contract
 from app.infrastructure.owners_service import ContractsService, SalesService
 from app.infrastructure.pdf_service import generate_commercial_document_pdf
-from app.schemas.owners import SaleCreate, SaleItem
+from app.schemas.owners import SaleCreate, SaleItem, SalePage
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 
@@ -125,20 +125,25 @@ def create_sale(
     return response
 
 
-@router.get("/", response_model=List[SaleItem])
+@router.get("/", response_model=SalePage)
 def list_sales(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(25, ge=1, le=1000),
     project_id: Optional[int] = Query(None, description="Filtrar por proyecto"),
     advisor_id: Optional[int] = Query(None, description="Filtrar por asesor"),
     status: Optional[str] = Query(None, description="Estado del contrato: activo | cancelado | resuelto | anulado"),
     payment_modality: Optional[str] = Query(None, description="contado | financiado"),
     payment_status: Optional[str] = Query(None, description="pendiente | parcial | pagado"),
     search: Optional[str] = Query(None, description="Buscar por propietario, documento o contrato"),
+    sort_by: str = Query("date_desc", description="date_desc | date_asc | contract_asc | contract_desc | outstanding_desc | overdue_first"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Lista de ventas con estado comercial y de pago."""
+    """Lista paginada de ventas con estado comercial y de pago.
+
+    El backend pagina, filtra, busca y ordena en SQL: solo se transmite la
+    página solicitada junto con el total de coincidencias.
+    """
     filters = {}
     if project_id:
         filters["project_id"] = project_id
@@ -153,7 +158,15 @@ def list_sales(
     if search:
         filters["search"] = search
 
-    return SalesService.get_sales(db, filters, skip, limit)
+    items, total, effective_skip = SalesService.get_sales_page(
+        db, filters, sort_by=sort_by, skip=skip, limit=limit
+    )
+    return SalePage(
+        items=items,
+        total=total,
+        page=effective_skip // limit + 1 if limit else 1,
+        page_size=limit,
+    )
 
 
 @router.get("/{contract_id}/pdf")

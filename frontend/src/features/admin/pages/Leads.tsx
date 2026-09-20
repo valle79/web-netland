@@ -15,6 +15,7 @@ import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { QueryError } from "../../../components/ui/QueryError";
 import { LeadFilters, type LeadFiltersState } from "../components/LeadFilters";
 
 const statusColors: Record<string, string> = {
@@ -65,12 +66,12 @@ export default function AdminLeads() {
 
   // Cargar asesores
   const { data: advisors } = useQuery({
-    queryKey: ["advisors"],
+    queryKey: ["advisors-auth"],
     queryFn: ({ signal }) => api.get<Advisor[]>("/advisors", true, signal),
   });
 
   // Cargar leads con filtros
-  const { data: leads, isLoading } = useQuery({
+  const { data: leads, isLoading, isError } = useQuery({
     queryKey: ["leads", filters],
     queryFn: ({ signal }) => {
       const params = new URLSearchParams();
@@ -146,6 +147,8 @@ export default function AdminLeads() {
             <CoreSpinLoader />
           </div>
         </Card>
+      ) : isError ? (
+        <Card><QueryError /></Card>
       ) : !leads || leads.length === 0 ? (
         <Card>
           <EmptyState

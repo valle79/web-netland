@@ -7,7 +7,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import List, Optional, Tuple
 from dateutil.relativedelta import relativedelta
 
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.pricing import compute_payment_plan, lot_gross_price
@@ -111,6 +111,102 @@ class OwnersService:
             "overdue_debt": overdue_debt,
             "contracts": contracts
         }
+
+    @staticmethod
+    def get_owners_summary(db: Session, owner_ids: List[int]) -> dict:
+        """Resumen agregado de varios propietarios en un número constante de consultas.
+
+        Es el equivalente por lotes de ``get_owner_with_summary``: devuelve un
+        dict ``{owner_id: summary}`` con la MISMA estructura, pero usando pocas
+        consultas (propietarios, contratos activos, pagos al contado,
+        financiamientos y cuotas vencidas) en lugar de 1 + N por propietario.
+        Los propietarios sin contratos activos se incluyen con totales en cero.
+        """
+        if not owner_ids:
+            return {}
+
+        owners = db.query(Owner).options(
+            joinedload(Owner.client)
+        ).filter(Owner.id.in_(owner_ids)).all()
+
+        if not owners:
+            return {}
+
+        contracts = db.query(Contract).filter(
+            Contract.owner_id.in_(owner_ids),
+            Contract.status == "activo"
+        ).all()
+
+        contracts_by_owner: dict = {}
+        for contract in contracts:
+            contracts_by_owner.setdefault(contract.owner_id, []).append(contract)
+
+        cash_by_contract: dict = {}
+        financing_by_contract: dict = {}
+        overdue_by_financing: dict = {}
+        contract_ids = [c.id for c in contracts]
+
+        if contract_ids:
+            for cash in db.query(CashPayment).filter(
+                CashPayment.contract_id.in_(contract_ids)
+            ).all():
+                cash_by_contract[cash.contract_id] = cash
+
+            financings = db.query(FinancingPlan).filter(
+                FinancingPlan.contract_id.in_(contract_ids)
+            ).all()
+            for financing in financings:
+                financing_by_contract[financing.contract_id] = financing
+
+            financing_ids = [fin.id for fin in financings]
+            if financing_ids:
+                overdue_installments = db.query(Installment).filter(
+                    Installment.financing_plan_id.in_(financing_ids),
+                    Installment.status.in_(["pendiente", "parcial", "vencida"]),
+                    Installment.due_date < date.today()
+                ).all()
+                for installment in overdue_installments:
+                    overdue_by_financing.setdefault(
+                        installment.financing_plan_id, []
+                    ).append(installment)
+
+        summaries = {}
+
+        for owner in owners:
+            owner_contracts = contracts_by_owner.get(owner.id, [])
+
+            total_purchased = sum(c.total_price for c in owner_contracts)
+
+            total_paid = Decimal("0.00")
+            outstanding_balance = Decimal("0.00")
+            overdue_debt = Decimal("0.00")
+
+            for contract in owner_contracts:
+                if contract.payment_modality == "contado":
+                    cash = cash_by_contract.get(contract.id)
+                    if cash:
+                        total_paid += cash.amount_paid
+                        outstanding_balance += cash.balance
+                else:
+                    financing = financing_by_contract.get(contract.id)
+                    if financing:
+                        total_paid += (financing.financed_amount - financing.outstanding_balance)
+                        outstanding_balance += financing.outstanding_balance
+                        overdue_installments = overdue_by_financing.get(financing.id, [])
+                        overdue_debt += sum(i.balance for i in overdue_installments)
+
+            summaries[owner.id] = {
+                "owner": owner,
+                "client": owner.client,
+                "total_properties": len(owner_contracts),
+                "total_purchased": total_purchased,
+                "total_paid": total_paid,
+                "outstanding_balance": outstanding_balance,
+                "overdue_debt": overdue_debt,
+                "contracts": owner_contracts
+            }
+
+        return summaries
 
 
 class ContractsService:
@@ -930,6 +1026,229 @@ class CollectionsService:
         return items[skip:end]
 
     @staticmethod
+    def get_collection_page(
+        db: Session,
+        filters: dict = None,
+        sort_by: str = "priority",
+        skip: int = 0,
+        limit: int = 25,
+    ) -> Tuple[List[dict], int, int]:
+        """Listado de cobranza paginado y calculado EN SQL (escalable a miles de contratos).
+
+        Equivalente en SQL de ``_compute_collection_item``/``get_collection_items``:
+        los agregados por contrato (cuotas vencidas, deuda vencida, primer
+        vencimiento en mora, próximo vencimiento y saldo pendiente) se resuelven
+        con subconsultas en el servidor de base de datos, de modo que el backend
+        solo materializa la página solicitada y su total, nunca los miles de
+        contratos completos.
+
+        Devuelve ``(items, total, effective_skip)``. ``effective_skip`` puede
+        diferir del solicitado cuando la página queda vacía por haber cambiado el
+        total mientras el usuario estaba en una página lejana: se reajusta a la
+        última página válida para que el frontend nunca reciba una página vacía
+        con contratos disponibles.
+        """
+        filters = filters or {}
+        today = date.today()
+        soon = today + timedelta(days=7)
+
+        t_contract = Contract.__table__
+        t_owner = Owner.__table__
+        t_client = Client.__table__
+        t_project = Project.__table__
+        t_lot = Lot.__table__
+        t_block = Block.__table__
+        t_cash = CashPayment.__table__
+        t_financing = FinancingPlan.__table__
+        t_inst = Installment.__table__
+
+        # Cuota considerada VENCIDA: pendiente/parcial/vencida, con plazo pasado y saldo.
+        overdue_cond = and_(
+            t_inst.c.status.in_(["pendiente", "parcial", "vencida"]),
+            t_inst.c.due_date < today,
+            t_inst.c.balance > 0,
+        )
+        pending_cond = t_inst.c.status.in_(["pendiente", "parcial"])
+
+        # Agregados por plan de financiamiento (una sola pasada por la tabla).
+        inst_agg = (
+            select(
+                t_inst.c.financing_plan_id.label("financing_plan_id"),
+                func.count(case((overdue_cond, 1))).label("overdue_installments"),
+                func.coalesce(
+                    func.sum(case((overdue_cond, t_inst.c.balance))), 0
+                ).label("overdue_amount"),
+                func.min(case((overdue_cond, t_inst.c.due_date))).label("first_overdue_due"),
+                func.min(case((pending_cond, t_inst.c.due_date))).label("next_due"),
+                func.min(case((pending_cond, t_inst.c.installment_number))).label("next_number"),
+            )
+            .group_by(t_inst.c.financing_plan_id)
+            .subquery("inst_agg")
+        )
+
+        is_contado = t_contract.c.payment_modality == "contado"
+
+        # Misma lógica de negocio que _compute_collection_item:
+        # - contado: pendiente si hay pago al contado sin saldar, si no al día.
+        # - financiado: vencido si hay cuota vencida; si no, próximo a vencer cuando
+        #   la próxima cuota vence dentro de los próximos 7 días; si no, al día.
+        collection_status_case = case(
+            (
+                and_(is_contado, or_(t_cash.c.id.is_(None), t_cash.c.status == "pagado")),
+                "al_dia",
+            ),
+            (and_(is_contado, t_cash.c.status != "pagado"), "pendiente"),
+            (and_(~is_contado, t_financing.c.id.is_(None)), "al_dia"),
+            (and_(~is_contado, inst_agg.c.first_overdue_due.isnot(None)), "vencido"),
+            (
+                and_(~is_contado, inst_agg.c.next_due.isnot(None), inst_agg.c.next_due <= soon),
+                "proximo_vencer",
+            ),
+            else_="al_dia",
+        )
+
+        base = (
+            select(
+                t_contract.c.id.label("contract_id"),
+                t_contract.c.contract_number,
+                t_owner.c.person_type,
+                t_owner.c.first_name,
+                t_owner.c.paternal_surname,
+                t_owner.c.business_name,
+                t_owner.c.document_type,
+                t_owner.c.document_number,
+                t_owner.c.secondary_phone,
+                t_client.c.phone,
+                t_project.c.short_name.label("project_name"),
+                t_block.c.code.label("block_code"),
+                t_lot.c.code.label("lot_code"),
+                t_contract.c.payment_modality,
+                inst_agg.c.next_number.label("current_installment"),
+                inst_agg.c.next_due.label("next_due_date"),
+                t_financing.c.installment_amount,
+                case(
+                    (is_contado, func.coalesce(t_cash.c.balance, 0)),
+                    else_=func.coalesce(t_financing.c.outstanding_balance, 0),
+                ).label("outstanding_balance"),
+                func.coalesce(inst_agg.c.overdue_amount, 0).label("overdue_amount"),
+                func.coalesce(inst_agg.c.overdue_installments, 0).label("overdue_installments"),
+                inst_agg.c.first_overdue_due.label("first_overdue_due"),
+                collection_status_case.label("collection_status"),
+            )
+            .select_from(t_contract)
+            .outerjoin(t_owner, t_owner.c.id == t_contract.c.owner_id)
+            .outerjoin(t_client, t_client.c.id == t_owner.c.client_id)
+            .outerjoin(t_project, t_project.c.id == t_contract.c.project_id)
+            .outerjoin(t_lot, t_lot.c.id == t_contract.c.lot_id)
+            .outerjoin(t_block, t_block.c.id == t_lot.c.block_id)
+            .outerjoin(t_cash, t_cash.c.contract_id == t_contract.c.id)
+            .outerjoin(t_financing, t_financing.c.contract_id == t_contract.c.id)
+            .outerjoin(inst_agg, inst_agg.c.financing_plan_id == t_financing.c.id)
+            .where(t_contract.c.status == "activo")
+        )
+
+        project_id = filters.get("project_id")
+        if project_id:
+            base = base.where(t_contract.c.project_id == project_id)
+
+        search = filters.get("search")
+        if search and search.strip():
+            term = f"%{search.strip()}%"
+            # Contrato, propietario, documento (DNI/RUC), manzana y lote.
+            base = base.where(
+                or_(
+                    t_contract.c.contract_number.ilike(term),
+                    t_client.c.name.ilike(term),
+                    t_owner.c.business_name.ilike(term),
+                    t_owner.c.document_number.ilike(term),
+                    t_block.c.code.ilike(term),
+                    t_lot.c.code.ilike(term),
+                )
+            )
+
+        derived = base.subquery("cd")
+
+        page_query = select(derived)
+        count_query = select(func.count()).select_from(derived)
+
+        status_filter = filters.get("status")
+        if status_filter:
+            where = derived.c.collection_status == status_filter
+            page_query = page_query.where(where)
+            count_query = count_query.where(where)
+
+        order_options = {
+            "priority": [
+                case((derived.c.first_overdue_due.is_(None), 1), else_=0),
+                derived.c.first_overdue_due.asc(),
+                derived.c.contract_number.asc(),
+            ],
+            "next_due": [
+                case((derived.c.next_due_date.is_(None), 1), else_=0),
+                derived.c.next_due_date.asc(),
+                derived.c.contract_number.asc(),
+            ],
+            "overdue_desc": [derived.c.overdue_amount.desc(), derived.c.contract_number.asc()],
+            "outstanding_desc": [
+                derived.c.outstanding_balance.desc(),
+                derived.c.contract_number.asc(),
+            ],
+            "contract_asc": [derived.c.contract_number.asc()],
+            "contract_desc": [derived.c.contract_number.desc()],
+        }
+        order_clauses = order_options.get(sort_by) or order_options["priority"]
+
+        effective_skip = skip
+        total = db.execute(count_query).scalar() or 0
+
+        # Si el usuario llegó a una página que ya no existe (p. ej. el total
+        # cambió con los filtros), volver a la última página válida.
+        if total > 0 and effective_skip >= total:
+            effective_skip = ((total - 1) // limit) * limit
+
+        rows = db.execute(
+            page_query.order_by(*order_clauses).offset(effective_skip).limit(limit)
+        ).mappings().all()
+
+        items = []
+        for row in rows:
+            if row["person_type"] == "juridica":
+                owner_name = row["business_name"] or "Sin nombre"
+            else:
+                owner_name = (
+                    " ".join(p for p in (row["first_name"], row["paternal_surname"]) if p)
+                ).strip() or "Sin nombre"
+
+            first_overdue_due = row["first_overdue_due"]
+            days_overdue = (
+                (today - first_overdue_due).days if first_overdue_due is not None else 0
+            )
+
+            items.append({
+                "contract_id": row["contract_id"],
+                "contract_number": row["contract_number"],
+                "owner_name": owner_name,
+                "owner_document": (
+                    f"{row['document_type']} {row['document_number']}".strip()
+                ),
+                "owner_phone": row["phone"] or row["secondary_phone"] or "",
+                "project_name": row["project_name"] or "",
+                "block_code": row["block_code"],
+                "lot_code": row["lot_code"] or "",
+                "payment_modality": row["payment_modality"],
+                "current_installment": row["current_installment"],
+                "next_due_date": row["next_due_date"],
+                "installment_amount": row["installment_amount"],
+                "outstanding_balance": row["outstanding_balance"],
+                "overdue_amount": row["overdue_amount"],
+                "days_overdue": days_overdue,
+                "overdue_installments": row["overdue_installments"],
+                "collection_status": row["collection_status"],
+            })
+
+        return items, total, effective_skip
+
+    @staticmethod
     def _compute_collection_item(db: Session, contract: Contract, today: date) -> dict:
         """Calcula el detalle de cobranza de un contrato activo."""
         owner = contract.owner
@@ -1102,6 +1421,243 @@ class SalesService:
             sales = [s for s in sales if s["payment_status"] == filters["payment_status"]]
 
         return sales[skip : skip + limit]
+
+    @staticmethod
+    def get_sales_page(
+        db: Session,
+        filters: dict = None,
+        sort_by: str = "date_desc",
+        skip: int = 0,
+        limit: int = 25,
+    ) -> Tuple[List[dict], int, int]:
+        """Listado de ventas paginado y calculado EN SQL (escalable a miles).
+
+        Equivalente de ``get_sales``/``_compute_collection_item`` pero con los
+        agregados por contrato (mora, próximo vencimiento, saldos, estado de pago)
+        resueltos por el servidor de base de datos: solo se materializa la página
+        solicitada y su total, sin cargar todos los contratos a la memoria.
+
+        Devuelve ``(items, total, effective_skip)``; ``effective_skip`` se reajusta
+        a la última página válida cuando el total cambió a una página lejana.
+        """
+        filters = filters or {}
+        today = date.today()
+        soon = today + timedelta(days=7)
+
+        t_contract = Contract.__table__
+        t_owner = Owner.__table__
+        t_client = Client.__table__
+        t_project = Project.__table__
+        t_lot = Lot.__table__
+        t_block = Block.__table__
+        t_cash = CashPayment.__table__
+        t_financing = FinancingPlan.__table__
+        t_inst = Installment.__table__
+        t_advisor = Advisor.__table__
+
+        overdue_cond = and_(
+            t_inst.c.status.in_(["pendiente", "parcial", "vencida"]),
+            t_inst.c.due_date < today,
+            t_inst.c.balance > 0,
+        )
+        pending_cond = t_inst.c.status.in_(["pendiente", "parcial"])
+
+        inst_agg = (
+            select(
+                t_inst.c.financing_plan_id.label("financing_plan_id"),
+                func.min(case((overdue_cond, t_inst.c.due_date))).label("first_overdue_due"),
+                func.min(case((pending_cond, t_inst.c.due_date))).label("next_due"),
+            )
+            .group_by(t_inst.c.financing_plan_id)
+            .subquery("inst_agg")
+        )
+
+        is_contado = t_contract.c.payment_modality == "contado"
+
+        # Misma lógica que _compute_collection_item / Cobranzas.
+        collection_status_case = case(
+            (
+                and_(is_contado, or_(t_cash.c.id.is_(None), t_cash.c.status == "pagado")),
+                "al_dia",
+            ),
+            (and_(is_contado, t_cash.c.status != "pagado"), "pendiente"),
+            (and_(~is_contado, t_financing.c.id.is_(None)), "al_dia"),
+            (and_(~is_contado, inst_agg.c.first_overdue_due.isnot(None)), "vencido"),
+            (
+                and_(~is_contado, inst_agg.c.next_due.isnot(None), inst_agg.c.next_due <= soon),
+                "proximo_vencer",
+            ),
+            else_="al_dia",
+        )
+
+        payment_status_case = case(
+            (
+                and_(is_contado, t_cash.c.status == "pagado"),
+                "pagado",
+            ),
+            (and_(is_contado, t_cash.c.status != "pagado"), "pendiente"),
+            (
+                and_(
+                    ~is_contado,
+                    t_financing.c.id.isnot(None),
+                    t_financing.c.outstanding_balance <= 0,
+                ),
+                "pagado",
+            ),
+            (
+                and_(
+                    ~is_contado,
+                    t_financing.c.id.isnot(None),
+                    t_financing.c.outstanding_balance < t_financing.c.financed_amount,
+                ),
+                "parcial",
+            ),
+            else_="pendiente",
+        )
+
+        base = (
+            select(
+                t_contract.c.id.label("contract_id"),
+                t_contract.c.contract_number,
+                t_contract.c.contract_date.label("sale_date"),
+                t_owner.c.person_type,
+                t_owner.c.first_name,
+                t_owner.c.paternal_surname,
+                t_owner.c.business_name,
+                t_owner.c.document_type,
+                t_owner.c.document_number,
+                t_client.c.name.label("client_name"),
+                t_owner.c.secondary_phone,
+                t_client.c.phone,
+                t_project.c.short_name.label("project_name"),
+                t_block.c.code.label("block_code"),
+                t_lot.c.code.label("lot_code"),
+                t_lot.c.contract_pdf_url.label("lot_pdf_url"),
+                t_contract.c.payment_modality,
+                t_contract.c.status.label("sale_status"),
+                t_contract.c.total_price,
+                t_contract.c.lot_area_m2,
+                t_contract.c.price_per_m2,
+                t_contract.c.advisor_id,
+                t_advisor.c.name.label("advisor_name"),
+                t_contract.c.contract_pdf_url,
+                payment_status_case.label("payment_status"),
+                collection_status_case.label("collection_status"),
+                case(
+                    (is_contado, func.coalesce(t_cash.c.amount_paid, 0)),
+                    else_=func.coalesce(
+                        t_financing.c.financed_amount - t_financing.c.outstanding_balance, 0
+                    ),
+                ).label("paid_amount"),
+                case(
+                    (is_contado, func.coalesce(t_cash.c.balance, 0)),
+                    else_=func.coalesce(t_financing.c.outstanding_balance, 0),
+                ).label("pending_amount"),
+            )
+            .select_from(t_contract)
+            .outerjoin(t_owner, t_owner.c.id == t_contract.c.owner_id)
+            .outerjoin(t_client, t_client.c.id == t_owner.c.client_id)
+            .outerjoin(t_project, t_project.c.id == t_contract.c.project_id)
+            .outerjoin(t_lot, t_lot.c.id == t_contract.c.lot_id)
+            .outerjoin(t_block, t_block.c.id == t_lot.c.block_id)
+            .outerjoin(t_cash, t_cash.c.contract_id == t_contract.c.id)
+            .outerjoin(t_financing, t_financing.c.contract_id == t_contract.c.id)
+            .outerjoin(inst_agg, inst_agg.c.financing_plan_id == t_financing.c.id)
+            .outerjoin(t_advisor, t_advisor.c.id == t_contract.c.advisor_id)
+        )
+
+        if filters.get("project_id"):
+            base = base.where(t_contract.c.project_id == filters["project_id"])
+        if filters.get("advisor_id"):
+            base = base.where(t_contract.c.advisor_id == filters["advisor_id"])
+        if filters.get("status"):
+            base = base.where(t_contract.c.status == filters["status"])
+        if filters.get("payment_modality"):
+            base = base.where(t_contract.c.payment_modality == filters["payment_modality"])
+
+        search = filters.get("search")
+        if search and search.strip():
+            term = f"%{search.strip()}%"
+            base = base.where(
+                or_(
+                    t_contract.c.contract_number.ilike(term),
+                    t_client.c.name.ilike(term),
+                    t_owner.c.document_number.ilike(term),
+                )
+            )
+
+        derived = base.subquery("sd")
+
+        page_query = select(derived)
+        count_query = select(func.count()).select_from(derived)
+
+        payment_status = filters.get("payment_status")
+        if payment_status:
+            where = derived.c.payment_status == payment_status
+            page_query = page_query.where(where)
+            count_query = count_query.where(where)
+
+        order_options = {
+            "date_desc": [derived.c.sale_date.desc(), derived.c.contract_number.desc()],
+            "date_asc": [derived.c.sale_date.asc(), derived.c.contract_number.asc()],
+            "contract_desc": [derived.c.contract_number.desc()],
+            "contract_asc": [derived.c.contract_number.asc()],
+            "outstanding_desc": [derived.c.pending_amount.desc(), derived.c.sale_date.desc()],
+            "overdue_first": [
+                case((derived.c.collection_status == "vencido", 0), else_=1),
+                derived.c.sale_date.desc(),
+            ],
+        }
+        order_clauses = order_options.get(sort_by) or order_options["date_desc"]
+
+        effective_skip = skip
+        total = db.execute(count_query).scalar() or 0
+
+        if total > 0 and effective_skip >= total:
+            effective_skip = ((total - 1) // limit) * limit
+
+        rows = db.execute(
+            page_query.order_by(*order_clauses).offset(effective_skip).limit(limit)
+        ).mappings().all()
+
+        items = []
+        for row in rows:
+            if row["person_type"] == "juridica":
+                owner_name = row["business_name"] or "Sin nombre"
+            else:
+                owner_name = (
+                    " ".join(p for p in (row["first_name"], row["paternal_surname"]) if p)
+                ).strip() or "Sin nombre"
+
+            items.append({
+                "sale_id": row["contract_id"],
+                "contract_id": row["contract_id"],
+                "contract_number": row["contract_number"],
+                "sale_date": row["sale_date"],
+                "owner_name": owner_name,
+                "owner_document": (
+                    f"{row['document_type']} {row['document_number']}".strip()
+                ),
+                "owner_phone": row["phone"] or row["secondary_phone"] or "",
+                "project_name": row["project_name"] or "",
+                "advisor_id": row["advisor_id"],
+                "advisor_name": row["advisor_name"],
+                "block_code": row["block_code"],
+                "lot_code": row["lot_code"] or "",
+                "lot_area_m2": float(row["lot_area_m2"] or 0),
+                "price_per_m2": float(row["price_per_m2"] or 0),
+                "total_price": row["total_price"],
+                "payment_modality": row["payment_modality"],
+                "sale_status": row["sale_status"],
+                "payment_status": row["payment_status"],
+                "paid_amount": row["paid_amount"],
+                "pending_amount": row["pending_amount"],
+                "collection_status": row["collection_status"],
+                "lot_pdf_url": row["lot_pdf_url"],
+                "contract_pdf_url": row["contract_pdf_url"],
+            })
+
+        return items, total, effective_skip
 
     @staticmethod
     def create_sale(

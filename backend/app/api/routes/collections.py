@@ -14,6 +14,7 @@ from app.schemas.owners import (
     CollectionDashboard,
     CollectionItem,
     CollectionFilters,
+    CollectionItemsPage,
     PortfolioByProject,
 )
 
@@ -30,17 +31,21 @@ def get_collection_dashboard(
     return stats
 
 
-@router.get("/items", response_model=List[CollectionItem])
+@router.get("/items", response_model=CollectionItemsPage)
 def get_collection_items(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(25, ge=1, le=1000),
     project_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    sort_by: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Obtener items para cobranza"""
+    """Listado paginado de la cartera de cobranza con filtros y ordenamientos en SQL.
+
+    sort_by: priority | contract_asc | contract_desc | next_due | overdue_desc | outstanding_desc
+    """
     filters = {}
     if project_id:
         filters["project_id"] = project_id
@@ -48,9 +53,16 @@ def get_collection_items(
         filters["status"] = status
     if search:
         filters["search"] = search
-    
-    items = CollectionsService.get_collection_items(db, filters, skip, limit)
-    return items
+
+    items, total, effective_skip = CollectionsService.get_collection_page(
+        db, filters, sort_by=sort_by or "priority", skip=skip, limit=limit
+    )
+    return {
+        "items": items,
+        "total": total,
+        "page": (effective_skip // limit) + 1,
+        "page_size": limit,
+    }
 
 
 @router.get("/overdue", response_model=List[CollectionItem])

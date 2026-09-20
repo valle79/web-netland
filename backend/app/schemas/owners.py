@@ -608,6 +608,30 @@ class CollectionFilters(BaseModel):
     search: Optional[str] = None
 
 
+class CollectionItemsPage(BaseModel):
+    """Página del listado de cobranza (pagina el backend, no el cliente)"""
+    items: List[CollectionItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class SalePage(BaseModel):
+    """Página del listado de ventas (pagina el backend, no el cliente)"""
+    items: List[SaleItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class ContractPage(BaseModel):
+    """Página del listado de contratos (pagina el backend, no el cliente)"""
+    items: List[ContractResponse]
+    total: int
+    page: int
+    page_size: int
+
+
 # ============================================================================
 # IMPORTACIÓN EXCEL
 # ============================================================================

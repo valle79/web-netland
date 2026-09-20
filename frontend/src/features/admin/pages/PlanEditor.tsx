@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { 
   ArrowLeft, 
   Move, 
@@ -21,7 +21,7 @@ import type { Block, Lot, Project } from "../../../types";
 import { LOT_STATUS_COLORS, LOT_STATUS_LABELS } from "../../../lib/constants";
 import { PageHeader, Button, Card, Field, Input } from "../ui";
 import { useToast } from "../../../components/ui/Toast";
-import { Skeleton } from "../../../components/ui/Skeleton";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { FileUploader } from "../../../components/ui/FileUploader";
 
 const SVG_W = 1200;
@@ -95,12 +95,6 @@ export default function PlanEditor() {
     }
     return url;
   };
-
-  // Cargar imagen del plano desde el proyecto  
-  useEffect(() => {
-    // La imagen del plano se puede subir desde el módulo de galería
-    // Por ahora usamos una URL configurable manualmente
-  }, [project]);
 
   const saveMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
@@ -218,7 +212,7 @@ export default function PlanEditor() {
     setDragging(null);
   };
 
-  if (isLoading || !project) return <Skeleton className="h-96 rounded-lg" />;
+  if (isLoading || !project) return <Card><div className="py-8"><CoreSpinLoader /></div></Card>;
 
   return (
     <div className="space-y-6">

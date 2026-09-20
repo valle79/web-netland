@@ -8,17 +8,11 @@ import {
   formatMoney,
 } from "../constants";
 import type { CommissionPayment } from "../../../types";
+import { formatDate } from "../../../lib/format";
 
 interface Props {
   record: CommissionPayment | null;
   onClose: () => void;
-}
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString("es-PE", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
 function DetailItem({ label, value }: { label: string; value: ReactNode }) {

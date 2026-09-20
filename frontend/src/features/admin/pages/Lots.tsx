@@ -1,15 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { api } from "../../../lib/api";
+import { useDebouncedValue } from "../../../lib/useDebounce";
 import type { Block, Lot, Project } from "../../../types";
 import { LOT_STATUS_COLORS, LOT_STATUS_LABELS, formatSoles } from "../../../lib/constants";
-import { PageHeader, Button, Card, Field, Input, Select, Table } from "../ui";
+import { PageHeader, Button, Card, Field, Input, Select, Table, Pagination } from "../ui";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useAuth } from "../AuthContext";
+
+interface LotPage {
+  items: Lot[];
+  total: number;
+  page: number;
+  page_size: number;
+}
 
 interface LotFormState {
   block_id: string;
@@ -33,22 +41,6 @@ const emptyForm: LotFormState = {
   notes: "",
 };
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50];
-
-type PageItem = number | "ellipsis-left" | "ellipsis-right";
-
-function getPageItems(current: number, total: number): PageItem[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const items: PageItem[] = [1];
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  if (start > 2) items.push("ellipsis-left");
-  for (let i = start; i <= end; i++) items.push(i);
-  if (end < total - 1) items.push("ellipsis-right");
-  items.push(total);
-  return items;
-}
-
 export default function AdminLots() {
   const queryClient = useQueryClient();
   const { toast, confirm } = useToast();
@@ -61,8 +53,10 @@ export default function AdminLots() {
   const [editing, setEditing] = useState<Lot | null>(null);
   const [form, setForm] = useState<LotFormState>(emptyForm);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
+  const [pageSize, setPageSize] = useState(10);
+  const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
 
   const { data: projects } = useQuery({
     queryKey: ["projects-admin"],
@@ -72,40 +66,29 @@ export default function AdminLots() {
   const selectedProject = projectId || projects?.[0]?.id;
 
   const {
-    data: lots,
+    data: pageData,
     isLoading,
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["admin-lots", selectedProject],
-    queryFn: ({ signal }) => api.get<Lot[]>(`/projects/${selectedProject}/lots`, false, signal),
+    queryKey: ["admin-lots", selectedProject, statusFilter, debouncedSearch, page, pageSize],
+    queryFn: ({ signal }) => {
+      const params = new URLSearchParams();
+      if (statusFilter) params.append("status", statusFilter);
+      if (debouncedSearch) params.append("search", debouncedSearch);
+      params.append("skip", String((page - 1) * pageSize));
+      params.append("limit", String(pageSize));
+      return api.get<LotPage>(
+        `/projects/${selectedProject}/lots/page?${params.toString()}`,
+        false,
+        signal
+      );
+    },
     enabled: !!selectedProject,
   });
 
-  const filteredLots = useMemo(() => {
-    if (!lots) return [];
-    const term = search.trim().toLowerCase();
-    if (!term) return lots;
-    return lots.filter((lot) => {
-      const haystack = [
-        lot.code,
-        lot.block_code,
-        lot.lot_number?.toString(),
-        lot.area_m2?.toString(),
-        lot.notes,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(term);
-    });
-  }, [lots, search]);
-
-  const totalLots = filteredLots.length;
-  const totalPages = Math.max(1, Math.ceil(totalLots / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedLots = filteredLots.slice(startIndex, startIndex + pageSize);
+  const lots = pageData?.items || [];
+  const totalLots = pageData?.total ?? 0;
 
   const { data: blocks } = useQuery({
     queryKey: ["admin-blocks", selectedProject],
@@ -251,6 +234,25 @@ export default function AdminLots() {
             </div>
           </Field>
         </div>
+
+        <div className="max-w-44">
+          <Field label="Estado">
+            <Select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">Todos</option>
+              {Object.entries(LOT_STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
       </div>
 
       {isLoading ? (
@@ -274,24 +276,17 @@ export default function AdminLots() {
             </Button>
           </div>
         </Card>
-      ) : (lots?.length ?? 0) === 0 ? (
+      ) : totalLots === 0 ? (
         <Card>
           <EmptyState
             title="Sin lotes en este proyecto"
             description="Crea manzanas y lotes desde este módulo."
           />
         </Card>
-      ) : filteredLots.length === 0 ? (
-        <Card>
-          <EmptyState
-            title="Sin resultados"
-            description={`No se encontraron lotes que coincidan con «${search}».`}
-          />
-        </Card>
       ) : (
         <>
           <Table headers={["Código", "Manzana", "N° lote", "Área", "Precio", "Promoción", "Estado", "Acciones"]}>
-          {paginatedLots.map((lot) => (
+          {lots.map((lot) => (
             <tr key={lot.id} className="hover:bg-netland-light/30">
               <td className="px-5 py-3 font-semibold text-netland-dark">{lot.code}</td>
               <td className="px-5 py-3">{lot.block_code ?? "—"}</td>
@@ -348,74 +343,14 @@ export default function AdminLots() {
           ))}
         </Table>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm text-netland-muted">
-            Mostrando{" "}
-            <span className="font-semibold text-netland-dark">
-              {totalLots === 0 ? 0 : startIndex + 1}–{Math.min(startIndex + pageSize, totalLots)}
-            </span>{" "}
-            de <span className="font-semibold text-netland-dark">{totalLots}</span> lotes
-          </p>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-              className="!w-auto !px-2 !py-1.5 text-xs"
-              aria-label="Lotes por página"
-            >
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={size} value={size}>
-                  {size} por página
-                </option>
-              ))}
-            </Select>
-
-            <Button
-              variant="outline"
-              className="!px-2.5 !py-1.5"
-              disabled={currentPage <= 1}
-              onClick={() => setPage(currentPage - 1)}
-              aria-label="Página anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            {getPageItems(currentPage, totalPages).map((item) =>
-              typeof item === "number" ? (
-                <button
-                  key={item}
-                  onClick={() => setPage(item)}
-                  aria-current={item === currentPage ? "page" : undefined}
-                  className={`h-8 min-w-8 rounded-sm px-2 text-sm font-semibold transition-colors ${
-                    item === currentPage
-                      ? "bg-netland-primary text-white"
-                      : "border border-netland-light bg-white text-netland-dark hover:border-netland-primary hover:text-netland-primary"
-                  }`}
-                >
-                  {item}
-                </button>
-              ) : (
-                <span key={item} className="px-1 text-sm text-netland-muted">
-                  …
-                </span>
-              ),
-            )}
-
-            <Button
-              variant="outline"
-              className="!px-2.5 !py-1.5"
-              disabled={currentPage >= totalPages}
-              onClick={() => setPage(currentPage + 1)}
-              aria-label="Página siguiente"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={totalLots}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            unitLabel="lotes"
+          />
         </>
       )}
 

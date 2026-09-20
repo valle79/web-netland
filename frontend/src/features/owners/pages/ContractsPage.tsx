@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Search, X, Download, XCircle } from "lucide-react";
 import { api } from "../../../lib/api";
+import { useDebouncedValue } from "../../../lib/useDebounce";
 import {
   PageHeader,
   Button,
@@ -27,6 +28,14 @@ import {
   formatSoles,
   formatDate,
 } from "../constants";
+import { downloadBlob } from "../../../lib/download";
+
+interface ContractPage {
+  items: Contract[];
+  total: number;
+  page: number;
+  page_size: number;
+}
 
 export default function ContractsPage() {
   const navigate = useNavigate();
@@ -37,6 +46,7 @@ export default function ContractsPage() {
   const [projectId, setProjectId] = useState<number | "">("");
   const [status, setStatus] = useState<string>("");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [cancellationInfo, setCancellationInfo] = useState<any>(null);
@@ -44,22 +54,28 @@ export default function ContractsPage() {
 
   // Fetch projects
   const { data: projects } = useQuery({
-    queryKey: ["projects-admin"],
+    queryKey: ["projects-auth"],
     queryFn: ({ signal }) => api.get<Project[]>("/projects", true, signal),
   });
 
-  // Fetch contracts
+  // Fetch contracts (server-side pagination, search and ordering)
   const {
-    data: contracts,
+    data: pageData,
     isLoading,
   } = useQuery({
-    queryKey: ["contracts", projectId, status, search],
+    queryKey: ["contracts", projectId, status, debouncedSearch, page, pageSize],
     queryFn: ({ signal }) => {
       const params = new URLSearchParams();
       if (projectId) params.append("project_id", projectId.toString());
       if (status) params.append("status", status);
-      if (search) params.append("search", search);
-      return api.get<Contract[]>(`/contracts?${params.toString()}`, true, signal);
+      if (debouncedSearch) params.append("search", debouncedSearch);
+      params.append("skip", String((page - 1) * pageSize));
+      params.append("limit", String(pageSize));
+      return api.get<ContractPage>(
+        `/contracts/page?${params.toString()}`,
+        true,
+        signal
+      );
     },
   });
 
@@ -83,10 +99,8 @@ export default function ContractsPage() {
     },
   });
 
-  const filteredContracts = contracts || [];
-  const totalContracts = filteredContracts.length;
-  const startIndex = (page - 1) * pageSize;
-  const paginatedContracts = filteredContracts.slice(startIndex, startIndex + pageSize);
+  const contracts = pageData?.items || [];
+  const totalContracts = pageData?.total ?? 0;
 
   /**
    * Descarga el PDF del contrato.
@@ -117,15 +131,7 @@ export default function ContractsPage() {
         throw new Error("Error al descargar el contrato");
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${contract.contract_number}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      downloadBlob(await response.blob(), `${contract.contract_number}.pdf`);
     } catch (error) {
       console.error("Error al descargar contrato:", error);
       alert("Error al descargar el contrato. Por favor, intenta nuevamente.");
@@ -268,7 +274,7 @@ export default function ContractsPage() {
               "Acciones",
             ]}
           >
-            {paginatedContracts.map((contract) => (
+            {contracts.map((contract) => (
               <tr key={contract.id} className="hover:bg-netland-light/30">
                 <td className="px-5 py-3 font-semibold text-netland-dark">
                   {contract.contract_number}

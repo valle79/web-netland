@@ -7,6 +7,8 @@ import { PageHeader, Button, Card, Field, Input, Textarea, Table } from "../ui";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
+import { QueryError } from "../../../components/ui/QueryError";
 
 const statusColors: Record<string, string> = {
   pending: "#eab308",
@@ -22,7 +24,7 @@ export default function AdminVisits() {
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ lead_id: "", project_id: "", scheduled_at: "", notes: "" });
 
-  const { data: visits } = useQuery({
+  const { data: visits, isLoading, isError } = useQuery({
     queryKey: ["visits-admin"],
     queryFn: ({ signal }) => api.get<Visit[]>("/visits", true, signal),
   });
@@ -47,6 +49,7 @@ export default function AdminVisits() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["visits-admin"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["leads-all"] });
       toast("Visita programada.");
       setModalOpen(false);
     },
@@ -76,7 +79,11 @@ export default function AdminVisits() {
         }
       />
 
-      {!visits || visits.length === 0 ? (
+      {isLoading ? (
+        <Card><div className="py-8"><CoreSpinLoader /></div></Card>
+      ) : isError ? (
+        <Card><QueryError /></Card>
+      ) : !visits || visits.length === 0 ? (
         <Card>
           <EmptyState title="Sin visitas" description="Programa visitas guiadas para tus leads." />
         </Card>
@@ -96,6 +103,7 @@ export default function AdminVisits() {
                 <select
                   value={visit.status}
                   onChange={(e) => statusMutation.mutate({ id: visit.id, status: e.target.value })}
+                  aria-label={`Estado de la visita de ${visit.lead_name ?? "cliente"}`}
                   className="rounded-sm border px-2 py-1 text-xs font-semibold uppercase tracking-wider"
                   style={{
                     color: statusColors[visit.status],

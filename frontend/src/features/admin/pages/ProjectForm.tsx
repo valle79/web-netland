@@ -6,7 +6,7 @@ import { api } from "../../../lib/api";
 import type { Project, ProjectBankAccount } from "../../../types";
 import { PageHeader, Button, Card, Field, Input, Select, Textarea } from "../ui";
 import { useToast } from "../../../components/ui/Toast";
-import { Skeleton } from "../../../components/ui/Skeleton";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
 import { FileUploader } from "../../../components/ui/FileUploader";
 
 const PERUVIAN_BANKS = [
@@ -176,7 +176,7 @@ export default function ProjectForm() {
   const removeBankAccount = (index: number) =>
     setBankAccounts((prev) => prev.filter((_, i) => i !== index));
 
-  if (isLoading) return <Skeleton className="h-96 rounded-lg" />;
+  if (isLoading) return <Card><div className="py-8"><CoreSpinLoader /></div></Card>;
 
   return (
     <div>

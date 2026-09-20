@@ -213,6 +213,13 @@ export interface CollectionItem {
   collection_status: "al_dia" | "proximo_vencer" | "vencido" | "cancelado";
 }
 
+export interface CollectionItemsPage {
+  items: CollectionItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export interface PortfolioByProject {
   project_id: number;
   project_name: string;

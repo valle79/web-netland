@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save, Video, Info, Upload, Plus, X } from "lucide-react";
 import { api } from "../../../lib/api";
 import { useToast } from "../../../components/ui/Toast";
-import { Skeleton } from "../../../components/ui/Skeleton";
+import { CoreSpinLoader } from "../../../components/ui/CoreSpinLoader";
+import { QueryError } from "../../../components/ui/QueryError";
 import { FileUploader } from "../../../components/ui/FileUploader";
 import { useAuth } from "../AuthContext";
 import { DangerZone } from "./DangerZone";
@@ -78,7 +79,7 @@ export default function SiteSettings() {
   const isSuperAdmin = user?.role?.toUpperCase() === "SUPER_ADMIN";
   const [uploadMethod, setUploadMethod] = useState<"youtube" | "upload">("youtube");
 
-  const { data: config, isLoading } = useQuery<SiteConfig>({
+  const { data: config, isLoading, isError } = useQuery<SiteConfig>({
     queryKey: ["admin-config"],
     queryFn: ({ signal }) => api.get("/config", true, signal),
   });
@@ -138,11 +139,14 @@ export default function SiteSettings() {
     toast("Video subido correctamente", "success");
   };
 
+  if (isError) {
+    return <QueryError />;
+  }
+
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-12 w-64" />
-        <Skeleton className="h-96 w-full" />
+      <div className="py-8">
+        <CoreSpinLoader />
       </div>
     );
   }
