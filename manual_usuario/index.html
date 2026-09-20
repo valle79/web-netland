@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual de Usuario — NETLAND Sistema Inmobiliario</title>
+<style>
+  :root{
+    --noche:#17324D;
+    --noche-2:#0F2236;
+    --mostaza:#B58A3A;
+    --crema:#F6F3EC;
+    --tinta:#2B3A4A;
+    --gris:#6B7A89;
+    --linea:#E3DED2;
+    --ok:#2E7D32;
+    --warn:#B26A00;
+    --bad:#C0392B;
+    --info:#1F6FB2;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background:var(--crema);
+    color:var(--tinta);
+    line-height:1.65;
+    font-size:15.5px;
+  }
+
+  /* ---------- Barra lateral ---------- */
+  .sidebar{
+    position:fixed; inset:0 auto 0 0; width:300px;
+    background:var(--noche); color:#fff;
+    overflow-y:auto; padding:22px 0 30px; z-index:50;
+    scrollbar-width:thin; scrollbar-color:#3d5a78 transparent;
+  }
+  .sidebar .brand{display:flex; align-items:center; gap:12px; padding:0 22px 18px; border-bottom:1px solid rgba(255,255,255,.12);}
+  .sidebar .brand .logo{
+    width:42px;height:42px;border-radius:10px;flex:none;
+    background:var(--mostaza); color:#fff; font-weight:800; font-size:18px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .sidebar .brand h1{font-size:15px; line-height:1.25;}
+  .sidebar .brand small{font-weight:400; color:#9db2c7; font-size:11.5px; display:block;}
+  .sidebar nav a{
+    display:block; color:#C7D3DF; text-decoration:none; font-size:13.5px;
+    padding:8px 22px; border-left:3px solid transparent; transition:.15s;
+  }
+  .sidebar nav a .num{color:var(--mostaza); font-weight:700; margin-right:8px; font-size:12px;}
+  .sidebar nav a:hover{background:rgba(255,255,255,.06); color:#fff; border-left-color:var(--mostaza);}
+  .sidebar nav .sep{
+    margin:14px 22px 8px; font-size:11px; text-transform:uppercase; letter-spacing:.12em;
+    color:#7f98b3; font-weight:700;
+  }
+
+  /* ---------- Contenido ---------- */
+  .main{margin-left:300px; padding:0 0 80px;}
+  .cover{
+    background:linear-gradient(135deg,var(--noche) 0%, var(--noche-2) 100%);
+    color:#fff; padding:70px 48px 54px; position:relative; overflow:hidden;
+  }
+  .cover::after{
+    content:""; position:absolute; right:-120px; top:-120px; width:420px; height:420px;
+    border-radius:50%; background:radial-gradient(circle, rgba(181,138,58,.35), transparent 65%);
+  }
+  .cover .kicker{
+    color:var(--mostaza); font-weight:800; letter-spacing:.22em; text-transform:uppercase; font-size:12.5px;
+  }
+  .cover h2{font-size:34px; line-height:1.15; margin:12px 0 10px; font-weight:800;}
+  .cover p{max-width:720px; color:#c7d3df; font-size:16px;}
+  .cover .chips{margin-top:22px; display:flex; gap:10px; flex-wrap:wrap;}
+  .cover .chip{
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
+    padding:6px 14px; border-radius:999px; font-size:12.5px; color:#e6ecf2;
+  }
+
+  .wrap{max-width:980px; padding:0 48px; margin:0 auto;}
+  section{padding:46px 0 8px; border-bottom:1px solid var(--linea);}
+  section:last-of-type{border-bottom:0;}
+  .anchor{scroll-margin-top:20px;}
+  h3{
+    font-size:24px; color:var(--noche); font-weight:800;
+    display:flex; align-items:center; gap:12px; margin-bottom:6px;
+  }
+  h3 .badge{
+    flex:none; min-width:34px; height:34px; border-radius:9px;
+    background:var(--noche); color:#fff; font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  h3 .sub{font-size:14px; font-weight:600; color:var(--gris); margin-left:auto; white-space:nowrap;}
+  .lead{color:var(--gris); margin-bottom:18px; font-size:15.5px;}
+  h4{font-size:17px; color:var(--noche); margin:26px 0 10px; font-weight:700;}
+  p{margin:10px 0;}
+  ul,ol{margin:10px 0 10px 22px;}
+  li{margin:5px 0;}
+  strong{color:var(--noche);}
+  code{
+    background:#eee9de; color:#7a4a0d; padding:1px 6px; border-radius:5px;
+    font-family:Consolas,"Cascadia Code",monospace; font-size:13px;
+  }
+  a{color:var(--info);}
+
+  /* Pasos */
+  .steps{counter-reset:paso; list-style:none; margin:14px 0;}
+  .steps > li{
+    counter-increment:paso; position:relative; padding:0 0 16px 46px;
+    border-left:2px dashed var(--linea); margin-left:16px;
+  }
+  .steps > li:last-child{border-left-color:transparent; padding-bottom:4px;}
+  .steps > li::before{
+    content:counter(paso); position:absolute; left:-18px; top:-2px;
+    width:34px; height:34px; border-radius:50%; background:var(--noche); color:#fff;
+    font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 5px var(--crema);
+  }
+  .steps > li b{display:block; font-size:15.5px; color:var(--noche);}
+
+  /* Cajas de aviso */
+  .callout{border-radius:12px; padding:14px 18px; margin:16px 0; border-left:5px solid; font-size:14.5px;}
+  .callout strong{display:block; margin-bottom:2px; font-size:14.5px;}
+  .callout.info{background:#EAF3FB; border-color:var(--info);}
+  .callout.info strong{color:var(--info);}
+  .callout.warn{background:#FDF3E0; border-color:var(--warn);}
+  .callout.warn strong{color:var(--warn);}
+  .callout.danger{background:#FBEAE7; border-color:var(--bad);}
+  .callout.danger strong{color:var(--bad);}
+  .callout.ok{background:#E9F5EA; border-color:var(--ok);}
+  .callout.ok strong{color:var(--ok);}
+
+  /* Tablas */
+  table{width:100%; border-collapse:collapse; margin:16px 0; font-size:14px; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(23,50,77,.08);}
+  th{
+    background:var(--noche); color:#fff; text-align:left; padding:11px 14px;
+    font-size:13px; text-transform:uppercase; letter-spacing:.04em; font-weight:700;
+  }
+  td{padding:10px 14px; border-top:1px solid var(--linea); vertical-align:top;}
+  tbody tr:nth-child(even){background:#FAF8F3;}
+  .tag{display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:700; white-space:nowrap;}
+  .tag.noche{background:#17324D; color:#fff;}
+  .tag.mostaza{background:#F3E6C8; color:#7a4a0d;}
+  .tag.ok{background:#E9F5EA; color:var(--ok);}
+  .tag.info{background:#EAF3FB; color:var(--info);}
+
+  /* Diagrama de flujo */
+  .flow{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:18px 0;}
+  .flow .node{
+    background:#fff; border:1.5px solid var(--mostaza); color:var(--noche);
+    border-radius:10px; padding:9px 14px; font-size:13.5px; font-weight:600; text-align:center;
+  }
+  .flow .arrow{color:var(--mostaza); font-weight:800; font-size:16px;}
+
+  .sub-hero{display:flex; gap:18px; align-items:center; margin-top:20px; flex-wrap:wrap;}
+  .sub-hero .m{
+    flex:1 1 220px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16);
+    border-radius:12px; padding:14px 16px;
+  }
+  .sub-hero .m b{color:var(--mostaza); display:block; font-size:13px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;}
+  .sub-hero .m span{font-size:13.5px; color:#dbe4ed;}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0;}
+  .grid2 .card{background:#fff; border:1px solid var(--linea); border-radius:10px; padding:14px 16px;}
+  .grid2 .card b{color:var(--noche); display:block; margin-bottom:4px;}
+
+  footer{
+    margin:0 48px; padding:26px 0 10px; border-top:1px solid var(--linea);
+    color:var(--gris); font-size:13px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  }
+
+  /* ToTop */
+  .totop{
+    position:fixed; right:22px; bottom:22px; width:44px; height:44px; border-radius:50%;
+    background:var(--mostaza); color:#fff; border:0; cursor:pointer; font-size:20px; font-weight:800;
+    box-shadow:0 6px 18px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:.25s; z-index:40;
+  }
+  .totop.show{opacity:1; pointer-events:auto;}
+
+  .burger{display:none;}
+  .sidebar-close{display:none;}
+
+  /* Responsive */
+  @media (max-width:1020px){
+    .sidebar{transform:translateX(-100%); transition:.28s;}
+    .sidebar.open{transform:none; box-shadow:0 0 0 100vmax rgba(8,15,24,.45);}
+    .sidebar-close{
+      display:flex; position:absolute; top:14px; right:14px; width:32px; height:32px;
+      background:rgba(255,255,255,.12); color:#fff; border:0; border-radius:8px; font-size:16px;
+      align-items:center; justify-content:center; cursor:pointer;
+    }
+    .main{margin-left:0;}
+    .cover{padding:54px 24px 40px;}
+    .wrap{max-width:100%; padding:0 22px;}
+    .grid2{grid-template-columns:1fr;}
+    footer{margin:0 22px;}
+    .burger{
+      display:flex; position:fixed; top:14px; left:14px; z-index:60; width:42px; height:42px;
+      background:var(--noche); color:#fff; border:0; border-radius:10px; font-size:20px;
+      align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.25);
+    }
+    .cover h2{font-size:26px;}
+  }
+  @media print{
+    .sidebar,.burger,.totop{display:none !important;}
+    .main{margin:0;}
+    body{background:#fff;}
+    .cover{background:#17324D !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    section{break-inside:auto;}
+    table, .callout, .steps li{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+
+<button class="burger" id="burger" aria-label="Abrir menú">&#9776;</button>
+
+<aside class="sidebar" id="sidebar">
+  <button class="sidebar-close" id="closeSidebar" aria-label="Cerrar menú">&times;</button>
+  <div class="brand">
+    <div class="logo">N</div>
+    <h1>NETLAND<small>Sistema Inmobiliario · Manual de Usuario</small></h1>
+  </div>
+  <nav id="toc">
+    <div class="sep">Empecemos</div>
+    <a href="#intro"><span class="num">1</span>Introducción</a>
+    <a href="#acceso"><span class="num">2</span>Acceso al sistema</a>
+    <a href="#roles"><span class="num">3</span>Roles y permisos</a>
+    <a href="#navegacion"><span class="num">4</span>Navegación del panel</a>
+    <div class="sep">Gestión comercial</div>
+    <a href="#dashboard"><span class="num">5</span>Dashboard</a>
+    <a href="#proyectos"><span class="num">6</span>Proyectos</a>
+    <a href="#lotes"><span class="num">7</span>Lotes</a>
+    <a href="#asesores"><span class="num">8</span>Asesores</a>
+    <a href="#usuarios"><span class="num">9</span>Usuarios</a>
+    <a href="#leads"><span class="num">10</span>Leads y clientes captados</a>
+    <a href="#visitas"><span class="num">11</span>Visitas</a>
+    <a href="#cotizaciones"><span class="num">12</span>Cotizaciones</a>
+    <div class="sep">Ventas y finanzas</div>
+    <a href="#ventas"><span class="num">13</span>Ventas</a>
+    <a href="#contratos"><span class="num">14</span>Contratos</a>
+    <a href="#propietarios"><span class="num">15</span>Propietarios</a>
+    <a href="#pagos"><span class="num">16</span>Pagos</a>
+    <a href="#cobranzas"><span class="num">17</span>Cobranzas</a>
+    <a href="#comisiones"><span class="num">18</span>Comisiones y mensualidades</a>
+    <div class="sep">Sistema y soporte</div>
+    <a href="#anuncios"><span class="num">19</span>Anuncios (pop-ups)</a>
+    <a href="#multimedia"><span class="num">20</span>Multimedia</a>
+    <a href="#configuracion"><span class="num">21</span>Configuración</a>
+    <a href="#importacion"><span class="num">22</span>Importar / exportar datos</a>
+    <a href="#backups"><span class="num">23</span>Copias de seguridad</a>
+    <div class="sep">Sitio web y cierre</div>
+    <a href="#sitio"><span class="num">24</span>Sitio web del cliente</a>
+    <a href="#flujo"><span class="num">25</span>Flujo completo: de la web a la venta</a>
+    <a href="#notas"><span class="num">26</span>Notas operativas</a>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="cover">
+    <div class="kicker">Manual de Usuario</div>
+    <h2>Sistema Inmobiliario NETLAND</h2>
+    <p>Guía paso a paso para usar el sitio web y el panel administrativo: gestión de asesores, clientes, leads, ventas, contratos, pagos, cobranzas, comisiones, anuncios, configuración y copias de seguridad.</p>
+    <div class="chips">
+      <span class="chip">★ Panel administrativo</span>
+      <span class="chip">★ Sitio web público</span>
+      <span class="chip">★ Paso a paso ilustrado</span>
+      <span class="chip">★ Vigencia: versión 2</span>
+    </div>
+    <div class="sub-hero">
+      <div class="m"><b>¿Qué encontrarás aquí?</b><span>Todos los flujos del sistema, en orden y con pasos numerados.</span></div>
+      <div class="m"><b>¿Para quién es?</b><span>Equipo interno de NETLAND (administradores, asesores, ventas, cobranzas) y nuevos integrantes.</span></div>
+      <div class="m"><b>Tip</b><span>Úsalo como capacitación inicial y como referencia rápida en el día a día.</span></div>
+    </div>
+  </header>
+
+  <div class="wrap">
+
+  <!-- ============ 1 INTRO ============ -->
+  <section id="intro" class="anchor">
+    <h3><span class="badge">01</span>Introducción</h3>
+    <p class="lead">El sistema NETLAND está formado por dos partes que trabajan juntas: la página web que ven tus clientes y el panel administrativo donde tu equipo gestiona toda la operación.</p>
+
+    <h4>Las dos partes del sistema</h4>
+    <div class="grid2">
+      <div class="card"><b>Sitio web público</b>La vitrina que ven tus clientes: proyectos, plano interactivo de lotes, simulación de inversión, asesores, programa "Refiere y Gana", formularios de contacto y el botón de WhatsApp.</div>
+      <div class="card"><b>Panel administrativo (/admin)</b>Donde tu equipo administra: proyectos, lotes, asesores, leads, clientes captados, cotizaciones, visitas, ventas, contratos, propietarios, pagos, cobranzas, comisiones, anuncios, usuarios y backups.</div>
+    </div>
+
+    <h4>Todo lo que hace un visitante en la web llega al panel</h4>
+    <p>Cada formulario del sitio (solicitud de información, "Quiero este lote", simulador de inversión, solicitud de visita, referidos y contacto) genera un <strong>lead</strong> automáticamente. Ese lead aparece en <strong>Comercial → Leads</strong> y relaciona también un <strong>cliente</strong> en <strong>Comercial → Clientes captados</strong>.</p>
+    <div class="flow">
+      <span class="node">Visitante llena un formulario en la web</span><span class="arrow">→</span>
+      <span class="node">Se crea el Lead</span><span class="arrow">→</span>
+      <span class="node">Se asigna un asesor</span><span class="arrow">→</span>
+      <span class="node">Aparece en el panel para dar seguimiento</span><span class="arrow">→</span>
+      <span class="node">Visita → Cotización → Venta</span>
+    </div>
+
+    <div class="callout info">
+      <strong>¿Qué significa "tiempo real"?</strong>
+      Cuando publicas un proyecto, cambias el estado de un lote, subes fotos o actives un anuncio, los cambios se reflejan de inmediato en la web, sin necesidad de "desplegar" ni esperar.
+    </div>
+  </section>
+
+  <!-- ============ 2 ACCESO ============ -->
+  <section id="acceso" class="anchor">
+    <h3><span class="badge">02</span>Acceso al sistema</h3>
+    <p class="lead">El panel solo es para el equipo NETLAND. Cada integrante tiene su propio usuario con un rol que define lo que puede ver y hacer.</p>
+
+    <h4>Iniciar sesión</h4>
+    <ul class="steps">
+      <li><b>Abre el panel</b> Entra a la dirección del panel administrativo (por ejemplo <code>https://tu-dominio.com/admin/login</code>).</li>
+      <li><b>Escribe tu correo y contraseña</b> En el formulario de ingreso. La contraseña puede mostrarse/ocultarse con el botón del campo.</li>
+      <li><b>Pulsa "Ingresar al panel"</b> Accederás a la pantalla principal (Dashboard).</li>
+    </ul>
+
+    <h4>Comportamiento de la sesión</h4>
+    <ul>
+      <li>La sesión se mantiene en el navegador. Si expira, el sistema cierra sesión automáticamente y te envía de nuevo al inicio de sesión.</li>
+      <li>Si ya iniciaste sesión y entras a la dirección de login, serás enviado directo al panel.</li>
+      <li>Si la sesión venció, vuelve a ingresar con tu correo y contraseña.</li>
+    </ul>
+
+    <h4>Cerrar sesión</h4>
+    <p>En el menú lateral, al final, en la tarjeta de tu perfil (avatar, nombre y rol), pulsa <strong>"Cerrar sesión"</strong>. El sistema revoca tu acceso de forma segura.
+
+    <h4>¿Olvidaste tu contraseña?</h4>
+    <p>Solicítala a un <strong>administrador del sistema</strong> para que la restablezca desde <strong>Sistema → Usuarios</strong>.</p>
+
+    <div class="callout warn">
+      <strong>Seguridad</strong>
+      Nunca compartas tu contraseña. Cada acción queda registrada con tu usuario en el historial de actividad del sistema.
+    </div>
+  </section>
+
+  <!-- ============ 3 ROLES ============ -->
+  <section id="roles" class="anchor">
+    <h3><span class="badge">03</span>Roles y permisos</h3>
+    <p class="lead">El menú lateral se adapta automáticamente al rol del usuario: solo se muestran las secciones permitidas. Si alguien intenta entrar a una ruta no autorizada, el sistema lo regresa al panel.</p>
+
+    <table>
+      <thead><tr><th>Rol</th><th>Funciones principales</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag mostaza">SUPER_ADMIN</span><br>Súper Administrador</td><td>Todas las funciones del ADMIN más las exclusivas del sistema: <strong>Backups</strong> (crear, descargar y restaurar respaldos) y la <strong>zona de riesgo</strong> (restablecer datos comerciales).</td></tr>
+        <tr><td><span class="tag noche">ADMIN</span><br>Administrador</td><td>Proyectos, lotes, asesores, leads, ventas, contratos, pagos, cobranzas, comisiones, anuncios, multimedia, configuración y usuarios.</td></tr>
+        <tr><td><span class="tag mostaza">ASESOR</span></td><td>Lotes, leads, clientes captados, cotizaciones, visitas, ventas y dashboard, <strong>limitado a sus propios leads y visitas</strong>.</td></tr>
+        <tr><td><span class="tag mostaza">VENTAS</span></td><td>Ventas y sus contratos, propietarios y clientes para registrar ventas; también consulta cotizaciones.</td></tr>
+        <tr><td><span class="tag mostaza">COBRANZAS</span></td><td>Pagos, cobranzas, contratos y propietarios (gestión de cartera).</td></tr>
+        <tr><td><span class="tag mostaza">SUPERVISOR</span></td><td>Supervisa ventas, pagos, cobranzas, contratos y propietarios (acceso de lectura y seguimiento de toda la operación).</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>Detalle de alcance</strong>
+      Un ASESOR solo ve sus propios leads y visitas. Los roles VENTAS, COBRANZAS, SUPERVISOR y ADMIN ven la información completa de clientes, ventas y cobranzas para operar sin limitación. Los módulos de <strong>Backups</strong> y la <strong>zona de riesgo</strong> son exclusivos del Súper Administrador.
+    </div>
+  </section>
+
+  <!-- ============ 4 NAVEGACION ============ -->
+  <section id="navegacion" class="anchor">
+    <h3><span class="badge">04</span>Navegación del panel</h3>
+    <p class="lead">El menú lateral es tu guía. Cada opción corresponde a un módulo con sus listas, formularios y acciones.</p>
+
+    <table>
+      <thead><tr><th>Sección</th><th>Opción</th><th>Ruta</th><th>Roles</th></tr></thead>
+      <tbody>
+        <tr><td>Principal</td><td>Dashboard (Principal)</td><td><code>/admin</code></td><td>Todos</td></tr>
+        <tr><td>Proyectos</td><td>Proyectos</td><td><code>/admin/proyectos</code></td><td>SUPER_ADMIN, ADMIN</td></tr>
+        <tr><td>Proyectos</td><td>Lotes</td><td><code>/admin/lotes</code></td><td>SUPER_ADMIN, ADMIN, ASESOR</td></tr>
+        <tr><td>Comercial</td><td>Leads</td><td><code>/admin/leads</code></td><td>SUPER_ADMIN, ADMIN, ASESOR</td></tr>
+        <tr><td>Comercial</td><td>Clientes captados</td><td><code>/admin/clientes-captados</code></td><td>SUPER_ADMIN, ADMIN, ASESOR</td></tr>
+        <tr><td>Comercial</td><td>Cotizaciones</td><td><code>/admin/cotizaciones</code></td><td>ADMIN, ASESOR, VENTAS</td></tr>
+        <tr><td>Comercial</td><td>Visitas</td><td><code>/admin/visitas</code></td><td>SUPER_ADMIN, ADMIN, ASESOR</td></tr>
+        <tr><td>Ventas</td><td>Ventas</td><td><code>/admin/ventas</code></td><td>ADMIN, VENTAS, SUPERVISOR</td></tr>
+        <tr><td>Ventas</td><td>Asesores</td><td><code>/admin/asesores</code></td><td>SUPER_ADMIN, ADMIN</td></tr>
+        <tr><td>Ventas</td><td>Propietarios</td><td><code>/admin/propietarios</code></td><td>ADMIN, VENTAS, COBRANZAS, SUPERVISOR</td></tr>
+        <tr><td>Ventas</td><td>Contratos</td><td><code>/admin/contratos</code></td><td>Ídem Propietarios</td></tr>
+        <tr><td>Finanzas</td><td>Pagos</td><td><code>/admin/pagos</code></td><td>ADMIN, COBRANZAS, SUPERVISOR</td></tr>
+        <tr><td>Finanzas</td><td>Cobranzas</td><td><code>/admin/cobranzas</code></td><td>Ídem Pagos</td></tr>
+        <tr><td>Comisiones</td><td>Comisiones</td><td><code>/admin/comisiones</code></td><td>SUPER_ADMIN, ADMIN</td></tr>
+        <tr><td>Comisiones</td><td>Mensualidades</td><td><code>/admin/mensualidades</code></td><td>SUPER_ADMIN, ADMIN</td></tr>
+        <tr><td>Comisiones</td><td>Porcentajes de comisión</td><td><code>/admin/comisiones/porcentajes</code></td><td>SUPER_ADMIN, ADMIN</td></tr>
+        <tr><td>Marketing</td><td>Anuncios (pop-up)</td><td><code>/admin/anuncios</code></td><td>SUPER_ADMIN, ADMIN</td></tr>
+        <tr><td>Sistema</td><td>Multimedia</td><td><code>/admin/multimedia</code></td><td>SUPER_ADMIN, ADMIN</td></tr>
+        <tr><td>Sistema</td><td>Configuración</td><td><code>/admin/configuracion</code></td><td>SUPER_ADMIN, ADMIN</td></tr>
+        <tr><td>Sistema</td><td>Usuarios</td><td><code>/admin/usuarios</code></td><td>SUPER_ADMIN, ADMIN</td></tr>
+        <tr><td>Sistema</td><td>Backups</td><td><code>/admin/backups</code></td><td>SUPER_ADMIN (solo el administrador del sistema)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>Ver el sitio desde el panel</strong>
+      En la barra superior hay un enlace <strong>"Ver sitio público →"</strong> que abre la web en una pestaña nueva. En el menú lateral, al final, está tu perfil con el botón "Cerrar sesión".
+    </div>
+  </section>
+
+  <!-- ============ 5 DASHBOARD ============ -->
+  <section id="dashboard" class="anchor">
+    <h3><span class="badge">05</span>Dashboard (Pantalla Principal)</h3>
+    <p class="lead">Resumen ejecutivo con indicadores según tu rol. Es la pantalla que se abre al iniciar sesión y se actualiza al pulsar el botón de refrescar.</p>
+
+    <h4>Qué verás</h4>
+    <ul>
+      <li><strong>Indicadores (KPIs):</strong> proyectos, lotes disponibles, leads, cotizaciones, ventas y montos recaudados, con su variación frente al período anterior.</li>
+      <li><strong>Embudo comercial:</strong> cuántos leads hay en cada etapa (nuevo, contactado, interesado, visita, negociando, separado, vendido).</li>
+      <li><strong>Tendencias:</strong> evolución de ventas y cotizaciones en el tiempo.</li>
+      <li><strong>Fuentes de captación:</strong> de dónde vienen los leads (web, cotizador, lote, visita, referido, contacto).</li>
+      <li><strong>Ranking de asesores:</strong> comparativo de resultados por asesor.</li>
+      <li><strong>Pagos pendientes y cobranzas próximas:</strong> dinero por venir y fechas clave.</li>
+      <li><strong>Actividad reciente:</strong> últimos movimientos del sistema.</li>
+      <li><strong>Rendimiento de proyectos:</strong> disponibilidad y ventas por proyecto.</li>
+    </ul>
+
+    <h4>Filtros disponibles</h4>
+    <ul>
+      <li><strong>Período:</strong> hoy, semana, mes, trimestre o año.</li>
+      <li><strong>Proyecto:</strong> ver el resumen de un proyecto específico o de todos.</li>
+      <li><strong>Actualizar:</strong> botón para refrescar la información.</li>
+    </ul>
+
+    <div class="callout info">
+      <strong>Un asesor ve solo lo suyo</strong>
+      Un ASESOR ve sus propios leads, visitas y ventas. Los roles con gestión global (ADMIN, VENTAS, COBRANZAS, SUPERVISOR) ven la información completa de la empresa.
+    </div>
+  </section>
+
+  <!-- ============ 6 PROYECTOS ============ -->
+  <section id="proyectos" class="anchor">
+    <h3><span class="badge">06</span>Proyectos</h3>
+    <p class="lead">Crea y publica los proyectos de tu portafolio. Cada proyecto puede tener su galería, plano interactivo, documentos, videos y su propia página web.</p>
+
+    <h4>Crear un proyecto</h4>
+    <ul class="steps">
+      <li><b>Ve a Proyectos</b> En el menú lateral: <strong>Proyectos → Proyectos</strong>.</li>
+      <li><b>Pulsa "Nuevo proyecto"</b> Se abre el formulario de creación.</li>
+      <li><b>Completa los datos principales</b> Nombre, nombre corto (visible en la web), descripción corta y larga, tagline o eslogan, ubicación y referencia.</li>
+      <li><b>Configura los colores del proyecto</b> Color primario, secundario y de acento (se usan en la página pública).</li>
+      <li><b>Indica el tipo de proyecto</b> Urbanización o Condominio Campestre.</li>
+      <li><b>Sube la imagen principal (hero)</b> Y, si deseas, la imagen para compartir en redes (OG).</li>
+      <li><b>Completa información complementaria</b> Beneficios (uno por línea), información legal, SEO, enlace al mapa de Google y PDF del plano.</li>
+      <li><b>"Publicado" o "Borrador"</b> Pon el interruptor de publicación. Solo los proyectos publicados se muestran en la web.</li>
+      <li><b>Guarda</b> El proyecto quedará listo en la lista y en la web si está publicado.</li>
+    </ul>
+
+    <h4>Acciones desde la lista de proyectos</h4>
+    <ul>
+      <li><strong>Editar:</strong> modificar cualquier dato.</li>
+      <li><strong>Publicar / Despublicar:</strong> mostrar u ocultar de la web al instante.</li>
+      <li><strong>Galería:</strong> subir varias imágenes a la vez (aparecen en la página pública) y eliminar las que no sirvan.</li>
+      <li><strong>Plan:</strong> editar el plano interactivo o importar lotes (ver Lotes / Importación).</li>
+      <li><strong>Documentos:</strong> subir archivos descargables (fichas, contratos tipo) con su categoría y nombre visible.</li>
+      <li><strong>Eliminar:</strong> borrar el proyecto.</li>
+    </ul>
+
+    <h4>Editor de plano interactivo</h4>
+    <p>Desde <strong>Plan</strong> entras al editor gráfico del plano (fondo 1200×800):</p>
+    <ul>
+      <li>Acercar/alejar (zoom) y desplazar (pan), mostrar/ocultar la rejilla y las etiquetas.</li>
+      <li>Seleccionar un lote y arrastrarlo o redimensionarlo para que coincida con el plano real.</li>
+      <li>Editar los datos del lote seleccionado: código, área, precio, promoción, estado y coordenadas.</li>
+      <li>Subir la imagen del plano desde el equipo.</li>
+    </ul>
+
+    <h4>Importar el plano (detección automática)</h4>
+    <ul class="steps">
+      <li><b>Entra a "Importar plano"</b> del proyecto.</li>
+      <li><b>Carga la imagen del plano</b> (PDF o imagen). El sistema detecta automáticamente los lotes dibujados (cajas/recuadros).</li>
+      <li><b>Revisa la tabla de detección</b> Cada lote aparece con su estado: <em>Nuevo, Ya existe, Incierto o Inválido</em>.</li>
+      <li><b>Corrige lo necesario</b> Verifica los lotes marcados como inciertos o inválidos.</li>
+      <li><b>Confirma la importación</b> El sistema crea los lotes y manzanas detectados.</li>
+      <li><b>Ajusta en el editor</b> Luego afinas posiciones y tamaños en el editor de planos.</li>
+    </ul>
+
+    <h4>Página pública del proyecto</h4>
+    <p>El sitio web mostrará automáticamente: portada con video o imagen, tagline, ubicación, "X lotes disponibles", beneficios, plano interactivo, videos, galería ampliable, documentos descargables, mapa de Google y botones de WhatsApp ("Agendar visita", "Hablar con un asesor").</p>
+  </section>
+
+  <!-- ============ 7 LOTES ============ -->
+  <section id="lotes" class="anchor">
+    <h3><span class="badge">07</span>Lotes</h3>
+    <p class="lead">Los lotes son los terrenos que vendes. Se gestionan desde el módulo Lotes y también aparecen en el plano interactivo de la web.</p>
+
+    <h4>Estados de un lote</h4>
+    <table>
+      <thead><tr><th>Estado</th><th>Significado</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Disponible</strong></td><td>A la venta. Se muestra como "disponible" en la web y puede cotizarse.</td></tr>
+        <tr><td><strong>Separado (reservado)</strong></td><td>Apartado por un interesado. Puede guardarse nombre, DNI y teléfono del reservante, la inicial recibida y la fecha de separación.</td></tr>
+        <tr><td><strong>Vendido</strong></td><td>Vendido. Ya no está a la venta.</td></tr>
+        <tr><td><strong>No disponible</strong></td><td>Retirado de la venta (por ejemplo, reservado para áreas comunes).</td></tr>
+      </tbody>
+    </table>
+
+    <h4>Crear o editar un lote</h4>
+    <ul class="steps">
+      <li><b>Ve a Lotes</b> <strong>Proyectos → Lotes</strong>.</li>
+      <li><b>Filtra o busca</b> Por estado (disponible, separado, vendido, no disponible) o por código (ej. <code>MZ A LT 1</code>).</li>
+      <li><b>Pulsa "Nuevo lote" o edita uno existente</b>.</li>
+      <li><b>Completa los datos</b> Código, manzana, zona, área (m²), precio, precio por m², precio promocional, precio en dólares (referencia), estado y notas internas.</li>
+      <li><b>Si lo apartas</b> Llena los datos de reserva: nombre, DNI, teléfono del reservante, inicial recibida y fecha de separación.</li>
+      <li><b>Guarda</b> El estado se refleja de inmediato en el plano de la web.</li>
+    </ul>
+
+    <div class="callout warn">
+      <strong>Eliminar un lote</strong>
+      Solo puedes eliminar un lote que no tenga ventas asociadas. Si ya fue vendido o tiene contrato, no se podrá borrar.
+    </div>
+  </section>
+
+  <!-- ============ 8 ASESORES ============ -->
+  <section id="asesores" class="anchor">
+    <h3><span class="badge">08</span>Asesores</h3>
+    <p class="lead">Los asesores comerciales del equipo. Se muestran en la web (página de asesores y contacto) y reciben los leads captados.</p>
+
+    <h4>Crear o editar un asesor</h4>
+    <ul class="steps">
+      <li><b>Ve a la sección de asesores</b> (lista dentro del panel administrativo).</li>
+      <li><b>Pulsa "Nuevo asesor"</b> o edita uno existente.</li>
+      <li><b>Completa sus datos</b> Nombre, cargo, teléfono, correo, biografía y foto.</li>
+      <li><b>Activa el interruptor "Disponible"</b> para que aparezca en la web (página de asesores). Si está desactivado, no se muestra públicamente.</li>
+      <li><b>Guarda</b>.</li>
+    </ul>
+
+    <h4>Acciones útiles</h4>
+    <ul>
+      <li><strong>Contacto por WhatsApp</strong> directo desde la lista del asesor.</li>
+      <li><strong>Eliminar</strong> un asesor cuando corresponda.</li>
+    </ul>
+
+    <div class="callout info">
+      <strong>Vínculo con usuarios y leads</strong>
+      Un asesor puede estar vinculado a un usuario del sistema (rol ASESOR). Los leads de la web se auto-asignan al asesor disponible, y las cotizaciones y comisiones de venta se registran a su nombre.
+    </div>
+  </section>
+
+  <!-- ============ 9 USUARIOS ============ -->
+  <section id="usuarios" class="anchor">
+    <h3><span class="badge">09</span>Usuarios (cuentas del equipo)</h3>
+    <p class="lead">El rol Administrador administra los usuarios del sistema, desde <strong>Sistema → Usuarios</strong>.</p>
+
+    <h4>Crear un usuario</h4>
+    <ul class="steps">
+      <li><b>Ve a Sistema → Usuarios</b>.</li>
+      <li><b>Pulsa "Nuevo usuario"</b>.</li>
+      <li><b>Completa nombre, correo y contraseña</b>.</li>
+      <li><b>Asigna el rol</b> (por defecto, Asesor).</li>
+      <li><b>Vincula al asesor</b> si corresponde (solo el rol ASESOR puede vincularse a un asesor).</li>
+      <li><b>Define la cuota de usuarios</b> (límite de usuarios que el equipo puede crear).</li>
+      <li><b>Guarda</b>. El nuevo usuario ya puede ingresar al panel.</li>
+    </ul>
+
+    <h4>Editar, desactivar, vincular a un asesor y restablecer contraseñas</h4>
+    <ul>
+      <li><strong>Editar:</strong> cambiar rol, correo, estado o resetear contraseña.</li>
+      <li><strong>Vincular a un asesor:</strong> el rol ASESOR puede vincularse a un asesor comercial; de esa forma sus leads, visitas, ventas y comisiones se registran a su nombre.</li>
+      <li><strong>Desactivar:</strong> deja un usuario inactivo; no podrá ingresar.</li>
+      <li><strong>Protección de roles:</strong> un Admin solo gestiona los usuarios que él creó y no puede tocar a otros Administradores; tampoco puede eliminarse a sí mismo.</li>
+    </ul>
+
+    <div class="callout warn">
+      <strong>Cuota de usuarios</strong>
+      Un Admin no puede crear más usuarios de los que su cuota permite. Para aumentar el límite, pide al administrador del sistema que ajuste la cuota.
+    </div>
+  </section>
+
+  <!-- ============ 10 LEADS Y CLIENTES CAPTADOS ============ -->
+  <section id="leads" class="anchor">
+    <h3><span class="badge">10</span>Leads y clientes captados</h3>
+    <p class="lead">Aquí se concentra todo el seguimiento comercial: cada contacto de la web o del campo se convierte en un lead y, al darle seguimiento, en un cliente.</p>
+
+    <h4>Estados del lead (pipeline comercial)</h4>
+    <div class="flow">
+      <span class="node">Nuevo</span><span class="arrow">→</span>
+      <span class="node">Contactado</span><span class="arrow">→</span>
+      <span class="node">Interesado</span><span class="arrow">→</span>
+      <span class="node">Visita agendada</span><span class="arrow">→</span>
+      <span class="node">Negociando</span><span class="arrow">→</span>
+      <span class="node">Separado</span><span class="arrow">→</span>
+      <span class="node">Vendido</span>
+    </div>
+    <p>(Un lead también puede marcarse como <strong>Descartado</strong>.)</p>
+
+    <h4>Seguimiento de leads paso a paso</h4>
+    <ul class="steps">
+      <li><b>Ve a Comercial → Leads</b>.</li>
+      <li><b>Filtra por estado</b> usando las pestañas (Todos, Nuevo, Contactado, Interesado, Visita agendada, Negociando, Separado, Vendido, Descartado) o busca por nombre/teléfono.</li>
+      <li><b>Abre el lead</b> para ver proyecto, lote, presupuesto, fuente de captación y mensaje.</li>
+      <li><b>Cambia su estado</b> a medida que avanza en el proceso.</li>
+      <li><b>Contacta por WhatsApp</b> directamente desde el detalle.</li>
+    </ul>
+
+    <h4>Registrar un lead manualmente (captación de campo / llamada)</h4>
+    <ul class="steps">
+      <li><b>Ve a Comercial → Leads</b> y pulsa "Registrar lead".</li>
+      <li><b>Completa nombre, apellidos y teléfono</b> (obligatorio, formato peruano de 9 dígitos que empieza con 9).</li>
+      <li><b>Añade correo (opcional), proyecto de interés, lote y presupuesto</b>.</li>
+      <li><b>Indica la fuente</b> y añade observaciones.</li>
+      <li><b>Guarda</b>. Si eres ASESOR, el lead queda asignado a tu nombre; un Admin puede asignarlo a otro asesor.</li>
+    </ul>
+
+    <h4>Clientes captados</h4>
+    <p>En <strong>Comercial → Clientes captados</strong> tienes el panel de todos los contactos que llegaron por la web y por las visitas, con tarjetas de métricas (total, nuevos, por atender, agendados, etc.) y filtros por estado, proyecto y búsqueda. Cada cliente muestra su información, lote/proyecto de interés, fuente y las acciones tomadas.</p>
+
+    <p><strong>Importante para el módulo de ventas:</strong> tanto ADMIN como VENTAS y SUPERVISOR pueden crear ventas. Todos los clientes captados aparecen en el selector de cliente al registrar una venta, sin límite de asesor.</p>
+
+    <div class="callout info">
+      <strong>Fuentes de captación</strong>
+      Cada lead registra su canal: <code>web</code>, <code>cotizador</code>, <code>lote</code>, <code>visita</code>, <code>referido</code> o <code>contacto</code>. Usa este dato en el Dashboard para saber qué canal funciona mejor.
+    </div>
+  </section>
+
+  <!-- ============ 11 VISITAS ============ -->
+  <section id="visitas" class="anchor">
+    <h3><span class="badge">11</span>Visitas</h3>
+    <p class="lead">Agenda las visitas guiadas a los proyectos y dales seguimiento hasta que se realicen.</p>
+
+    <h4>Registrar una visita</h4>
+    <ul class="steps">
+      <li><b>Ve a Comercial → Visitas</b>.</li>
+      <li><b>Pulsa "Nueva visita"</b>.</li>
+      <li><b>Selecciona al cliente</b>, el proyecto, la fecha y hora.</li>
+      <li><b>Asigna el asesor a cargo</b> y añade notas si lo deseas.</li>
+      <li><b>Guarda</b>.</li>
+    </ul>
+
+    <h4>Estados de la visita</h4>
+    <ul>
+      <li><strong>Pendiente → Confirmada → Realizada</strong> (o <strong>Cancelada</strong> / <strong>No asistió</strong>).</li>
+      <li>Puedes <strong>reprogramar</strong> una visita para otra fecha.</li>
+      <li>Filtra por estado y por rango de fechas.</li>
+    </ul>
+
+    <div class="callout ok">
+      <strong>Recordatorio por WhatsApp</strong>
+      Desde cada visita puedes enviar un recordatorio por WhatsApp al cliente.
+    </div>
+  </section>
+
+  <!-- ============ 12 COTIZACIONES ============ -->
+  <section id="cotizaciones" class="anchor">
+    <h3><span class="badge">12</span>Cotizaciones</h3>
+    <p class="lead">Genera cotizaciones formales de un lote, ya sea al contado o financiado, y envíalas al cliente con su PDF.</p>
+
+    <h4>Crear una cotización</h4>
+    <ul class="steps">
+      <li><b>Ve a Comercial → Cotizaciones</b>.</li>
+      <li><b>Pulsa "Nueva cotización"</b>.</li>
+      <li><b>Elige cliente, proyecto y lote</b>.</li>
+      <li><b>Selecciona la modalidad</b>: Contado o Financiado.</li>
+      <li><b>Define precios y condiciones</b> (precio por m², precio total, inicial deseada y número de cuotas).</li>
+      <li><b>Añade condiciones</b> y guarda.</li>
+    </ul>
+
+    <h4>Acciones sobre la cotización</h4>
+    <ul>
+      <li><strong>Ver detalle</strong> del plan de pagos.</li>
+      <li><strong>Descargar PDF</strong>: el sistema genera <code>cotizacion-XXX.pdf</code> y marca la cotización como "enviada".</li>
+      <li><strong>Enviar por WhatsApp</strong> con un mensaje pre-armado.</li>
+      <li><strong>Editar</strong> y <strong>cambiar de estado</strong> (borrador → enviada → aceptada/rechazada).</li>
+    </ul>
+
+    <div class="callout info">
+      <strong>El simulador de la web genera cotizaciones</strong>
+      Cuando un visitante usa "Simula tu inversión" y pulsa "Quiero esta cotización", el sistema crea un lead con fuente <code>cotizador</code> y presupuesto igual al precio total, listo para que el asesor le envíe la cotización detallada.
+    </div>
+  </section>
+
+  <!-- ============ 13 VENTAS ============ -->
+  <section id="ventas" class="anchor">
+    <h3><span class="badge">13</span>Ventas</h3>
+    <p class="lead">Registrar una venta genera todo en automático y en un solo paso: el propietario (o su reutilización), el contrato de compraventa con su número, el cronograma de cuotas (financiado) o el pago al contado (contado), la venta del lote y, si corresponde, la comisión del asesor.</p>
+
+    <h4>Registrar una venta — paso a paso</h4>
+    <ul class="steps">
+      <li><b>Ve a Ventas → Ventas</b> y pulsa "Nueva venta".</li>
+      <li><b>Selecciona o crea el cliente</b> desde el buscador del modal. Aparecen todos los clientes captados. Indica el <strong>tipo de persona</strong> (natural/jurídica) y su documento.</li>
+      <li><b>Elige el proyecto y el lote</b> El sistema carga los lotes del proyecto elegido.</li>
+      <li><b>Asigna el asesor</b> responsable de la venta.</li>
+      <li><b>Registra el área, el precio por m² y el precio total</b>.</li>
+      <li><b>Define la fecha del contrato</b> y la fecha de inicio de cuotas.</li>
+      <li><b>Selecciona la modalidad</b>:
+        <ul>
+          <li><strong>Contado:</strong> se registra el pago completo al contado.</li>
+          <li><strong>Financiado:</strong> indica la <strong>inicial</strong>, el <strong>número de cuotas</strong> y la <strong>primera fecha de cuota</strong>.</li>
+        </ul>
+      </li>
+      <li><b>Adjunta los vouchers de la inicial</b> (imagen o PDF, máximo 10 MB cada uno).</li>
+      <li><b>Añade notas internas</b> si lo deseas y guarda.</li>
+    </ul>
+    <p>Al guardar la venta, todo se genera <strong>automáticamente</strong>:</p>
+    <ul>
+      <li><strong>Cliente:</strong> se reutiliza si ya existe o se crea en el acto.</li>
+      <li><strong>Propietario:</strong> se genera automáticamente (o se reutiliza si ya existe un propietario con ese documento).</li>
+      <li><strong>Contrato de compraventa:</strong> se crea con su número (ej. <code>CTR-…</code>) y estado activo.</li>
+      <li><strong>Cronograma de pagos:</strong> si es <strong>financiado</strong>, se genera el plan de financiamiento con todas sus cuotas (inicial y mensuales); si es <strong>contado</strong>, se registra el pago al contado.</li>
+      <li><strong>Lote:</strong> queda marcado como <strong>vendido</strong> y deja de estar disponible.</li>
+      <li><strong>Comisión del asesor:</strong> se genera automáticamente si hay porcentaje configurado (ver aviso).</li>
+    </ul>
+
+    <div class="callout ok">
+      <strong>Comisión automática del asesor</strong>
+      Al registrar una venta, el sistema genera automáticamente la <strong>comisión del asesor vinculado</strong>, siempre que exista un <strong>porcentaje de comisión activo configurado</strong> para ese asesor y para el proyecto de la venta (en Comisiones → Porcentajes de comisión). El monto se calcula aplicando ese porcentaje sobre el <strong>precio total</strong> de la venta y queda con estado <strong>"pendiente"</strong>. Si el asesor no tiene un porcentaje activo configurado, no se genera ningún registro automático: la comisión puede crearse manualmente en <strong>Comisiones</strong>.
+    </div>
+
+    <h4>Después de la venta</h4>
+    <ul>
+      <li>La venta queda en la lista con su estado (estado de venta y de pago: pendiente / parcial / pagado).</li>
+      <li>Filtra por estado de venta o de pago.</li>
+      <li>Descarga el listado en PDF si lo necesitas.</li>
+      <li>Desde el contrato puedes emitir documentos comerciales (proforma, boleta o factura) — ver Contratos.</li>
+    </ul>
+
+    <div class="callout ok">
+      <strong>Roles que pueden vender</strong>
+      Los roles ADMIN, VENTAS y SUPERVISOR pueden crear ventas y ver todos los clientes captados al elegir el cliente.
+    </div>
+  </section>
+
+  <!-- ============ 14 CONTRATOS ============ -->
+  <section id="contratos" class="anchor">
+    <h3><span class="badge">14</span>Contratos</h3>
+    <p class="lead">Cada venta genera un contrato. Aquí consultas el detalle completo, el financiamiento, el cronograma de cuotas y emites la documentación.</p>
+
+    <h4>Detalle del contrato</h4>
+    <ul>
+      <li><strong>Datos de la venta:</strong> cliente, proyecto, lote y modalidad de pago.</li>
+      <li><strong>Financiamiento:</strong> total, inicial, número de cuotas y valor de cada cuota.</li>
+      <li><strong>Estado de cobranza:</strong> fecha próxima de pago, total pagado, saldo pendiente, importe vencido y recargos.</li>
+      <li><strong>Cronograma de cuotas:</strong> cada cuota con su estado (pendiente, pagada, parcial, vencida, anulada).</li>
+      <li><strong>Co-propietarios:</strong> cotitulares registrados y pago al contado cuando corresponda.</li>
+    </ul>
+
+    <h4>Acciones disponibles en el contrato</h4>
+    <ul>
+      <li><strong>Guardar el PDF del contrato</strong> (compraventa de bien futuro, listo para notaría).</li>
+      <li><strong>Cronograma de pagos en PDF</strong>: planilla con las cuotas y sus estados.</li>
+      <li><strong>Emitir documentos comerciales</strong>: proforma, boleta o factura con numeración automática (ej. <code>B001-000001</code>).</li>
+      <li><strong>Boleta y factura por cada pago</strong>: desde el historial de pagos del contrato puedes emitir la boleta o factura de un pago específico con solo un clic; el documento incluye las cuotas y la mora cobrada en ese pago.</li>
+      <li><strong>Registrar el financiamiento</strong> o el <strong>pago al contado</strong> cuando el contrato no los tenga.</li>
+      <li><strong>Refinanciar el cronograma</strong>: redistribuye el saldo pendiente en nuevas cuotas (ver abajo).</li>
+      <li><strong>Ver la información de anulación</strong> si se llega a cancelar el contrato.</li>
+    </ul>
+
+    <h4>Refinanciar el cronograma (solo a solicitud del cliente)</h4>
+    <ul class="steps">
+      <li><b>Entra al detalle del contrato financiado</b> y pulsa el botón <strong>"Refinanciar"</strong>.</li>
+      <li><b>Indica la fecha de inicio</b> del nuevo cronograma y el <strong>número de cuotas</strong> en las que se repartirá el saldo pendiente.</li>
+      <li><b>Confirma la operación</b>: el sistema muestra el saldo que se redistribuirá antes de continuar.</li>
+      <li><b>Resultado</b>: las cuotas ya pagadas se mantienen; solo se reprograma el saldo pendiente en las cuotas nuevas. Se registra una anotación <strong>"[REFINANCIADO]"</strong> en las observaciones del contrato.</li>
+    </ul>
+
+    <div class="callout warn">
+      <strong>Restricciones del refinanciamiento</strong>
+      Solo se puede aplicar si el contrato está activo, existe financiamiento y no hay <strong>pagos parciales</strong> sobre una misma cuota. Si hay cuotas con pagos parciales, primero se deben completar. Refinanciar no se puede deshacer.
+    </div>
+
+    <div class="callout warn">
+      <strong>Anular un contrato</strong>
+      La anulación es un proceso con información de validación y motivos. Solo debe usarse cuando realmente corresponde y siempre con el respaldo documental.
+    </div>
+  </section>
+
+  <!-- ============ 15 PROPIETARIOS ============ -->
+  <section id="propietarios" class="anchor">
+    <h3><span class="badge">15</span>Propietarios</h3>
+    <p class="lead">Directorio de quienes compran tus lotes. Un propietario tiene un rol dentro del lote (titular, cotitular o copropietario), independiente del rol del usuario del sistema.</p>
+
+    <h4>Registrar un propietario</h4>
+    <ul class="steps">
+      <li><b>Ve a Propietarios</b>.</li>
+      <li><b>Pulsa "Nuevo propietario"</b>.</li>
+      <li><b>Vincúlalo a un cliente existente</b> con el buscador de autocompletado, <strong>o</strong> ingresa los datos manualmente.</li>
+      <li><b>Completa el tipo de persona</b> (Natural/Jurídica) y el documento (DNI/RUC).</li>
+      <li><b>Añade datos personales</b>: nombres, teléfono, correo, dirección, distrito/provincia/departamento, fecha de nacimiento, notas y estado activo.</li>
+      <li><b>Guarda</b>. El sistema evita duplicados por documento.</li>
+    </ul>
+
+    <h4>Detalle del propietario</h4>
+    <p>En <code>/admin/propietarios/:id</code> se muestra su perfil completo, sus lotes/proyectos, los contratos asociados y el resumen de pagos y saldos.</p>
+
+    <h4>Importar propietarios desde Excel</h4>
+    <ul class="steps">
+      <li><b>Ve a Propietarios → Importar</b>.</li>
+      <li><b>Descarga la plantilla</b> (Excel/CSV) o sube tu propio archivo.</li>
+      <li><b>Mapea las columnas</b> del archivo a los campos del sistema.</li>
+      <li><b>Validación</b>: corrige los errores de formato que el sistema detecte.</li>
+      <li><b>Importa</b>: el sistema crea los propietarios y, si el archivo incluye cuotas, las recalcula automáticamente.</li>
+    </ul>
+  </section>
+
+  <!-- ============ 16 PAGOS ============ -->
+  <section id="pagos" class="anchor">
+    <h3><span class="badge">16</span>Pagos</h3>
+    <p class="lead">Registro de todos los ingresos de dinero asociados a los contratos, con su comprobante y su aplicación a las cuotas.</p>
+
+    <h4>Registrar un pago</h4>
+    <ul class="steps">
+      <li><b>Ve a Finanzas → Pagos</b>.</li>
+      <li><b>Pulsa "Nuevo pago"</b>.</li>
+      <li><b>Selecciona el contrato/propietario</b> y el concepto.</li>
+      <li><b>Indica monto, fecha y medio de pago</b> (efectivo, transferencia, depósito, cheque, tarjeta, Yape, Plin u otro).</li>
+      <li><b>Adjunta el voucher/comprobante</b> (imagen o PDF, máximo 10 MB).</li>
+      <li><b>Distribución</b>: eliges a qué cuotas aplicar el monto, o el sistema lo aplica automáticamente en orden de vencimiento.</li>
+      <li><b>Guarda</b>.</li>
+    </ul>
+
+    <h4>Interés por mora (cuotas vencidas)</h4>
+    <ul>
+      <li>Si el pago se registra <strong>después de la fecha de vencimiento</strong>, el sistema calcula automáticamente un <strong>interés por mora</strong> según la configuración <strong>"Interés por mora (S/ por día)"</strong> de <strong>Configuración</strong> (importe diario en soles; colócalo en 0 para no aplicar mora).</li>
+      <li>En el formulario de pago, por cada cuota con atraso se muestra <strong>"Atraso X días"</strong> y el interés estimado (S/ diario × días de atraso), y se indica el total de <strong>interés por mora estimado</strong> antes de confirmar.</li>
+      <li>Las cuotas vencidas se cobran <strong>completas: cuota + mora</strong>, desde la más antigua. Si el monto no alcanza a cubrir una cuota vencida y su recargo, el sistema bloquea el cobro e informa el monto faltante.</li>
+      <li><strong>Exonerar mora</strong>: si el cliente ha sido exonerado por acuerdo comercial, marca la casilla <strong>"Exonerar interés de mora para este pago"</strong> y solo se cobra el monto de las cuotas.</li>
+      <li>El interés queda guardado en el <strong>detalle del pago</strong> (días de atraso, interés y si fue exonerado) para control del área de cobranzas. El pago se capitaliza en su totalidad a las cuotas; la mora no se descuenta del monto recibido.</li>
+    </ul>
+
+    <h4>Acciones sobre un pago</h4>
+    <ul>
+      <li><strong>Ver detalle</strong> (/admin/pagos/:id): información del pago, del contrato, del cliente, días de atraso, interés de mora (o su exoneración) y las cuotas aplicadas.</li>
+      <li><strong>Emitir boleta / factura del pago</strong>: desde el detalle del pago puedes generar y descargar la boleta o factura de ese comprobante, con las cuotas y la mora incluida.</li>
+      <li><strong>Editar</strong> notas o el comprobante.</li>
+      <li><strong>Cancelar</strong> un pago (con motivo obligatorio de al menos 10 caracteres): el sistema revierte la aplicación a las cuotas, devuelve el saldo y anula la mora asociada.</li>
+    </ul>
+
+    <div class="callout info">
+      <strong>Importante</strong>
+      Cuando se cancela un pago, las cuotas que había cubierto vuelven a quedar pendientes automáticamente. Registra anulaciones solo cuando el dinero realmente se devuelve o el pago fue erróneo.
+    </div>
+  </section>
+
+  <!-- ============ 17 COBRANZAS ============ -->
+  <section id="cobranzas" class="anchor">
+    <h3><span class="badge">17</span>Cobranzas</h3>
+    <p class="lead">El panel de control de la cartera: cuánto se ha cobrado, cuánto está por cobrar y qué está vencido.</p>
+
+    <h4>Panel de cobranzas</h4>
+    <ul>
+      <li><strong>Total recaudado, por cobrar y vencido</strong> en pantalla.</li>
+      <li><strong>Cartera por proyecto</strong>: la misma información desglosada por proyecto.</li>
+      <li><strong>Ítems de cobranza</strong> con su estado: <em>al día</em>, <em>próximo a vencer</em>, <em>vencido</em> o <em>cancelado</em>, y los días de atraso.</li>
+      <li><strong>Filtros</strong> por proyecto, estado y búsqueda.</li>
+    </ul>
+
+    <h4>Flujo de cobranza paso a paso</h4>
+    <ul class="steps">
+      <li><b>Ve a Finanzas → Cobranzas</b>.</li>
+      <li><b>Revisa qué está por cobrar y qué está vencido</b> con los filtros disponibles.</li>
+      <li><b>Actualiza el cálculo de vencidos</b> (botón de recalcular) cuando quieras reflejar el estado actual de días de atraso.</li>
+      <li><b>Desde cada ítem ve al contrato/propietario</b> y registra el pago correspondiente.</li>
+      <li><b>Consulta el estado de cuenta del propietario</b> para contestar saldos pendientes.</li>
+    </ul>
+
+    <div class="callout ok">
+      <strong>Recuerda</strong>
+      El estado de cada cuota se actualiza con cada pago: al registrar un pago, la cuota pasa a "pagada" o "parcial" y el vencimiento se recalcula.
+    </div>
+  </section>
+
+  <!-- ============ 18 COMISIONES ============ -->
+  <section id="comisiones" class="anchor">
+    <h3><span class="badge">18</span>Comisiones y mensualidades</h3>
+    <p class="lead">Tres módulos para gestionar la compensación de los asesores: porcentajes configurados, comisiones por venta y mensualidades.</p>
+
+    <h4>Porcentajes de comisión</h4>
+    <ul class="steps">
+      <li><b>Ve a Comisiones → Porcentajes</b>.</li>
+      <li><b>Revisa la tabla por proyecto</b> (y por asesor si corresponde).</li>
+      <li><b>Edita el porcentaje (%)</b> que recibirá el asesor al vender un lote.</li>
+      <li><b>Guarda los cambios de forma masiva</b>.</li>
+    </ul>
+
+    <h4>Comisiones por venta</h4>
+    <ul class="steps">
+      <li><b>Ve a Comisiones</b>.</li>
+      <li><b>Revisa las comisiones generadas automáticamente</b> con cada venta (asesor, venta, porcentaje aplicado, monto y estado "pendiente").</li>
+      <li><b>Registra una comisión manualmente</b> si el asesor no tenía porcentaje configurado al momento de la venta.</li>
+      <li><b>Marca como pagada</b> cuando se pague (con fecha y medio).</li>
+      <li><b>Aplica pagos parciales o totales</b> y <strong>anula</strong> la comisión si corresponde.</li>
+      <li><b>Consulta el detalle</b> de cada comisión.</li>
+    </ul>
+
+    <div class="callout ok">
+      <strong>Comisión automática con cada venta</strong>
+      Por cada venta registrada, el sistema crea automáticamente la comisión del asesor vinculado, <strong>siempre y cuando exista un porcentaje de comisión activo configurado</strong> para ese asesor y el proyecto de la venta (Comisiones → Porcentajes de comisión). Se calcula aplicando el porcentaje sobre el <strong>precio total</strong> de la venta y queda con estado <strong>"pendiente"</strong>. Si no hay porcentaje activo, la venta no genera comisión automática y debe crearse manualmente.
+    </div>
+
+    <h4>Mensualidades</h4>
+    <ul class="steps">
+      <li><b>Ve a Mensualidades</b>.</li>
+      <li><b>Registra la planilla mensual</b> de cada asesor (mes y monto).</li>
+      <li><b>Marca como pagada</b> cuando se pague.</li>
+      <li><b>Consulta el historial</b> por asesor y mes.</li>
+    </ul>
+
+    <div class="callout warn">
+      <strong>Un solo porcentaje activo</strong>
+      Por cada asesor y proyecto solo puede existir un porcentaje de comisión activo. Si intentas duplicarlo, el sistema lo impide.
+    </div>
+  </section>
+
+  <!-- ============ 19 ANUNCIOS ============ -->
+  <section id="anuncios" class="anchor">
+    <h3><span class="badge">19</span>Anuncios (pop-ups)</h3>
+    <p class="lead">Ventanas emergentes que se muestran a los visitantes de la web con promociones o avisos importantes.</p>
+
+    <h4>Crear un anuncio</h4>
+    <ul class="steps">
+      <li><b>Ve a Marketing → Anuncios</b>.</li>
+      <li><b>Pulsa "Nuevo anuncio"</b>.</li>
+      <li><b>Elige el tipo</b>: Anuncio o Promoción (se muestran con una etiqueta visual distinta).</li>
+      <li><b>Escribe el título y la descripción</b>.</li>
+      <li><b>Elige el medio</b>: imagen o video.</li>
+      <li><b>Define la vigencia</b>: fecha de inicio y fecha de fin (solo se muestra dentro del rango). Formato <code>dd/mm/aaaa</code>.</li>
+      <li><b>Configura el botón de WhatsApp</b>: el número al que escribirá el visitante al pulsar "Solicito información".</li>
+      <li><b>Asigna el orden de aparición</b> y el interruptor Activo/Inactivo.</li>
+      <li><b>Guarda</b>.</li>
+    </ul>
+
+    <h4>Comportamiento en la web</h4>
+    <ul>
+      <li>El visitante ve el pop-up automáticamente; puede navegar entre varios anuncios (carrusel) y cerrarlo.</li>
+      <li>Una vez visto, no se repite en la misma sesión del navegador.</li>
+      <li>Con botón, el mensaje enviado es: <em>"Hola, estoy interesado en «título» de Netland."</em></li>
+      <li>El sistema valida que la fecha fin no sea anterior al inicio y que no se dupliquen anuncios activos en el mismo período.</li>
+    </ul>
+  </section>
+
+  <!-- ============ 20 MULTIMEDIA ============ -->
+  <section id="multimedia" class="anchor">
+    <h3><span class="badge">20</span>Multimedia</h3>
+    <p class="lead">Repositorio de imágenes, videos y documentos reutilizables del sistema.</p>
+
+    <h4>Usar el módulo</h4>
+    <ul class="steps">
+      <li><b>Ve a Sistema → Multimedia</b>.</li>
+      <li><b>Elige la categoría</b> (galería, videos o documentos).</li>
+      <li><b>Sube tus archivos</b> (máximo 10 MB por archivo).</li>
+      <li><b>Reordena</b> los archivos de la categoría y <strong>elimina</strong> los que no uses.</li>
+    </ul>
+
+    <div class="callout warn">
+      <strong>Límite de tamaño</strong>
+      Archivos de hasta 10 MB por elemento: imágenes, PDFs y videos según el contexto. Los formatos se validan automáticamente.
+    </div>
+  </section>
+
+  <!-- ============ 21 CONFIGURACION ============ -->
+  <section id="configuracion" class="anchor">
+    <h3><span class="badge">21</span>Configuración</h3>
+    <p class="lead">Datos de la empresa que se muestran en la web y en los documentos, más la zona de riesgo para ambientes de prueba.</p>
+
+    <h4>Datos de la empresa</h4>
+    <ul>
+      <li><strong>RUC</strong>, <strong>razón social</strong> y <strong>dirección</strong> (aparecen en la web y en los PDFs).</li>
+      <li><strong>Teléfono / WhatsApp principal</strong> (usado en los botones de contacto).</li>
+      <li><strong>Correo de contacto</strong>.</li>
+      <li><strong>Descripción corta y eslogan</strong>.</li>
+    </ul>
+
+    <h4>Video del hero (portada)</h4>
+    <p>En la portada de la web puedes mostrar un video: una <strong>URL de YouTube</strong> (se detecta automáticamente el ID) o un <strong>archivo directo</strong> (mp4/webm), con su título.</p>
+
+    <h4>Cuentas bancarias</h4>
+    <p>Lista de cuentas para recibir pagos con el formato <em>"Banco - número"</em>. El sistema sugiere los bancos del Perú y permite varias cuentas a la vez.</p>
+
+    <h4>Interés por mora (Cobranzas)</h4>
+    <p>En la sección <strong>"Cobranzas"</strong> de Configuración se define el <strong>"Interés por mora (S/ por día)"</strong>: el importe diario en soles que se suma automáticamente cuando una cuota se paga después de su vencimiento. Colócalo en <strong>0</strong> para no aplicar interés por mora. Este valor se usa en los formularios de pago (Finanzas → Pagos y detalle de contrato).</p>
+
+    <h4>Zona de riesgo (Danger Zone)</h4>
+    <div class="callout danger">
+      <strong>Restablecer datos comerciales</strong>
+      Esta opción, protegida y de uso exclusivo del <strong>administrador del sistema</strong>, borra los datos comerciales (leads, clientes, ventas, contratos, cobranzas, comisiones, anuncios, auditoría y notificaciones) y restaura los lotes de plantilla.
+      <strong>El botón exige escribir "BORRAR TODO" para confirmar.</strong> Úsalo solo en ambientes de prueba. No borra usuarios, proyectos, configuración ni backups.
+    </div>
+  </section>
+
+  <!-- ============ 22 IMPORTACION ============ -->
+  <section id="importacion" class="anchor">
+    <h3><span class="badge">22</span>Importar y exportar datos</h3>
+    <p class="lead">Carga masiva de información desde Excel con un proceso guiado de dos pasos: vista previa y confirmación.</p>
+
+    <h4>Entidades importables y exportables</h4>
+    <table>
+      <thead><tr><th>Datos</th><th>Importar</th><th>Exportar</th><th>Plantilla</th></tr></thead>
+      <tbody>
+        <tr><td>Propietarios</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
+        <tr><td>Pagos</td><td>Sí</td><td>Sí</td><td>—</td></tr>
+        <tr><td>Clientes</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
+        <tr><td>Contratos / Ventas</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
+        <tr><td>Financiamiento</td><td>Sí</td><td>—</td><td>Sí</td></tr>
+        <tr><td>Cuotas</td><td>Sí</td><td>—</td><td>Sí</td></tr>
+        <tr><td>Lotes por proyecto (Excel)</td><td>Sí</td><td>—</td><td>Sí</td></tr>
+      </tbody>
+    </table>
+
+    <h4>Flujo paso a paso de una importación</h4>
+    <ul class="steps">
+      <li><b>Entra al módulo</b> (ej. Propietarios → Importar).</li>
+      <li><b>Descarga la plantilla</b> o sube tu archivo Excel/CSV.</li>
+      <li><b>Mapea las columnas</b> del archivo a los campos del sistema.</li>
+      <li><b>Valida</b>: el sistema detecta errores de formato para corregirlos antes de importar.</li>
+      <li><b>Confirma la importación</b>. El sistema registra cada lote importado y los errores para trazabilidad.</li>
+    </ul>
+
+    <h4>Importación de lotes desde Excel</h4>
+    <p>En el proyecto (subir archivo Excel) puedes importar los lotes usando encabezados en español. El mapeo de estados es: disponible → <em>available</em>, reservado/separado → <em>reserved</em>, vendido → <em>sold</em>, no disponible → <em>not_available</em>.</p>
+
+    <div class="callout info">
+      <strong>Las importaciones quedan registradas</strong>
+      El sistema guarda el historial de cada importación (lote/carga) y los errores detectados, por lo que siempre puedes saber qué se cargó y qué falló.
+    </div>
+  </section>
+
+  <!-- ============ 23 BACKUPS ============ -->
+  <section id="backups" class="anchor">
+    <h3><span class="badge">23</span>Copias de seguridad (Backups)</h3>
+    <p class="lead">Protege toda la información del sistema. Exclusivo del <strong>administrador del sistema</strong>.</p>
+
+    <h4>Crear una copia de seguridad</h4>
+    <ul class="steps">
+      <li><b>Ve a Sistema → Backups</b>.</li>
+      <li><b>Pulsa "Crear backup"</b>. El sistema exporta la base de datos completa en un archivo.</li>
+      <li><b>Espera la confirmación</b>: el backup aparece en la lista con su nombre, tamaño, fecha y tipo.</li>
+    </ul>
+
+    <h4>Acciones con los backups</h4>
+    <ul>
+      <li><strong>Descargar</strong> el archivo de respaldo a tu equipo.</li>
+      <li><strong>Restaurar</strong> una copia: al restaurar, el sistema reemplaza los datos actuales por los del respaldo (informa tablas restauradas y total de registros).</li>
+      <li><strong>Eliminar</strong> backups antiguos con confirmación.</li>
+    </ul>
+
+    <div class="callout danger">
+      <strong>Restaurar reemplaza todo</strong>
+      Restaurar una copia <strong>sobreescribe</strong> los datos actuales del sistema. Asegúrate de que esa sea tu intención antes de confirmar. El botón de reset de datos comerciales (Configuración) no borra los backups.
+    </div>
+  </section>
+
+  <!-- ============ 24 SITIO PUBLICO ============ -->
+  <section id="sitio" class="anchor">
+    <h3><span class="badge">24</span>Sitio web público (lo que ve el cliente)</h3>
+    <p class="lead">La web es la cara de NETLAND ante sus clientes. Estos son sus bloques y las acciones que el cliente puede hacer.</p>
+
+    <h4>Páginas del sitio</h4>
+    <table>
+      <thead><tr><th>Página</th><th>Contenido</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Inicio (/)</strong></td><td>Hero con imágenes o video, proyectos destacados, sellos de confianza ("Invierte con respaldo"), "¿Por qué Netland?", estadísticas, programa "Refiere y Gana" y llamado final.</td></tr>
+        <tr><td><strong>Proyectos (/proyectos)</strong></td><td>Tarjetas con imagen, tipo (Condominio Campestre / Urbanización), nombre, ubicación y "X lotes disponibles".</td></tr>
+        <tr><td><strong>Detalle de proyecto (/proyectos/:slug)</strong></td><td>Video/img de portada, beneficios, plano interactivo, cotizador de inversión, videos, galería ampliable, documentos descargables, mapa y solicitud de visita.</td></tr>
+        <tr><td><strong>Asesores (/asesores)</strong></td><td>Asesores disponibles con foto, cargo, biografía y botones WhatsApp, Llamar y Email.</td></tr>
+        <tr><td><strong>Refiere y Gana (/refiere-y-gana)</strong></td><td>Niveles Bronce/Plata/Oro, 3 pasos, testimonios y formulario de referido en 2 pasos.</td></tr>
+        <tr><td><strong>Contacto (/contacto)</strong></td><td>Formulario de contacto, WhatsApp directo, ubicación y equipo de asesores.</td></tr>
+        <tr><td><strong>Nosotros (/nosotros)</strong></td><td>Historia, misión, visión, valores y respaldo legal.</td></tr>
+      </tbody>
+    </table>
+
+    <h4>El plano interactivo de lotes</h4>
+    <ul>
+      <li>Búsqueda de lote por código o por estado.</li>
+      <li>Leyenda de estados (Disponible, Separado, Vendido, No disponible) con sus colores.</li>
+      <li>Al tocar un lote: código, área, estado, zona, precio, promo y, si aplica, el plus por ubicación.</li>
+      <li>Botones: <strong>"Quiero este lote"</strong> (WhatsApp pre-armado), <strong>"Solicitar información"</strong> (formulario → lead fuente "lote") y <strong>"Consultar por WhatsApp"</strong>.</li>
+      <li>Si hay PDF del plano: botones "Ver PDF" y "Descargar PDF".</li>
+    </ul>
+
+    <h4>El cotizador de inversión ("Simula tu inversión")</h4>
+    <ul class="steps">
+      <li><b>El cliente selecciona su lote</b> (solo disponibles).</li>
+      <li><b>Ve el precio por m²</b> autocompletado (editable).</li>
+      <li><b>Define la inicial (S/)</b> y el <b>número de cuotas</b> (6, 12, 18, 24, 36, 48 o 60).</li>
+      <li><b>Ve el resumen</b>: lote, área, precio, inicial, saldo a financiar y valor de cuota.</li>
+      <li><b>Pulsa "Quiero esta cotización"</b>, llena sus datos y envía. Se crea el lead con fuente "cotizador" para que tu asesor le envíe la cotización detallada.</li>
+    </ul>
+
+    <h4>"Refiere y Gana"</h4>
+    <ul>
+      <li><strong>Niveles:</strong> Bronce (1–2 referidos), Plata (3–5) y Oro (6+), con sus beneficios.</li>
+      <li><strong>Formulario en 2 pasos:</strong> datos del referente → datos del referido (con autorización expresa obligatoria).</li>
+      <li>Al enviar, se crea un lead con fuente "referido" y el mensaje incluye el programa, el referente y su contacto.</li>
+    </ul>
+
+    <h4>Validaciones de los formularios del sitio</h4>
+    <ul>
+      <li><strong>Teléfono/WhatsApp:</strong> obligatorio, 9 dígitos y debe empezar con 9 (numeración móvil peruana).</li>
+      <li><strong>Nombre:</strong> obligatorio y sin números.</li>
+      <li><strong>Correo:</strong> opcional; si se escribe, debe tener formato válido.</li>
+    </ul>
+
+    <h4>Elementos globales</h4>
+    <ul>
+      <li>Barra de navegación fija y botón flotante de WhatsApp en todas las páginas.</li>
+      <li>Pop-up de anuncios (cuando hay anuncios activos).</li>
+      <li>SEO automático y datos estructurados para Google en el detalle de cada proyecto.</li>
+    </ul>
+  </section>
+
+  <!-- ============ 25 FLUJO COMPLETO ============ -->
+  <section id="flujo" class="anchor">
+    <h3><span class="badge">25</span>Flujo completo: de la web a la venta</h3>
+    <p class="lead">El recorrido ideal de un cliente, de principio a fin, usando todas las piezas del sistema. Súbelo como guía de capacitación.</p>
+
+    <ol class="steps">
+      <li><b>El prospecto llega a la web</b> Por redes, anuncios o referidos. Ve el proyecto, explora el plano, usa el cotizador o llena el formulario de contacto/visita.</li>
+      <li><b>Se genera el lead automáticamente</b> El sistema crea el lead y lo asigna al asesor disponible. El lead aparece en <strong>Comercial → Leads</strong> con su fuente y su cliente en <strong>Clientes captados</strong>.</li>
+      <li><b>El asesor contacta y avanza el lead</b> Cambia el estado (nuevo → contactado → interesado), contacta por WhatsApp y agenda una <strong>visita</strong>.</li>
+      <li><b>Visita al proyecto</b> Registra la visita, la confirma y la marca como realizada cuando ocurra.</li>
+      <li><b>Cotización</b> Genera la <strong>cotización</strong> (contado o financiado) con el lote elegido, descarga el PDF y la envía por WhatsApp.</li>
+      <li><b>Negociación y separación</b> El lead pasa a "negociando" y, si el cliente separa, registra los datos de reserva en el lote (estado "Separado").</li>
+      <li><b>Venta</b> En <strong>Ventas → Nueva venta</strong> completa el cliente, lotes, asesor, precios, modalidad y vouchers. El sistema crea el <strong>contrato</strong>, vincula al <strong>propietario</strong>, marca el lote <strong>vendido</strong> y genera el <strong>cronograma de cuotas</strong> si es financiado.</li>
+      <li><b>Emitir documentación</b> Desde el contrato, descarga el PDF, emite proforma/boleta/factura (incluso la boleta o factura de cada pago) y comparte el cronograma de pagos. Si el cliente lo solicita, refinancia el cronograma desde el mismo detalle.</li>
+      <li><b>Cobranza</b> En <strong>Finanzas → Cobranzas</strong> se da seguimiento a la cartera; cada pago se registra en <strong>Pagos</strong> con su medio y voucher. Si hay cuotas vencidas, se calcula la <strong>mora</strong> automáticamente (con opción de exonerarla) y se aplica a las cuotas en orden.</li>
+      <li><b>Comisión y mensualidades</b> La <strong>comisión</strong> del asesor se genera automáticamente al vender (si hay porcentaje configurado); el admin la paga desde <strong>Comisiones</strong> y registra sus <strong>mensualidades</strong>.</li>
+      <li><b>Seguimiento global</b> Todo queda reflejado en el <strong>Dashboard</strong> (KPIs, embudo, tendencias, ranking de asesores) y protegido con <strong>backups</strong> periódicos.</li>
+    </ol>
+
+    <div class="flow">
+      <span class="node">Web / Anuncio / Referido</span><span class="arrow">→</span>
+      <span class="node">Lead captado</span><span class="arrow">→</span>
+      <span class="node">Contacto + Visita</span><span class="arrow">→</span>
+      <span class="node">Cotización</span><span class="arrow">→</span>
+      <span class="node">Separación</span><span class="arrow">→</span>
+      <span class="node">Venta + Contrato</span><span class="arrow">→</span>
+      <span class="node">Cobranza</span><span class="arrow">→</span>
+      <span class="node">Comisión</span>
+    </div>
+  </section>
+
+  <!-- ============ 26 NOTAS ============ -->
+  <section id="notas" class="anchor">
+    <h3><span class="badge">26</span>Notas operativas y preguntas frecuentes</h3>
+
+    <h4>Límites de archivos</h4>
+    <p>Adjuntos (vouchers, imágenes, documentos, videos): máximo <strong>10 MB por archivo</strong>; formatos de imagen, PDF y video según el contexto. En proyectos, los archivos se organizan por carpeta automáticamente.</p>
+
+    <h4>Cambios en tiempo real</h4>
+    <p>Publicar/despublicar un proyecto, cambiar el estado de un lote, subir fotos o activar anuncios se refleja en la web <strong>de inmediato</strong>, sin pasos extra.</p>
+
+    <h4>Números y WhatsApp del sistema</h4>
+    <ul>
+      <li>Número principal configurable (por defecto <strong>985 928 062</strong> / +51 985 928 062).</li>
+      <li>Los botones abren WhatsApp con mensajes pre-armados según el contexto: lote (proyecto + código + precio), visita, cotización, contacto y anuncios.</li>
+    </ul>
+
+    <h4>Preguntas frecuentes</h4>
+    <table>
+      <thead><tr><th>Pregunta</th><th>Respuesta</th></tr></thead>
+      <tbody>
+        <tr><td>No veo una sección del menú</td><td>Tu rol no incluye ese módulo. Consulta la tabla de roles (sección 03).</td></tr>
+        <tr><td>Mi sesión se cerró sola</td><td>Tu token de acceso expiró. Vuelve a iniciar sesión.</td></tr>
+        <tr><td>¿Qué pasa si un cliente separa y luego no compra?</td><td>Regresa el lote a "Disponible" (edita el lote) y descarta o archiva el lead.</td></tr>
+        <tr><td>¿Cómo corrijo un pago registrado por error?</td><td>Edita el pago o cancélalo con su motivo; las cuotas se restablecen automáticamente.</td></tr>
+        <tr><td>¿Cómo evito perder datos?</td><td>El administrador del sistema debe crear backups periódicos y descargar una copia a un lugar seguro.</td></tr>
+        <tr><td>¿Puedo borrar todos los datos de prueba?</td><td>Sí, solo el administrador del sistema desde Configuración → Zona de riesgo (exige escribir "BORRAR TODO"). Úsalo solo en prueba.</td></tr>
+        <tr><td>Mis clientes captados no aparecen al vender</td><td>Todos los clientes captados son visibles para ADMIN, VENTAS y SUPERVISOR al registrar una venta. Si eres ASESOR, solo ves los tuyos en el CRM.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout ok">
+      <strong>¿Más dudas?</strong>
+      Coordina con tu administrador del sistema. Este manual se actualiza con cada nueva funcionalidad.
+    </div>
+  </section>
+
+  <footer>
+    <span>© NETLAND Corporación Inmobiliaria — Manual de Usuario v2</span>
+    <span>Documento de uso interno · Actualizado con todas las funcionalidades del sistema</span>
+  </footer>
+</div>
+
+<button class="totop" id="totop" aria-label="Volver arriba">&#8593;</button>
+
+<script>
+(function () {
+  var sidebar = document.getElementById('sidebar');
+  var burger = document.getElementById('burger');
+  var closeBtn = document.getElementById('closeSidebar');
+  var totop = document.getElementById('totop');
+  var links = document.querySelectorAll('#toc a');
+
+  function toggleSidebar(open) {
+    if (open) sidebar.classList.add('open');
+    else sidebar.classList.remove('open');
+  }
+  if (burger) burger.addEventListener('click', function () { toggleSidebar(true); });
+  if (closeBtn) closeBtn.addEventListener('click', function () { toggleSidebar(false); });
+  links.forEach(function (l) {
+    l.addEventListener('click', function () { toggleSidebar(false); });
+  });
+
+  window.addEventListener('scroll', function () {
+    if (window.scrollY > 500) totop.classList.add('show');
+    else totop.classList.remove('show');
+  }, {passive: true});
+  totop.addEventListener('click', function () {
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  });
+})();
+</script>
+
+</body>
+</html>
