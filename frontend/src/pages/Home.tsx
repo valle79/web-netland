@@ -351,11 +351,10 @@ function ProjectsSection({
           <div className="mb-14 max-w-2xl">
             <p className="eyebrow">Nuestros proyectos</p>
             <h2 className="text-balance font-display text-4xl font-semibold text-netland-dark sm:text-5xl">
-              Lugares pensados para crecer
+              El lugar donde comienza tu futuro
             </h2>
             <p className="mt-4 text-netland-muted">
-              Descubre proyectos inmobiliarios en Cañete diseñados para familias
-              e inversionistas que buscan seguridad y calidad de vida.
+              Descubre proyectos inmobiliarios en Cañete pensados para quienes buscan un lugar para vivir, invertir y construir nuevas oportunidades.
             </p>
           </div>
         </Reveal>
@@ -597,8 +596,7 @@ function ReferralSection() {
               Tu mejor publicidad eres tú
             </h2>
             <p className="mt-4 text-netland-muted">
-              Invita a tus amigos y familiares a invertir en Netland y gana
-              beneficios por cada persona que decida dar el paso.
+              ¿Conoces a alguien que busca un lugar para vivir o invertir? Recomiéndale un proyecto Netland y, si concreta su compra, recibe beneficios por tu referido.
             </p>
           </div>
         </Reveal>

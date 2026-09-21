@@ -2,7 +2,9 @@ import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Navbar } from "./components/layout/Navbar";
 import { Footer } from "./components/layout/Footer";
+import { ScrollToTop } from "./components/layout/ScrollToTop";
 import { WhatsAppFloat } from "./components/layout/WhatsAppFloat";
+import { SocialFloat } from "./components/layout/SocialFloat";
 import { AnnouncementPopup } from "./components/AnnouncementPopup";
 import { PageLoader } from "./components/ui/PageLoader";
 import { ToastProvider } from "./components/ui/Toast";
@@ -324,11 +326,13 @@ export default function App() {
 function PublicLayout() {
   return (
     <div className="flex min-h-screen flex-col">
+      <ScrollToTop />
       <Navbar />
       <main className="flex-1">
         <Outlet />
       </main>
       <Footer />
+      <SocialFloat />
       <WhatsAppFloat />
       <AnnouncementPopup />
     </div>

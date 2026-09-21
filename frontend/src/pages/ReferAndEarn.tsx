@@ -12,7 +12,6 @@ import {
   Star,
   Sparkles,
   Heart,
-  Target,
   Zap,
   Crown,
   BadgeCheck,
@@ -227,11 +226,7 @@ export default function ReferAndEarn() {
           <div className="mx-auto max-w-4xl text-center">
             <Reveal>
               {/* Badge animado */}
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/20 px-6 py-2 backdrop-blur-sm">
-                <PartyPopper className="h-5 w-5 text-yellow-300 animate-bounce" />
-                <span className="text-sm font-bold uppercase tracking-wider">¡Nuevo programa de referidos!</span>
-                <Sparkles className="h-5 w-5 text-yellow-300 animate-pulse" />
-              </div>
+
 
               <h1 className="text-balance font-display text-5xl font-black leading-tight drop-shadow-2xl sm:text-6xl lg:text-7xl">
                 Comparte la oportunidad,{" "}
@@ -254,7 +249,6 @@ export default function ReferAndEarn() {
                   <span className="relative z-10 flex items-center gap-2">
                     <Gift className="h-5 w-5" />
                     Referir ahora
-                    <Sparkles className="h-5 w-5" />
                   </span>
                 </a>
                 <a
@@ -364,10 +358,7 @@ export default function ReferAndEarn() {
         <div className="container-netland">
           <div className="mx-auto mb-16 max-w-3xl text-center">
             <Reveal>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm">
-                <Target className="h-4 w-4 text-emerald-600" />
-                <span className="text-sm font-bold uppercase tracking-wider text-emerald-900">Proceso simple</span>
-              </div>
+
               <h2 className="font-display text-4xl font-bold text-netland-dark lg:text-5xl">
                 Solo 3 pasos para ganar
               </h2>
@@ -460,10 +451,7 @@ export default function ReferAndEarn() {
         <div className="container-netland">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <Reveal>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
-                <Star className="h-4 w-4 text-yellow-400" />
-                <span className="text-sm font-bold uppercase tracking-wider">Historias reales</span>
-              </div>
+
               <h2 className="font-display text-4xl font-bold lg:text-5xl">
                 Lo que dicen nuestros referidores
               </h2>
@@ -520,7 +508,6 @@ export default function ReferAndEarn() {
           <div>
             <Reveal>
               <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm">
-                <Sparkles className="h-4 w-4 text-emerald-600" />
                 <span className="text-sm font-bold uppercase tracking-wider text-emerald-900">Empieza hoy</span>
               </div>
               <h2 className="font-display text-4xl font-bold text-netland-dark lg:text-5xl">
@@ -563,7 +550,7 @@ export default function ReferAndEarn() {
                       </div>
                     </div>
                     <h2 className="mt-8 font-display text-3xl font-bold text-netland-dark">
-                      ¡Recomendación enviada! 🎉
+                      ¡Recomendación enviada!
                     </h2>
                     <p className="mt-4 max-w-sm text-lg leading-relaxed text-netland-muted">
                       Gracias por confiar en Netland. Nuestro equipo contactará a tu referido en las próximas 24 horas.
@@ -797,10 +784,7 @@ export default function ReferAndEarn() {
         <div className="container-netland relative z-10 text-center">
           <Reveal>
             <div className="mx-auto max-w-3xl">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/20 px-6 py-2 backdrop-blur-sm">
-                <Zap className="h-5 w-5 text-netland-accent" />
-                <span className="font-bold uppercase tracking-wider">Empieza ahora</span>
-              </div>
+
               <h2 className="font-display text-4xl font-black lg:text-5xl">
                 ¿Listo para empezar a ganar?
               </h2>

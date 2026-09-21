@@ -480,6 +480,19 @@ export default function SiteSettings() {
                   className="w-full rounded-lg border border-netland-light bg-netland-background px-4 py-3 text-sm outline-none transition-colors focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20"
                 />
               </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-netland-dark">
+                  TikTok
+                </label>
+                <input
+                  type="url"
+                  value={currentConfig.company_tiktok || ""}
+                  onChange={(e) => handleChange("company_tiktok", e.target.value)}
+                  placeholder="https://tiktok.com/@netland"
+                  className="w-full rounded-lg border border-netland-light bg-netland-background px-4 py-3 text-sm outline-none transition-colors focus:border-netland-primary focus:ring-2 focus:ring-netland-primary/20"
+                />
+              </div>
             </div>
           </div>
         </div>
